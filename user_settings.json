@@ -1,0 +1,59 @@
+{
+  "user": {
+    "name": "Mark Monahan",
+    "email": "",
+    "role": "Fixtures Secretary",
+    "created_date": "2025-09-06T13:39:57.794332"
+  },
+  "managed_teams": [
+    "U9 Red",
+    "U14 Red",
+    "U14 Black",
+    "U14 Girls Red",
+    "U14 White"
+  ],
+  "pitches": {
+    "Stanley Deason 3G": {
+      "name": "Stanley Deason 3G",
+      "address": "Stanley Deason Leisure Centre, 120 Wilson Avenue, BN2 5BP",
+      "parking": "Stanley Deason Leisure Centre (120 Wilson Avenue, BN2 5BP) - this is NOT at the Dorothy Stringer campus. Parking will be obvious when you arrive at the centre.",
+      "toilets": "Toilets can be found within the main leisure centre building",
+      "special_instructions": "Stanley Deason 3G: Please pay special attention to the details about footwear below.\n\nStrict Boot Policy: Stanley Deason 3G pitch has strict boot rules and centre staff that will be doing a boot check before kick-off.\n\nThe following footwear is Not Allowed (including coaches and anyone entering the playing area)\n\u2022 Any Dirty Boots\n\u2022 Trainers\n\u2022 Old Style Blades\n\u2022 Astro Boots\n\nThe Following Footwear is Allowed\n\u2022 All Screw in Studs (including metal studs)\n\u2022 Modern Moulded Stud Football Boots",
+      "opening_notes": "3G Opens at 9am. Mark pitch out with cones and push goals into place. Push goals off pitch after match. Be strict with timings.",
+      "warm_up_notes": "20 minutes warm up on 3G. Be strict with timings."
+    },
+    "Dorothy Stringer 3G": {
+      "name": "Dorothy Stringer 3G",
+      "address": "Dorothy Stringer School, Loder Road, BN1 6PL",
+      "parking": "Parking for all of these pitches is at Dorothy Stringer School, Loder Road, BN1 6PL. Follow the blue lines on the map below to reach your designated pitch.",
+      "toilets": "Toilet Access for all attendees to Stringer/Varndean/Balfour is in Dorothy Stringer opposite the 3G entrance.",
+      "special_instructions": "Map for Dorothy Stringer / Varndean / Balfour only (Stanley Deason 3G users please see info above and use the other postcode)\n\n[Note: Withdean Pitches.png map would be attached to email]",
+      "opening_notes": "3G Opens at 9:30am. Push 9v9 Goals into place (may need to push other goals off the pitch). Push 9v9 goals to the side after match.",
+      "warm_up_notes": "20 minutes warm up on 3G. Push 11v11 goals into place and keep them on the pitch for match after you."
+    },
+    "Balfour School Pitch": {
+      "name": "Balfour School Pitch",
+      "address": "Balfour School, Brighton",
+      "parking": "Parking for all of these pitches is at Dorothy Stringer School, Loder Road, BN1 6PL. Follow the blue lines on the map below to reach your designated pitch.",
+      "toilets": "Toilet Access for all attendees to Stringer/Varndean/Balfour is in Dorothy Stringer opposite the 3G entrance.",
+      "special_instructions": "Map for Dorothy Stringer / Varndean / Balfour only (Stanley Deason 3G users please see info above and use the other postcode)",
+      "opening_notes": "Push goals into place (unlocked by Jordan). Keep goals out.",
+      "warm_up_notes": "20 minutes warm up on pitch. Put goals away after match (next to each other on school-side fence, where the chain lock is located)"
+    },
+    "Varndean College": {
+      "name": "Varndean College",
+      "address": "Varndean College, Brighton",
+      "parking": "Parking for all of these pitches is at Dorothy Stringer School, Loder Road, BN1 6PL. Follow the blue lines on the map below to reach your designated pitch.",
+      "toilets": "Toilet Access for all attendees to Stringer/Varndean/Balfour is in Dorothy Stringer opposite the 3G entrance.",
+      "special_instructions": "Map for Dorothy Stringer / Varndean / Balfour only (Stanley Deason 3G users please see info above and use the other postcode)",
+      "opening_notes": "Push goals into place (unlocked by Jordan). Push goals back (next to other 11v11 goals) after match.",
+      "warm_up_notes": ""
+    }
+  },
+  "preferences": {
+    "default_referee_note": "Referees have been requested for all fixtures but are as yet unconfirmed",
+    "default_colours": "Withdean Youth FC play in Red and Black Shirts, Black Shorts and Red and Black Hooped Socks",
+    "email_signature": "Many thanks\n\nWithdean Youth FC",
+    "default_day": "Sunday"
+  }
+}

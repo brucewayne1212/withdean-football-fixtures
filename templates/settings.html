@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Withdean Youth FC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-cog text-danger"></i> 
+            Settings
+        </h1>
+    </div>
+</div>
+
+<!-- User Information -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user"></i> User Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="userForm" method="POST" action="/settings/user">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               value="{{ user_info.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" 
+                               value="{{ user_info.email }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="role" class="form-label">Role</label>
+                        <input type="text" class="form-control" id="role" name="role" 
+                               value="{{ user_info.role }}">
+                    </div>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-save"></i> Save User Info
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle"></i> Account Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <th>Managed Teams:</th>
+                        <td><span class="badge bg-primary">{{ managed_teams|length }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Configured Pitches:</th>
+                        <td><span class="badge bg-success">{{ pitches|length }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Account Created:</th>
+                        <td>{{ user_info.created_date[:10] if user_info.created_date else 'Unknown' }}</td>
+                    </tr>
+                </table>
+                <hr>
+                <small class="text-muted">
+                    <i class="fas fa-shield-alt"></i> 
+                    All settings are stored locally on this device.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Team Management -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-users"></i> Your Managed Teams ({{ managed_teams|length }})
+                </h5>
+                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#selectTeamsModal">
+                    <i class="fas fa-edit"></i> Select Teams
+                </button>
+            </div>
+            <div class="card-body">
+                {% if managed_teams %}
+                <div class="row">
+                    {% for team in managed_teams %}
+                    <div class="col-md-3 mb-2">
+                        <div class="badge bg-danger fs-6 w-100 text-start">
+                            <i class="fas fa-futbol"></i> {{ team }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-users-slash fa-2x mb-3"></i>
+                    <p>No teams selected. Click "Select Teams" to choose your managed teams.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pitch Management -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-map-marker-alt"></i> Pitch Configurations ({{ pitches|length }})
+                </h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#addPitchModal">
+                        <i class="fas fa-plus"></i> Add Pitch
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if pitches %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Pitch Name</th>
+                                <th>Address</th>
+                                <th>Special Rules</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pitch_name, pitch in pitches.items() %}
+                            <tr>
+                                <td><strong>{{ pitch.name }}</strong></td>
+                                <td><small>{{ pitch.address[:50] }}{% if pitch.address|length > 50 %}...{% endif %}</small></td>
+                                <td>
+                                    {% if 'boot' in pitch.special_instructions.lower() or 'footwear' in pitch.special_instructions.lower() %}
+                                        <span class="badge bg-warning">Boot Policy</span>
+                                    {% endif %}
+                                    {% if pitch.opening_notes %}
+                                        <span class="badge bg-info">Setup Notes</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="editPitch('{{ pitch_name }}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="deletePitch('{{ pitch_name }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-map-marked fa-2x mb-3"></i>
+                    <p>No pitch configurations found. Add pitches to customize email templates.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Email Preferences -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-envelope"></i> Email Preferences
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/settings/preferences">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="default_referee_note" class="form-label">Default Referee Note</label>
+                                <textarea class="form-control" id="default_referee_note" name="default_referee_note" rows="2">{{ preferences.default_referee_note }}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="default_colours" class="form-label">Default Home Colours</label>
+                                <input type="text" class="form-control" id="default_colours" name="default_colours" 
+                                       value="{{ preferences.default_colours }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email_signature" class="form-label">Email Signature</label>
+                                <textarea class="form-control" id="email_signature" name="email_signature" rows="3">{{ preferences.email_signature }}</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="default_day" class="form-label">Default Match Day</label>
+                                <select class="form-select" id="default_day" name="default_day">
+                                    <option value="Saturday" {{ 'selected' if preferences.default_day == 'Saturday' }}>Saturday</option>
+                                    <option value="Sunday" {{ 'selected' if preferences.default_day == 'Sunday' }}>Sunday</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-save"></i> Save Preferences
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Team Selection Modal -->
+<div class="modal fade" id="selectTeamsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Your Managed Teams</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/settings/teams">
+                <div class="modal-body">
+                    <p class="text-muted">Choose all the teams you manage from the list below:</p>
+                    <div class="row">
+                        {% for team in all_teams %}
+                        <div class="col-md-4 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="teams" 
+                                       value="{{ team }}" id="team_{{ loop.index }}"
+                                       {{ 'checked' if team in managed_teams }}>
+                                <label class="form-check-label" for="team_{{ loop.index }}">
+                                    {{ team }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-save"></i> Save Team Selection
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Pitch Modal -->
+<div class="modal fade" id="addPitchModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pitchModalTitle">Add New Pitch</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="pitchForm" method="POST" action="/settings/pitch">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="pitch_name" class="form-label">Pitch Name *</label>
+                                <input type="text" class="form-control" id="pitch_name" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="pitch_address" class="form-label">Address</label>
+                                <input type="text" class="form-control" id="pitch_address" name="address">
+                            </div>
+                            <div class="mb-3">
+                                <label for="pitch_parking" class="form-label">Parking Information</label>
+                                <textarea class="form-control" id="pitch_parking" name="parking" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="pitch_toilets" class="form-label">Toilet Facilities</label>
+                                <textarea class="form-control" id="pitch_toilets" name="toilets" rows="2"></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="pitch_special" class="form-label">Special Instructions</label>
+                                <textarea class="form-control" id="pitch_special" name="special_instructions" rows="4" 
+                                          placeholder="e.g., Boot policies, equipment rules, etc."></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="pitch_opening" class="form-label">Setup/Opening Notes</label>
+                                <textarea class="form-control" id="pitch_opening" name="opening_notes" rows="3" 
+                                          placeholder="e.g., Arrival time, goal setup, etc."></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="pitch_warmup" class="form-label">Warm-up Notes</label>
+                                <textarea class="form-control" id="pitch_warmup" name="warm_up_notes" rows="2" 
+                                          placeholder="e.g., Warm-up time, pitch preparation"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Save Pitch
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editPitch(pitchName) {
+    // Fetch pitch data and populate modal
+    fetch(`/settings/pitch/${encodeURIComponent(pitchName)}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('pitchModalTitle').textContent = 'Edit Pitch';
+            document.getElementById('pitch_name').value = data.name || '';
+            document.getElementById('pitch_address').value = data.address || '';
+            document.getElementById('pitch_parking').value = data.parking || '';
+            document.getElementById('pitch_toilets').value = data.toilets || '';
+            document.getElementById('pitch_special').value = data.special_instructions || '';
+            document.getElementById('pitch_opening').value = data.opening_notes || '';
+            document.getElementById('pitch_warmup').value = data.warm_up_notes || '';
+            
+            const modal = new bootstrap.Modal(document.getElementById('addPitchModal'));
+            modal.show();
+        })
+        .catch(error => {
+            alert('Error loading pitch data');
+        });
+}
+
+function deletePitch(pitchName) {
+    if (confirm(`Are you sure you want to delete the pitch configuration for "${pitchName}"?`)) {
+        fetch(`/settings/pitch/${encodeURIComponent(pitchName)}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting pitch');
+            }
+        })
+        .catch(error => {
+            alert('Error deleting pitch');
+        });
+    }
+}
+
+// Reset modal when adding new pitch
+document.addEventListener('DOMContentLoaded', function() {
+    const addPitchModal = document.getElementById('addPitchModal');
+    addPitchModal.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('pitchModalTitle').textContent = 'Add New Pitch';
+        document.getElementById('pitchForm').reset();
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+
+{% block title %}Email Preview - {{ task.team }} vs {{ task.opposition }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-envelope text-danger"></i> 
+            Email Preview: {{ task.team }} vs {{ task.opposition if task.opposition and task.opposition != 'nan' else 'TBC' }}
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Generated Email</h5>
+            </div>
+            <div class="card-body">
+                <!-- Copy Options (Top) -->
+                <div class="mb-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-success w-100" onclick="copyAsFormattedText()">
+                                <i class="fas fa-magic"></i> Copy as Formatted Text
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-secondary w-100" onclick="copyAsPlainText()">
+                                <i class="fas fa-copy"></i> Copy as Plain Text
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subject Line -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Subject:</label>
+                    <div class="border rounded p-2 bg-light">
+                        <code id="emailSubject">{{ subject }}</code>
+                        <button class="btn btn-sm btn-outline-secondary float-end" onclick="copySubject()">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Email Content Preview -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Email Preview:</label>
+                    <div class="border rounded p-3 bg-white" id="emailPreview" style="font-family: Arial, sans-serif;">
+                        {{ email_content|safe }}
+                    </div>
+                    <div class="form-text">
+                        <i class="fas fa-info-circle text-info"></i> 
+                        This shows how the email will look. Use the copy buttons below to get the correct format for pasting.
+                    </div>
+                </div>
+                
+                <!-- Copy Options -->
+                <div class="mb-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-success w-100" onclick="copyAsFormattedText()">
+                                <i class="fas fa-magic"></i> Copy as Formatted Text
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-secondary w-100" onclick="copyAsPlainText()">
+                                <i class="fas fa-copy"></i> Copy as Plain Text
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Hidden content for copying -->
+                <div id="emailHTML" style="display: none;">{{ email_content }}</div>
+                <div id="emailPlainText" style="display: none;"></div>
+            </div>
+        </div>
+        
+        <!-- Mark as Completed -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6>Mark Task as Completed</h6>
+                <form id="completeForm">
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes (optional):</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="e.g., Email sent to Hollingbury Hawks at 2:30pm"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> Mark as Completed
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Task Details</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <th>Team:</th>
+                        <td>{{ task.team }}</td>
+                    </tr>
+                    <tr>
+                        <th>Opposition:</th>
+                        <td>{{ task.opposition if task.opposition and task.opposition != 'nan' else 'TBC' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Type:</th>
+                        <td>
+                            <span class="badge bg-warning">
+                                <i class="fas fa-home"></i> Home Game
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Pitch:</th>
+                        <td>{{ task.pitch if task.pitch and task.pitch != 'nan' else 'TBC' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Time:</th>
+                        <td>{{ task.kickoff_time if task.kickoff_time and task.kickoff_time != 'nan' else 'TBC' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb"></i> Next Steps
+                </h6>
+            </div>
+            <div class="card-body">
+                <ol class="small mb-0">
+                    <li><strong>Copy as Formatted Text</strong> for best results in most email clients</li>
+                    <li>Open your email client and compose a new email</li>
+                    <li>Paste the subject line (using the copy button above)</li>
+                    <li>Paste the email content (formatting preserved)</li>
+                    <li>Send to the opposition team</li>
+                    <li>Mark this task as completed</li>
+                </ol>
+                <div class="alert alert-info mt-2 small">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Tip:</strong> "Copy as Formatted Text" provides clean, readable text that works well in any email client!
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-3">
+            <a href="{{ url_for('view_tasks') }}" class="btn btn-secondary w-100">
+                <i class="fas fa-arrow-left"></i> Back to Tasks
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copySubject() {
+    const subject = document.getElementById('emailSubject').textContent;
+    navigator.clipboard.writeText(subject).then(() => {
+        showToast('Subject copied to clipboard!');
+    });
+}
+
+function copyAsPlainText() {
+    const htmlContent = document.getElementById('emailHTML').innerHTML;
+    const plainText = convertHtmlToPlainText(htmlContent);
+    
+    navigator.clipboard.writeText(plainText).then(() => {
+        showToast('Email content copied as plain text!');
+    }).catch(() => {
+        fallbackCopy(plainText, 'Plain text copied to clipboard!');
+    });
+}
+
+function copyAsFormattedText() {
+    // This creates a version that maintains visual formatting but removes HTML tags
+    const htmlContent = document.getElementById('emailHTML').innerHTML;
+    const formattedText = convertHtmlToFormattedText(htmlContent);
+    
+    try {
+        // Create both HTML and plain text versions for maximum compatibility
+        const cleanHtml = createCleanHtml(formattedText);
+        const htmlBlob = new Blob([cleanHtml], { type: 'text/html' });
+        const textBlob = new Blob([formattedText], { type: 'text/plain' });
+        
+        const clipboardItem = new ClipboardItem({
+            'text/html': htmlBlob,
+            'text/plain': textBlob
+        });
+        
+        navigator.clipboard.write([clipboardItem]).then(() => {
+            showToast('Email content copied as formatted text (best for most email clients)!');
+        }).catch(() => {
+            fallbackCopy(formattedText, 'Formatted text copied to clipboard!');
+        });
+    } catch (error) {
+        fallbackCopy(formattedText, 'Formatted text copied to clipboard!');
+    }
+}
+
+function fallbackCopy(text, message) {
+    // Fallback for browsers that don't support ClipboardItem
+    navigator.clipboard.writeText(text).then(() => {
+        showToast(message);
+    }).catch(() => {
+        // Ultimate fallback - show in a modal for manual copying
+        showCopyModal(text);
+    });
+}
+
+function convertHtmlToPlainText(html) {
+    // Create a temporary div to parse HTML
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    
+    // Convert common HTML elements to plain text equivalents
+    const strongElements = temp.querySelectorAll('strong');
+    strongElements.forEach(el => {
+        el.outerHTML = `**${el.textContent}**`;
+    });
+    
+    const h3Elements = temp.querySelectorAll('h3');
+    h3Elements.forEach(el => {
+        el.outerHTML = `\n\n${el.textContent.toUpperCase()}\n`;
+    });
+    
+    const pElements = temp.querySelectorAll('p');
+    pElements.forEach(el => {
+        el.outerHTML = el.textContent + '\n\n';
+    });
+    
+    // Handle line breaks
+    temp.innerHTML = temp.innerHTML.replace(/<br>/gi, '\n');
+    
+    return temp.textContent.replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function convertHtmlToFormattedText(html) {
+    // Create a temporary div to parse HTML while preserving visual formatting
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    
+    // Remove script and style elements
+    const scripts = temp.querySelectorAll('script, style');
+    scripts.forEach(el => el.remove());
+    
+    // Convert tables to formatted text
+    const tables = temp.querySelectorAll('table');
+    tables.forEach(table => {
+        let tableText = '\n';
+        const rows = table.querySelectorAll('tr');
+        
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td, th');
+            if (cells.length >= 2) {
+                const key = cells[0].textContent.trim();
+                const value = cells[1].textContent.trim();
+                if (key && value && !key.includes('Detail') && !key.includes('Information')) {
+                    tableText += `${key}: ${value}\n`;
+                }
+            }
+        });
+        
+        table.outerHTML = tableText;
+    });
+    
+    // Convert headings to formatted text
+    const headings = temp.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    headings.forEach(heading => {
+        const text = heading.textContent.trim();
+        heading.outerHTML = `\n${text.toUpperCase()}\n${'='.repeat(text.length)}\n`;
+    });
+    
+    // Handle paragraphs with key-value pairs
+    const paragraphs = temp.querySelectorAll('p');
+    paragraphs.forEach(p => {
+        const text = p.textContent.trim();
+        if (text.includes(':') && !text.includes('\n')) {
+            const [key, ...valueParts] = text.split(':');
+            const value = valueParts.join(':').trim();
+            if (key.trim() && value) {
+                p.outerHTML = `${key.trim()}: ${value}\n\n`;
+            } else {
+                p.outerHTML = text + '\n\n';
+            }
+        } else {
+            p.outerHTML = text + '\n\n';
+        }
+    });
+    
+    // Handle line breaks
+    temp.innerHTML = temp.innerHTML.replace(/<br\s*\/?>/gi, '\n');
+    
+    // Get final text and clean up
+    let text = temp.textContent || temp.innerText || '';
+    
+    // Clean up formatting
+    text = text
+        .replace(/\n{3,}/g, '\n\n')  // Max 2 consecutive newlines
+        .replace(/^\n+/, '')         // Remove leading newlines
+        .replace(/\n+$/, '')         // Remove trailing newlines
+        .trim();
+    
+    return text;
+}
+
+function createCleanHtml(formattedText) {
+    // Convert formatted text back to clean HTML for clipboard
+    let html = formattedText
+        // Convert section headers
+        .replace(/^([A-Z ]{3,})\n=+$/gm, '<h3>$1</h3>')
+        // Convert key: value pairs
+        .replace(/^([^:\n]+):\s*(.+)$/gm, '<p><strong>$1:</strong> $2</p>')
+        // Convert double newlines to paragraph breaks
+        .replace(/\n\n/g, '</p><p>')
+        // Wrap in paragraph tags
+        .replace(/^(.)/gm, '<p>$1')
+        .replace(/(.)\n$/gm, '$1</p>');
+    
+    // Clean up any malformed tags
+    html = html.replace(/<p><\/p>/g, '');
+    html = html.replace(/<p><h3>/g, '<h3>');
+    html = html.replace(/<\/h3><\/p>/g, '</h3>');
+    
+    return html;
+}
+
+function showCopyModal(text) {
+    // Create a modal for manual copying when clipboard API fails
+    const modalHtml = `
+        <div class="modal fade" id="copyModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Copy Email Content</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Your browser doesn't support automatic copying. Please select all the text below and copy manually:</p>
+                        <textarea class="form-control" rows="15" readonly onclick="this.select()" style="font-family: monospace;">${text}</textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page and show it
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modal = new bootstrap.Modal(document.getElementById('copyModal'));
+    modal.show();
+    
+    // Remove modal when closed
+    document.getElementById('copyModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+    });
+}
+
+function showToast(message) {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed top-0 end-0 m-3';
+    toast.style.zIndex = '1050';
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto"></button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+document.getElementById('completeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const notes = document.getElementById('notes').value;
+    
+    fetch(`/mark_completed/{{ task.id }}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({notes: notes})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('Task marked as completed!');
+            setTimeout(() => {
+                window.location.href = '/tasks';
+            }, 1500);
+        } else {
+            alert('Error marking task as completed');
+        }
+    })
+    .catch(error => {
+        alert('Error marking task as completed');
+    });
+});
+</script>
+{% endblock %}

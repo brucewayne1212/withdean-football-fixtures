@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Import Fixtures - Withdean Youth FC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-upload text-danger"></i> 
+            Import Weekly Fixtures
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Upload Fixture File</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Select your downloaded CSV file</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".csv,.xlsx,.xls" required>
+                        <div class="form-text">
+                            Accepted formats: CSV (.csv), Excel (.xlsx, .xls). Max size: 16MB.
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger btn-lg" id="uploadBtn">
+                            <i class="fas fa-upload"></i> Import Fixtures
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card bg-light">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle"></i> How to Download from Google Sheets
+                </h6>
+            </div>
+            <div class="card-body">
+                <ol class="small">
+                    <li>Open your weekly fixtures Google Sheet</li>
+                    <li>Go to <strong>File → Download → Comma Separated Values (.csv)</strong></li>
+                    <li>Save the file to your computer</li>
+                    <li>Upload it here using the form</li>
+                </ol>
+                
+                <div class="alert alert-info small">
+                    <strong>Tip:</strong> The system automatically finds teams managed by you or with "Mark Monahan" in the Fixtures Sec column.
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-cogs"></i> What Happens After Upload
+                </h6>
+            </div>
+            <div class="card-body small">
+                <ul class="mb-0">
+                    <li><strong>Home games:</strong> Creates tasks to send emails to opposition</li>
+                    <li><strong>Away games:</strong> Creates tasks to wait for and forward emails</li>
+                    <li><strong>Smart filtering:</strong> Only shows your managed teams</li>
+                    <li><strong>Safe updates:</strong> Re-uploading updates existing tasks safely</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading overlay -->
+<div id="loadingOverlay" class="d-none">
+    <div class="overlay-content">
+        <div class="spinner-border text-danger mb-3" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h5>Processing your fixture file...</h5>
+        <p class="text-muted">This may take a few moments</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('uploadForm').addEventListener('submit', function() {
+    document.getElementById('loadingOverlay').classList.remove('d-none');
+    document.getElementById('uploadBtn').disabled = true;
+});
+</script>
+{% endblock %}

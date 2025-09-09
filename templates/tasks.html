@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+
+{% block title %}Task Management - Withdean Youth FC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-tasks text-danger"></i> 
+            Task Management
+        </h1>
+    </div>
+</div>
+
+<!-- Team Filter and Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Filters</h6>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="showAllTeams" 
+                               {{ 'checked' if show_all_teams }} 
+                               onchange="toggleAllTeams()">
+                        <label class="form-check-label" for="showAllTeams">
+                            Show all club teams ({{ total_tasks }} total)
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if not show_all_teams %}
+                <div class="alert alert-info">
+                    <i class="fas fa-user-check"></i> 
+                    Showing only your {{ my_summary.total }} managed teams. 
+                    Toggle above to see all {{ total_tasks }} club fixtures.
+                </div>
+                {% endif %}
+                
+                <!-- Bulk Actions -->
+                <div class="mb-3">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-success btn-sm" onclick="bulkComplete()" disabled id="bulkCompleteBtn">
+                            <i class="fas fa-check"></i> Mark Selected Complete
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="bulkDelete()" disabled id="bulkDeleteBtn">
+                            <i class="fas fa-trash"></i> Delete Selected
+                        </button>
+                    </div>
+                    <span id="selectedCount" class="text-muted ms-2">0 tasks selected</span>
+                </div>
+                
+                <form method="GET" class="row align-items-end">
+                    <input type="hidden" name="show_all" value="{{ 'true' if show_all_teams else 'false' }}">
+                    <div class="col-md-3">
+                        <label for="type" class="form-label">Task Type</label>
+                        <select name="type" id="type" class="form-select">
+                            <option value="all" {{ 'selected' if current_type == 'all' }}>All Types</option>
+                            <option value="home_email" {{ 'selected' if current_type == 'home_email' }}>Home Games (Send Emails)</option>
+                            <option value="away_forward" {{ 'selected' if current_type == 'away_forward' }}>Away Games (Forward Emails)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select name="status" id="status" class="form-select">
+                            <option value="all" {{ 'selected' if current_status == 'all' }}>All Statuses</option>
+                            <option value="pending" {{ 'selected' if current_status == 'pending' }}>Pending</option>
+                            <option value="waiting" {{ 'selected' if current_status == 'waiting' }}>Waiting</option>
+                            <option value="in_progress" {{ 'selected' if current_status == 'in_progress' }}>In Progress</option>
+                            <option value="completed" {{ 'selected' if current_status == 'completed' }}>Completed</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-filter"></i> Apply Filters
+                        </button>
+                        <a href="{{ url_for('view_tasks') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                        {% if not show_all_teams and my_summary.pending > 0 %}
+                        <a href="{{ url_for('view_tasks', status='pending') }}" class="btn btn-warning">
+                            <i class="fas fa-envelope"></i> My Pending ({{ my_summary.pending }})
+                        </a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tasks List -->
+<div class="row">
+    <div class="col-12">
+        {% if tasks %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">{{ tasks|length }} Task(s) Found</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="40">
+                                <input type="checkbox" class="form-check-input" id="selectAll" onchange="toggleSelectAll()">
+                            </th>
+                            <th>Team</th>
+                            <th>Opposition</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Pitch</th>
+                            <th>Time</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in tasks %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="form-check-input task-checkbox" value="{{ task.id }}" onchange="updateSelection()">
+                            </td>
+                            <td>
+                                <strong>{{ task.team }}</strong>
+                            </td>
+                            <td>
+                                {% set opp = task.opposition %}
+                                {% if opp and opp|string|lower not in ['nan', 'friendly - manager to sort', 'manager to sort', 'tbc'] %}
+                                    {{ opp }}
+                                {% else %}
+                                    TBC
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if task.task_type.value == 'home_email' %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-home"></i> Home
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-plane"></i> Away
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if task.status.value == 'pending' %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-clock"></i> Pending
+                                    </span>
+                                {% elif task.status.value == 'waiting' %}
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-hourglass-half"></i> Waiting
+                                    </span>
+                                {% elif task.status.value == 'in_progress' %}
+                                    <span class="badge bg-primary">
+                                        <i class="fas fa-spinner"></i> In Progress
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Completed
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ task.pitch if task.pitch and task.pitch != 'nan' else 'TBC' }}</small>
+                            </td>
+                            <td>
+                                <small>{{ task.kickoff_time if task.kickoff_time and task.kickoff_time != 'nan' else 'TBC' }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('task_detail', task_id=task.id) }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if task.task_type.value == 'home_email' and task.status.value in ['pending', 'in_progress'] %}
+                                    <a href="{{ url_for('generate_task_email', task_id=task.id) }}" class="btn btn-outline-warning">
+                                        <i class="fas fa-envelope"></i>
+                                    </a>
+                                    {% endif %}
+                                    {% if task.status.value != 'completed' %}
+                                    <button class="btn btn-outline-success" onclick="markCompleted('{{ task.id }}')">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h5>No tasks found</h5>
+                <p class="text-muted">
+                    {% if current_type != 'all' or current_status != 'all' %}
+                        Try adjusting your filters or <a href="{{ url_for('view_tasks') }}">view all tasks</a>.
+                    {% else %}
+                        <a href="{{ url_for('upload_file') }}">Import some fixtures</a> to get started!
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function markCompleted(taskId) {
+    if (confirm('Mark this task as completed?')) {
+        fetch(`/mark_completed/${taskId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({notes: ''})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error marking task as completed');
+            }
+        })
+        .catch(error => {
+            alert('Error marking task as completed');
+        });
+    }
+}
+
+function toggleAllTeams() {
+    const checkbox = document.getElementById('showAllTeams');
+    const currentUrl = new URL(window.location);
+    
+    if (checkbox.checked) {
+        currentUrl.searchParams.set('show_all', 'true');
+    } else {
+        currentUrl.searchParams.delete('show_all');
+    }
+    
+    window.location.href = currentUrl.toString();
+}
+
+// Bulk operations functionality
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const taskCheckboxes = document.querySelectorAll('.task-checkbox');
+    
+    taskCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+    
+    updateSelection();
+}
+
+function updateSelection() {
+    const taskCheckboxes = document.querySelectorAll('.task-checkbox');
+    const selectedCheckboxes = document.querySelectorAll('.task-checkbox:checked');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    
+    const selectedCount = selectedCheckboxes.length;
+    const totalCount = taskCheckboxes.length;
+    
+    // Update select all checkbox state
+    if (selectedCount === 0) {
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = false;
+    } else if (selectedCount === totalCount) {
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = true;
+    } else {
+        selectAllCheckbox.indeterminate = true;
+    }
+    
+    // Update UI
+    document.getElementById('selectedCount').textContent = `${selectedCount} tasks selected`;
+    document.getElementById('bulkCompleteBtn').disabled = selectedCount === 0;
+    document.getElementById('bulkDeleteBtn').disabled = selectedCount === 0;
+}
+
+function getSelectedTaskIds() {
+    const selectedCheckboxes = document.querySelectorAll('.task-checkbox:checked');
+    return Array.from(selectedCheckboxes).map(cb => cb.value);
+}
+
+function bulkComplete() {
+    const taskIds = getSelectedTaskIds();
+    if (taskIds.length === 0) return;
+    
+    const notes = prompt(`Add optional notes for ${taskIds.length} task(s):`);
+    if (notes === null) return; // User cancelled
+    
+    fetch('/bulk_complete', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            task_ids: taskIds,
+            notes: notes || ''
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(`${data.completed_count} tasks marked as completed!`);
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            alert('Error completing tasks: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error completing tasks');
+    });
+}
+
+function bulkDelete() {
+    const taskIds = getSelectedTaskIds();
+    if (taskIds.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${taskIds.length} task(s)? This cannot be undone.`)) {
+        return;
+    }
+    
+    fetch('/bulk_delete', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            task_ids: taskIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast(`${data.deleted_count} tasks deleted!`);
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            alert('Error deleting tasks: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error deleting tasks');
+    });
+}
+
+function showToast(message) {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed top-0 end-0 m-3';
+    toast.style.zIndex = '1050';
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto"></button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}

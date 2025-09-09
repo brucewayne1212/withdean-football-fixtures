@@ -1,0 +1,14 @@
+# Google App Engine configuration
+runtime: python311
+
+env_variables:
+  FLASK_ENV: production
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 10
+
+resources:
+  cpu: 1
+  memory_gb: 0.5
+  disk_size_gb: 10

@@ -1,0 +1,598 @@
+{% extends "base.html" %}
+
+{% block title %}Parse FA Fixture Data - Withdean Youth FC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-paste text-danger"></i> 
+            Parse Fixture from FA Data
+        </h1>
+    </div>
+</div>
+
+{% if not parsed_data %}
+<!-- Paste Form -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-clipboard"></i> Paste FA Fixture Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="pasted_text" class="form-label">Fixture Data from FA Website</label>
+                        <textarea class="form-control" id="pasted_text" name="pasted_text" rows="8" 
+                                  placeholder="Paste the fixture information from the FA website here..." required>{{ pasted_text or '' }}</textarea>
+                        <div class="form-text">
+                            <i class="fas fa-magic text-primary"></i> 
+                            <strong>Smart Paste:</strong> Copy and paste from anywhere - the system automatically cleans HTML formatting and extracts plain text.
+                            Works with FA websites, emails, and other rich text sources.
+                        </div>
+                        <div class="mt-2">
+                            <div class="form-check form-switch d-inline-block me-3">
+                                <input class="form-check-input" type="checkbox" id="smartPasteToggle" checked>
+                                <label class="form-check-label small" for="smartPasteToggle">
+                                    Smart Paste (Auto-clean HTML)
+                                </label>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearTextarea()">
+                                <i class="fas fa-eraser"></i> Clear
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="pasteAsPlainText()">
+                                <i class="fas fa-clipboard"></i> Paste Plain Text
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-info" onclick="showDebugInfo()">
+                                <i class="fas fa-bug"></i> Debug
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-magic"></i> Parse Data
+                        </button>
+                        <a href="{{ url_for('view_tasks') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Tasks
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle"></i> Supported Formats
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="small mb-0">
+                    <li><strong>FA Website tables</strong> - Tabular fixture data</li>
+                    <li><strong>Email notifications</strong> - Match details from FA emails</li>
+                    <li><strong>Text listings</strong> - Team vs Team format</li>
+                    <li><strong>Mixed formats</strong> - The parser adapts automatically</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-example"></i> Example Format
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="font-monospace text-muted">
+                    Cup 14/09/25 10:00<br>
+                    Horley United U13<br>
+                    VS<br>
+                    Withdean Youth U14 Girls<br>
+                    Venue: Horley United FC
+                </small>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-users"></i> Your Managed Teams
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if managed_teams %}
+                <div class="small">
+                    {% for team in managed_teams[:5] %}
+                    <span class="badge bg-danger me-1 mb-1">{{ team }}</span>
+                    {% endfor %}
+                    {% if managed_teams|length > 5 %}
+                    <span class="text-muted">...and {{ managed_teams|length - 5 }} more</span>
+                    {% endif %}
+                </div>
+                {% else %}
+                <p class="small text-muted">No teams configured. <a href="{{ url_for('settings') }}">Set up your teams</a></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- Preview Parsed Data -->
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-success">
+            <h5 class="alert-heading"><i class="fas fa-check-circle"></i> Parsing Successful!</h5>
+            <p class="mb-0">Review the extracted information below and make any necessary corrections before adding the fixture.</p>
+        </div>
+        
+        {% if validation.warnings %}
+        {% for warning in validation.warnings %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i> {{ warning }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        
+        {% if validation.suggestions %}
+        {% for suggestion in validation.suggestions %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> {{ suggestion }}
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-edit"></i> Review & Confirm Fixture Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('confirm_parsed_fixture') }}">
+                    <!-- Essential Fields -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="team" class="form-label">Team <span class="text-danger">*</span></label>
+                            <select class="form-select" id="team" name="team" required>
+                                {% for managed_team in managed_teams %}
+                                <option value="{{ managed_team }}" {{ 'selected' if parsed_data.team == managed_team else '' }}>
+                                    {{ managed_team }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="opposition" class="form-label">Opposition <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="opposition" name="opposition" 
+                                   value="{{ parsed_data.opposition or '' }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="home_away" class="form-label">Home/Away <span class="text-danger">*</span></label>
+                            <select class="form-select" id="home_away" name="home_away" required>
+                                <option value="Home" {{ 'selected' if parsed_data.home_away == 'Home' else '' }}>Home</option>
+                                <option value="Away" {{ 'selected' if parsed_data.home_away == 'Away' else '' }}>Away</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="pitch" class="form-label">Pitch/Venue</label>
+                            <input type="text" class="form-control" id="pitch" name="pitch" 
+                                   value="{{ parsed_data.pitch or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="kickoff_time" class="form-label">Kick-off Time</label>
+                            <input type="text" class="form-control" id="kickoff_time" name="kickoff_time" 
+                                   value="{{ parsed_data.kickoff_time or '' }}" placeholder="e.g., Sunday 10:30am">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="league" class="form-label">League/Competition</label>
+                            <input type="text" class="form-control" id="league" name="league" 
+                                   value="{{ parsed_data.league or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="format" class="form-label">Format</label>
+                            <input type="text" class="form-control" id="format" name="format" 
+                                   value="{{ parsed_data.format or '' }}" placeholder="e.g., Cup, League">
+                        </div>
+                    </div>
+
+                    <!-- Contact Details (Collapsible) -->
+                    <div class="accordion mb-3" id="contactAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                        data-bs-target="#contactDetails">
+                                    <i class="fas fa-address-book me-2"></i> Contact Details (Optional)
+                                </button>
+                            </h2>
+                            <div id="contactDetails" class="accordion-collapse collapse" data-bs-parent="#contactAccordion">
+                                <div class="accordion-body">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="home_manager" class="form-label">Home Manager</label>
+                                            <input type="text" class="form-control" id="home_manager" name="home_manager" 
+                                                   value="{{ parsed_data.home_manager or '' }}">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="fixtures_sec" class="form-label">Fixtures Secretary</label>
+                                            <input type="text" class="form-control" id="fixtures_sec" name="fixtures_sec" 
+                                                   value="{{ parsed_data.fixtures_sec or '' }}">
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="manager_mobile" class="form-label">Manager Mobile</label>
+                                            <input type="text" class="form-control" id="manager_mobile" name="manager_mobile" 
+                                                   value="{{ parsed_data.manager_mobile or '' }}">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="contact_1" class="form-label">Contact 1</label>
+                                            <input type="text" class="form-control" id="contact_1" name="contact_1" 
+                                                   value="{{ parsed_data.contact_1 or '' }}">
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-3">
+                                        <div class="col-md-4">
+                                            <label for="contact_2" class="form-label">Contact 2</label>
+                                            <input type="text" class="form-control" id="contact_2" name="contact_2" 
+                                                   value="{{ parsed_data.contact_2 or '' }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="contact_3" class="form-label">Contact 3</label>
+                                            <input type="text" class="form-control" id="contact_3" name="contact_3" 
+                                                   value="{{ parsed_data.contact_3 or '' }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="contact_5" class="form-label">Contact 5</label>
+                                            <input type="text" class="form-control" id="contact_5" name="contact_5" 
+                                                   value="{{ parsed_data.contact_5 or '' }}">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="instructions" class="form-label">Additional Instructions</label>
+                                        <textarea class="form-control" id="instructions" name="instructions" rows="3" 
+                                                  placeholder="Any special instructions or notes">{{ parsed_data.instructions or '' }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check"></i> Confirm & Add Fixture
+                        </button>
+                        <a href="{{ url_for('parse_fixture') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Parse
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-eye"></i> Original Text
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="small font-monospace text-muted p-2 border rounded" style="max-height: 200px; overflow-y: auto;">
+                    {{ pasted_text }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-robot"></i> Parsing Results
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="small mb-0">
+                    <li class="text-success"><i class="fas fa-check"></i> Team: {{ parsed_data.team or 'Not detected' }}</li>
+                    <li class="text-success"><i class="fas fa-check"></i> Opposition: {{ parsed_data.opposition or 'Not detected' }}</li>
+                    <li class="text-success"><i class="fas fa-check"></i> Date/Time: {{ parsed_data.kickoff_time or 'Not detected' }}</li>
+                    <li class="text-success"><i class="fas fa-check"></i> Home/Away: {{ parsed_data.home_away or 'Assumed Away' }}</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Smart paste functionality to handle rich text and HTML
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('pasted_text');
+    
+    // Handle paste events to clean HTML/rich text
+    textarea.addEventListener('paste', function(e) {
+        const smartPasteEnabled = document.getElementById('smartPasteToggle').checked;
+        
+        if (!smartPasteEnabled) {
+            // Let the default paste behavior happen
+            showPasteNotification('Direct paste - no cleaning applied');
+            return;
+        }
+        
+        e.preventDefault(); // Prevent default paste
+        
+        // Get clipboard data
+        const clipboardData = e.clipboardData || window.clipboardData;
+        let pastedData = '';
+        let wasHtml = false;
+        
+        // Always try HTML first if it exists, as it contains more structured data
+        if (clipboardData.types.includes('text/html')) {
+            const htmlData = clipboardData.getData('text/html');
+            
+            // Check if this looks like complex HTML (not just simple formatting)
+            if (htmlData.includes('<table') || htmlData.includes('<h1') || htmlData.includes('<h2') || htmlData.includes('<h3') || htmlData.includes('<p><strong>')) {
+                pastedData = extractTextFromHtml(htmlData);
+                wasHtml = true;
+            } else {
+                // Simple HTML, just get the text content
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = htmlData;
+                pastedData = tempDiv.textContent || tempDiv.innerText || '';
+            }
+            
+            // If HTML extraction didn't work well, fall back to plain text
+            if (!pastedData || pastedData.length < 10) {
+                pastedData = clipboardData.getData('text/plain') || clipboardData.getData('text') || '';
+                wasHtml = false;
+            }
+        }
+        // If no HTML, try plain text
+        else if (clipboardData.types.includes('text/plain')) {
+            pastedData = clipboardData.getData('text/plain');
+        }
+        // Final fallback
+        else {
+            pastedData = clipboardData.getData('text') || '';
+        }
+        
+        // Clean and insert the text
+        const cleanedText = cleanPastedText(pastedData);
+        insertTextAtCursor(textarea, cleanedText);
+        
+        // Show feedback
+        if (wasHtml) {
+            showPasteNotification('Smart paste applied - HTML formatting cleaned!');
+        } else {
+            showPasteNotification('Text pasted successfully!');
+        }
+    });
+});
+
+function extractTextFromHtml(html) {
+    // Create a temporary div to parse HTML
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    
+    // Remove script and style elements completely
+    const scripts = temp.querySelectorAll('script, style, meta, link');
+    scripts.forEach(el => el.remove());
+    
+    // Process tables first - convert to key-value pairs
+    const tables = temp.querySelectorAll('table');
+    tables.forEach(table => {
+        let tableText = '\n\n';
+        const rows = table.querySelectorAll('tr');
+        
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td, th');
+            if (cells.length >= 2) {
+                // Table with key-value pairs
+                const key = cells[0].textContent.trim();
+                const value = cells[1].textContent.trim();
+                if (key && value && !key.toLowerCase().includes('detail') && !key.toLowerCase().includes('information')) {
+                    tableText += `${key}: ${value}\n`;
+                }
+            } else if (cells.length === 1) {
+                // Single cell, just add as text
+                const cellText = cells[0].textContent.trim();
+                if (cellText) {
+                    tableText += `${cellText}\n`;
+                }
+            }
+        });
+        
+        table.outerHTML = tableText;
+    });
+    
+    // Convert headings to section headers
+    const headings = temp.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    headings.forEach(heading => {
+        const text = heading.textContent.trim();
+        heading.outerHTML = `\n\n=== ${text} ===\n`;
+    });
+    
+    // Handle strong/bold elements - preserve the emphasis
+    const strongElements = temp.querySelectorAll('strong, b');
+    strongElements.forEach(el => {
+        const text = el.textContent.trim();
+        if (text.endsWith(':')) {
+            // This is likely a label
+            el.outerHTML = text;
+        } else {
+            el.outerHTML = text;
+        }
+    });
+    
+    // Convert paragraphs - look for key: value patterns
+    const paragraphs = temp.querySelectorAll('p');
+    paragraphs.forEach(p => {
+        const text = p.textContent.trim();
+        if (text) {
+            // Check if this is a key-value pair
+            if (text.includes(':') && text.split(':').length === 2) {
+                const [key, value] = text.split(':', 2);
+                if (key.trim() && value.trim()) {
+                    p.outerHTML = `${key.trim()}: ${value.trim()}\n`;
+                } else {
+                    p.outerHTML = text + '\n';
+                }
+            } else {
+                p.outerHTML = text + '\n';
+            }
+        }
+    });
+    
+    // Convert list items
+    const listItems = temp.querySelectorAll('li');
+    listItems.forEach(li => {
+        const text = li.textContent.trim();
+        if (text) {
+            li.outerHTML = `• ${text}\n`;
+        }
+    });
+    
+    // Handle line breaks
+    temp.innerHTML = temp.innerHTML.replace(/<br\s*\/?>/gi, '\n');
+    
+    // Get the final text content
+    let text = temp.textContent || temp.innerText || '';
+    
+    // Clean up the text
+    text = text
+        // Remove excessive whitespace
+        .replace(/[ \t]+/g, ' ')
+        // Normalize line breaks
+        .replace(/\n\s*\n\s*\n/g, '\n\n')
+        // Remove empty lines with just spaces
+        .replace(/\n[ \t]+\n/g, '\n\n')
+        // Clean up around section headers
+        .replace(/\n+=== ([^=]+) ===\n+/g, '\n\n=== $1 ===\n')
+        .trim();
+    
+    return text;
+}
+
+function cleanPastedText(text) {
+    // Remove excessive whitespace
+    text = text.replace(/\s{3,}/g, ' ');
+    
+    // Clean up line breaks
+    text = text.replace(/\n{3,}/g, '\n\n');
+    
+    // Remove HTML entities if any slipped through
+    text = text.replace(/&nbsp;/g, ' ');
+    text = text.replace(/&amp;/g, '&');
+    text = text.replace(/&lt;/g, '<');
+    text = text.replace(/&gt;/g, '>');
+    text = text.replace(/&quot;/g, '"');
+    
+    return text.trim();
+}
+
+function insertTextAtCursor(textarea, text) {
+    const startPos = textarea.selectionStart;
+    const endPos = textarea.selectionEnd;
+    const currentValue = textarea.value;
+    
+    // Insert text at cursor position
+    const newValue = currentValue.substring(0, startPos) + text + currentValue.substring(endPos);
+    textarea.value = newValue;
+    
+    // Set cursor position after inserted text
+    const newCursorPos = startPos + text.length;
+    textarea.setSelectionRange(newCursorPos, newCursorPos);
+    textarea.focus();
+}
+
+function clearTextarea() {
+    document.getElementById('pasted_text').value = '';
+    document.getElementById('pasted_text').focus();
+}
+
+async function pasteAsPlainText() {
+    try {
+        // Use the modern Clipboard API if available
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            const text = await navigator.clipboard.readText();
+            const cleanedText = cleanPastedText(text);
+            document.getElementById('pasted_text').value = cleanedText;
+            showPasteNotification('Plain text pasted successfully!');
+        } else {
+            // Fallback - just show instructions
+            alert('Please use Ctrl+V (or Cmd+V on Mac) to paste. The system will automatically clean the formatting.');
+        }
+    } catch (error) {
+        // Show fallback instructions
+        alert('Please use Ctrl+V (or Cmd+V on Mac) to paste. The system will automatically clean the formatting.');
+    }
+    document.getElementById('pasted_text').focus();
+}
+
+function showDebugInfo() {
+    const currentText = document.getElementById('pasted_text').value;
+    if (!currentText) {
+        alert('No text in the textarea to analyze. Try pasting some content first.');
+        return;
+    }
+    
+    const debugInfo = `
+DEBUG INFO:
+Length: ${currentText.length} characters
+Lines: ${currentText.split('\n').length}
+
+FIRST 500 CHARACTERS:
+${currentText.substring(0, 500)}...
+
+KEY INDICATORS:
+- Contains HTML tags: ${/<[^>]+>/.test(currentText)}
+- Contains tables: ${/TABLE DATA:|[|]/.test(currentText)}
+- Contains section headers: ${/===/.test(currentText)}
+- Contains key:value pairs: ${/:/.test(currentText)}
+    `;
+    
+    alert(debugInfo);
+}
+
+function showPasteNotification(message) {
+    // Create a temporary notification
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-success alert-dismissible fade show position-fixed';
+    notification.style.cssText = 'top: 20px; right: 20px; z-index: 1050; max-width: 300px;';
+    notification.innerHTML = `
+        <i class="fas fa-check-circle"></i> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 3000);
+}
+</script>
+{% endblock %}

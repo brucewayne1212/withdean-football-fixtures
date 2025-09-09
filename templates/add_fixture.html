@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Add Manual Fixture - Withdean Youth FC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-plus-circle text-danger"></i> 
+            Add Manual Fixture
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-edit"></i> Fixture Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <!-- Essential Fields -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="team" class="form-label">Team <span class="text-danger">*</span></label>
+                            <select class="form-select" id="team" name="team" required>
+                                <option value="">Select Team</option>
+                                {% for team in managed_teams %}
+                                <option value="{{ team }}">{{ team }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="opposition" class="form-label">Opposition <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="opposition" name="opposition" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="home_away" class="form-label">Home/Away <span class="text-danger">*</span></label>
+                            <select class="form-select" id="home_away" name="home_away" required>
+                                <option value="">Select</option>
+                                <option value="Home">Home</option>
+                                <option value="Away">Away</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="pitch" class="form-label">Pitch</label>
+                            <input type="text" class="form-control" id="pitch" name="pitch">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="kickoff_time" class="form-label">Kick-off Time</label>
+                            <input type="text" class="form-control" id="kickoff_time" name="kickoff_time" placeholder="e.g., Sunday 10:30am">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="league" class="form-label">League/Division</label>
+                            <input type="text" class="form-control" id="league" name="league">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="format" class="form-label">Format</label>
+                            <input type="text" class="form-control" id="format" name="format" placeholder="e.g., 9v9, 11v11">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="each_way" class="form-label">Each Way</label>
+                            <input type="text" class="form-control" id="each_way" name="each_way" placeholder="e.g., 25 mins">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="fixture_length" class="form-label">Total Length</label>
+                            <input type="text" class="form-control" id="fixture_length" name="fixture_length" placeholder="e.g., 50 mins">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="referee" class="form-label">Referee</label>
+                            <input type="text" class="form-control" id="referee" name="referee">
+                        </div>
+                    </div>
+
+                    <!-- Contact Details -->
+                    <h6 class="mt-4 mb-3"><i class="fas fa-address-book"></i> Contact Information</h6>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="home_manager" class="form-label">Home Manager</label>
+                            <input type="text" class="form-control" id="home_manager" name="home_manager">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="fixtures_sec" class="form-label">Fixtures Secretary</label>
+                            <input type="text" class="form-control" id="fixtures_sec" name="fixtures_sec">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="manager_mobile" class="form-label">Manager Mobile</label>
+                            <input type="text" class="form-control" id="manager_mobile" name="manager_mobile">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="contact_1" class="form-label">Contact 1</label>
+                            <input type="text" class="form-control" id="contact_1" name="contact_1">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="contact_2" class="form-label">Contact 2</label>
+                            <input type="text" class="form-control" id="contact_2" name="contact_2">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="contact_3" class="form-label">Contact 3</label>
+                            <input type="text" class="form-control" id="contact_3" name="contact_3">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="contact_5" class="form-label">Contact 5</label>
+                            <input type="text" class="form-control" id="contact_5" name="contact_5">
+                        </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <div class="mb-3">
+                        <label for="instructions" class="form-label">Additional Instructions</label>
+                        <textarea class="form-control" id="instructions" name="instructions" rows="3" placeholder="Any special instructions or notes"></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-save"></i> Add Fixture
+                        </button>
+                        <a href="{{ url_for('view_tasks') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Tasks
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle"></i> When to Use Manual Entry
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="small mb-0">
+                    <li><strong>Away matches</strong> that you need to track</li>
+                    <li><strong>Missing fixtures</strong> from spreadsheet uploads</li>
+                    <li><strong>Last-minute changes</strong> or additions</li>
+                    <li><strong>Tournament matches</strong> not in regular fixtures</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-lightbulb"></i> Tips
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="small mb-0">
+                    <li>Only <strong>Team</strong>, <strong>Opposition</strong>, and <strong>Home/Away</strong> are required</li>
+                    <li>Fill in as much contact info as possible for away matches</li>
+                    <li>Use the same format as your spreadsheet data</li>
+                    <li>Home matches will generate email templates</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
