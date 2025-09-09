@@ -24,7 +24,7 @@ A comprehensive Flask web application for managing Withdean Youth FC football fi
 
 ```bash
 # Clone the repository
-git clone https://github.com/monahan-mark/withdean-football-fixtures.git
+git clone https://github.com/brucewayne1212/withdean-football-fixtures.git
 cd withdean-football-fixtures
 
 # Install dependencies
