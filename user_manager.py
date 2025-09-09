@@ -9,13 +9,20 @@ from datetime import datetime
 from typing import List, Dict, Optional
 
 class UserManager:
-    def __init__(self, data_file='user_settings.json'):
-        self.data_file = data_file
+    def __init__(self, data_file='user_settings.json', user_id=None):
+        # Support both single-user (legacy) and multi-user modes
+        if user_id:
+            self.data_file = f"user_data/{user_id}/user_settings.json"
+            self.user_id = user_id
+        else:
+            self.data_file = data_file
+            self.user_id = None
+            
         self.settings = {}
         self.load_settings()
         
-        # Initialize default user if none exists
-        if not self.settings:
+        # Initialize default user if none exists (legacy mode only)
+        if not self.settings and not user_id:
             self.create_default_user()
     
     def load_settings(self):

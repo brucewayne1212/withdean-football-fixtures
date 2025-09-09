@@ -106,8 +106,15 @@ class FixtureTask:
         )
 
 class TaskManager:
-    def __init__(self, data_file='fixture_tasks.json'):
-        self.data_file = data_file
+    def __init__(self, data_file='fixture_tasks.json', user_id=None):
+        # Support both single-user (legacy) and multi-user modes
+        if user_id:
+            self.data_file = f"user_data/{user_id}/fixture_tasks.json"
+            self.user_id = user_id
+        else:
+            self.data_file = data_file
+            self.user_id = None
+            
         self.tasks: Dict[str, FixtureTask] = {}
         self.load_tasks()
     

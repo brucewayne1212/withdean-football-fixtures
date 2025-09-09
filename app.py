@@ -1,10 +1,17 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, session
 import os
 import pandas as pd
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import json
 
+# Authentication imports
+from flask_login import LoginManager, login_required, logout_user, current_user, login_user
+from flask_dance.contrib.google import make_google_blueprint, google
+from flask_dance.consumer.storage.sqla import OAuthConsumerMixin, SQLAlchemyStorage
+from flask_dance.consumer import oauth_authorized
+
+# Local imports
 from fixture_parser import FixtureParser
 from managed_teams import get_managed_teams
 from user_manager import UserManager
@@ -12,27 +19,119 @@ from email_template import generate_email, generate_subject_line
 from smart_email_generator import SmartEmailGenerator
 from task_manager import TaskManager, TaskType, TaskStatus
 from text_fixture_parser import TextFixtureParser
+from auth_manager import AuthManager, User
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'withdean-youth-fc-fixtures-2024-dev')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
+# Google OAuth Configuration
+app.config['GOOGLE_OAUTH_CLIENT_ID'] = os.environ.get('GOOGLE_OAUTH_CLIENT_ID')
+app.config['GOOGLE_OAUTH_CLIENT_SECRET'] = os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET')
+
 # Create uploads directory
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+# Create user_data directory for multi-user storage
+os.makedirs('user_data', exist_ok=True)
+
+# Initialize authentication
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+login_manager.login_message = 'Please sign in with Google to access this page.'
+login_manager.login_message_category = 'info'
+
+# Google OAuth Blueprint
+google_bp = make_google_blueprint(
+    client_id=os.environ.get('GOOGLE_OAUTH_CLIENT_ID'),
+    client_secret=os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET'),
+    scope=['openid', 'email', 'profile']
+)
+app.register_blueprint(google_bp, url_prefix='/login')
+
 # Initialize managers
-task_manager = TaskManager()
-user_manager = UserManager()
+auth_manager = AuthManager()
+
+@login_manager.user_loader
+def load_user(user_id):
+    return auth_manager.get_user(user_id)
 
 ALLOWED_EXTENSIONS = {'csv', 'xlsx', 'xls'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def get_user_managers():
+    """Get user-specific managers for the current user"""
+    if current_user.is_authenticated:
+        user_id = current_user.id
+        task_manager = TaskManager(user_id=user_id)
+        user_manager = UserManager(user_id=user_id)
+        return task_manager, user_manager
+    else:
+        # Fallback to legacy single-user mode for testing
+        return TaskManager(), UserManager()
+
+def get_user_upload_folder():
+    """Get user-specific upload folder"""
+    if current_user.is_authenticated:
+        user_folder = auth_manager.get_user_uploads_path(current_user.id)
+        os.makedirs(user_folder, exist_ok=True)
+        return user_folder
+    else:
+        return app.config['UPLOAD_FOLDER']
+
+# Authentication Routes
+@app.route('/login')
+def login():
+    """Display login page"""
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    """Logout user"""
+    logout_user()
+    flash('You have been logged out successfully.', 'success')
+    return redirect(url_for('login'))
+
+@oauth_authorized.connect_via(google_bp)
+def google_logged_in(blueprint, token):
+    """Handle successful Google OAuth login"""
+    if not token:
+        flash('Failed to log in with Google.', 'error')
+        return False
+
+    resp = blueprint.session.get('/oauth2/v2/userinfo')
+    if not resp.ok:
+        flash('Failed to fetch user info from Google.', 'error')
+        return False
+
+    info = resp.json()
+    
+    # Create or update user
+    user = auth_manager.create_or_update_user(
+        email=info['email'],
+        name=info['name'],
+        picture=info.get('picture')
+    )
+    
+    # Log in the user
+    login_user(user, remember=True)
+    flash(f'Welcome, {user.name}!', 'success')
+    return False  # Don't redirect automatically, let Flask-Login handle it
+
 @app.route('/')
+@login_required
 def dashboard():
     """Main dashboard showing task summary"""
+    # Get user-specific managers
+    task_manager, user_manager = get_user_managers()
+    
     # Filter tasks to show only my teams
     my_team_tasks = [t for t in task_manager.tasks.values() if user_manager.is_managed_team(t.team)]
     
