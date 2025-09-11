@@ -53,14 +53,19 @@ class ContactParser:
         """Parse contact information from free-form text"""
         contacts = []
         
+        print(f"Parsing text of length: {len(text)}")  # Debug
+        
         # Split text into potential contact blocks
         # Try different delimiters
         potential_contacts = self._split_text_into_contacts(text)
+        print(f"Split into {len(potential_contacts)} potential contact blocks")  # Debug
         
         for contact_text in potential_contacts:
             contact = self._parse_single_contact(contact_text.strip())
-            if contact and (contact.email or contact.phone or contact.contact_name):
+            if contact and (contact.email or contact.phone or contact.contact_name or contact.team_name):
                 contacts.append(contact)
+            else:
+                print(f"Rejected contact: {contact_text[:100] if contact_text else 'None'}")  # Debug
         
         return contacts
     
@@ -142,21 +147,25 @@ class ContactParser:
         email_match = self.email_pattern.search(text)
         if email_match:
             contact.email = email_match.group()
+            print(f"Found email: {contact.email}")  # Debug
         
         # Extract phone
         phone = self._find_phone(text)
         if phone:
             contact.phone = phone
+            print(f"Found phone: {contact.phone}")  # Debug
         
         # Extract team name
         team_name = self._find_team_name(text)
         if team_name:
             contact.team_name = team_name
+            print(f"Found team: {contact.team_name}")  # Debug
         
         # Extract contact name (more complex logic)
         contact_name = self._find_contact_name(text, contact.email)
         if contact_name:
             contact.contact_name = contact_name
+            print(f"Found contact name: {contact.contact_name}")  # Debug
         
         # If no team name found, try to infer from context
         if not contact.team_name and contact.contact_name:
@@ -170,6 +179,18 @@ class ContactParser:
                     if team:
                         contact.team_name = team
                         break
+        
+        # If we still have no team name but have other info, create a generic team name
+        if not contact.team_name and (contact.email or contact.phone or contact.contact_name):
+            if contact.contact_name:
+                # Try to extract organization from email domain
+                if contact.email and '@' in contact.email:
+                    domain = contact.email.split('@')[1].split('.')[0]
+                    contact.team_name = f"{domain.title()} FC"
+                else:
+                    contact.team_name = f"{contact.contact_name.split()[0]}'s Team"
+            else:
+                contact.team_name = "Unknown Team"
         
         return contact
     

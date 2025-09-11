@@ -542,6 +542,8 @@ def bulk_contact_upload():
                 filename = secure_filename(file.filename)
                 file_content = file.read()
                 
+                print(f"Processing file: {filename}")  # Debug
+                
                 if filename.lower().endswith(('.csv', '.txt')):
                     contacts = parser.parse_csv_file(file_content)
                 elif filename.lower().endswith(('.xlsx', '.xls')):
@@ -552,31 +554,39 @@ def bulk_contact_upload():
                     
             elif request.form.get('contact_text', '').strip():
                 text = request.form.get('contact_text', '').strip()
+                print(f"Processing text input: {len(text)} characters")  # Debug
+                print(f"Text preview: {text[:200]}...")  # Debug
                 contacts = parser.parse_text(text)
+                print(f"Parsed {len(contacts)} contacts")  # Debug
             else:
                 flash('Please provide either text or upload a file', 'error')
                 return redirect(url_for('bulk_contact_upload'))
             
             if not contacts:
-                flash('No valid contacts found in the provided data', 'warning')
+                flash('No valid contacts found in the provided data. Please check that your data contains email addresses or phone numbers.', 'warning')
                 return redirect(url_for('bulk_contact_upload'))
             
-            # Store contacts in session for preview
+            # Store contacts in session for preview (simplified to avoid session size issues)
             session['bulk_contacts'] = [
                 {
-                    'team_name': c.team_name,
-                    'contact_name': c.contact_name,
-                    'email': c.email,
-                    'phone': c.phone,
-                    'notes': c.notes,
-                    'original_text': c.original_text
+                    'team_name': c.team_name or "",
+                    'contact_name': c.contact_name or "",
+                    'email': c.email or "",
+                    'phone': c.phone or "",
+                    'notes': c.notes or "",
+                    'original_text': (c.original_text[:100] + "...") if c.original_text and len(c.original_text) > 100 else (c.original_text or "")
                 }
                 for c in contacts
             ]
             
+            print(f"Stored {len(session['bulk_contacts'])} contacts in session")  # Debug
+            
             return redirect(url_for('bulk_contact_preview'))
             
         except Exception as e:
+            print(f"Error parsing contacts: {str(e)}")  # Debug
+            import traceback
+            traceback.print_exc()  # Debug
             flash(f'Error parsing contacts: {str(e)}', 'error')
             return redirect(url_for('bulk_contact_upload'))
     
@@ -586,9 +596,15 @@ def bulk_contact_upload():
 @login_required
 def bulk_contact_preview():
     """Preview and confirm bulk contact import"""
+    print(f"Preview route called. Session keys: {list(session.keys())}")  # Debug
+    
     if 'bulk_contacts' not in session:
+        print("No bulk_contacts in session")  # Debug
         flash('No contacts to preview. Please upload contacts first.', 'error')
         return redirect(url_for('bulk_contact_upload'))
+    
+    bulk_contacts = session.get('bulk_contacts', [])
+    print(f"Found {len(bulk_contacts)} contacts in session")  # Debug
     
     if request.method == 'POST':
         task_manager, user_manager = get_user_managers()
