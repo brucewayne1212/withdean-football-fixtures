@@ -245,6 +245,7 @@ def upload_file():
 @app.route('/tasks')
 def view_tasks():
     """View and manage all tasks"""
+    task_manager, user_manager = get_user_managers()
     task_type = request.args.get('type', 'all')
     status_filter = request.args.get('status', 'all')
     show_all_teams = request.args.get('show_all', 'false').lower() == 'true'
@@ -393,6 +394,7 @@ def mark_task_in_progress(task_id):
 @app.route('/api/summary')
 def api_summary():
     """API endpoint for dashboard summary data"""
+    task_manager, user_manager = get_user_managers()
     summary = task_manager.get_task_summary()
     return jsonify(summary)
 
@@ -407,6 +409,7 @@ def cleanup_old_tasks():
 @app.route('/settings')
 def settings():
     """Settings page for user and pitch management"""
+    task_manager, user_manager = get_user_managers()
     all_teams = get_managed_teams()  # Get all possible teams from fixture data
     
     return render_template('settings.html',
@@ -420,6 +423,7 @@ def settings():
 @app.route('/settings/user', methods=['POST'])
 def update_user():
     """Update user information"""
+    task_manager, user_manager = get_user_managers()
     name = request.form.get('name')
     email = request.form.get('email')
     role = request.form.get('role')
@@ -431,6 +435,7 @@ def update_user():
 @app.route('/settings/teams', methods=['POST'])
 def update_teams():
     """Update managed teams"""
+    task_manager, user_manager = get_user_managers()
     selected_teams = request.form.getlist('teams')
     user_manager.set_managed_teams(selected_teams)
     flash(f'Team selection updated! Now managing {len(selected_teams)} teams.', 'success')
@@ -439,6 +444,7 @@ def update_teams():
 @app.route('/settings/pitch', methods=['POST'])
 def add_or_update_pitch():
     """Add or update pitch configuration"""
+    task_manager, user_manager = get_user_managers()
     pitch_config = {
         'name': request.form.get('name'),
         'address': request.form.get('address', ''),
@@ -456,18 +462,21 @@ def add_or_update_pitch():
 @app.route('/settings/pitch/<pitch_name>')
 def get_pitch_config(pitch_name):
     """Get pitch configuration as JSON"""
+    task_manager, user_manager = get_user_managers()
     config = user_manager.get_pitch_config(pitch_name)
     return jsonify(config)
 
 @app.route('/settings/pitch/<pitch_name>', methods=['DELETE'])
 def delete_pitch(pitch_name):
     """Delete pitch configuration"""
+    task_manager, user_manager = get_user_managers()
     user_manager.delete_pitch(pitch_name)
     return jsonify({'success': True, 'message': f'Pitch "{pitch_name}" deleted successfully'})
 
 @app.route('/settings/preferences', methods=['POST'])
 def update_preferences():
     """Update email preferences"""
+    task_manager, user_manager = get_user_managers()
     preferences = {
         'default_referee_note': request.form.get('default_referee_note', ''),
         'default_colours': request.form.get('default_colours', ''),
@@ -484,6 +493,7 @@ def update_preferences():
 @login_required
 def add_or_update_contact():
     """Add or update team contact information"""
+    task_manager, user_manager = get_user_managers()
     team_name = request.form.get('team_name')
     contact_info = {
         'contact_name': request.form.get('contact_name', ''),
@@ -500,6 +510,7 @@ def add_or_update_contact():
 @login_required
 def get_team_contact(team_name):
     """Get team contact information as JSON"""
+    task_manager, user_manager = get_user_managers()
     contact = user_manager.get_team_contact(team_name)
     if contact:
         return jsonify(contact)
@@ -509,12 +520,14 @@ def get_team_contact(team_name):
 @login_required
 def delete_team_contact(team_name):
     """Delete team contact information"""
+    task_manager, user_manager = get_user_managers()
     user_manager.delete_team_contact(team_name)
     return jsonify({'success': True, 'message': f'Contact for "{team_name}" deleted successfully'})
 
 @app.route('/add_fixture', methods=['GET', 'POST'])
 def add_fixture():
     """Add a manual fixture entry"""
+    task_manager, user_manager = get_user_managers()
     if request.method == 'POST':
         # Create fixture data from form
         fixture_data = {
@@ -555,6 +568,7 @@ def add_fixture():
 @app.route('/parse_fixture', methods=['GET', 'POST'])
 def parse_fixture():
     """Parse fixture information from pasted text"""
+    task_manager, user_manager = get_user_managers()
     if request.method == 'POST':
         pasted_text = request.form.get('pasted_text', '').strip()
         
