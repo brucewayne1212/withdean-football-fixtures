@@ -20,9 +20,7 @@ class User(UserMixin):
         self.name = name
         self.picture = picture
         self.created_date = created_date or datetime.now().isoformat()
-        self.is_active = True
-        self.is_authenticated = True
-        self.is_anonymous = False
+        # Don't override UserMixin properties - they are already defined correctly
     
     def get_id(self):
         return self.id
@@ -34,7 +32,7 @@ class User(UserMixin):
             'name': self.name,
             'picture': self.picture,
             'created_date': self.created_date,
-            'is_active': self.is_active
+            'is_active': self.is_active  # This is now a property from UserMixin
         }
     
     @classmethod

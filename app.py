@@ -4,11 +4,18 @@ import pandas as pd
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import json
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# CRITICAL: Allow OAuth2 over HTTP for local development - MUST be set before importing OAuth libraries
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
 
 # Authentication imports
 from flask_login import LoginManager, login_required, logout_user, current_user, login_user
 from flask_dance.contrib.google import make_google_blueprint, google
-from flask_dance.consumer.storage.sqla import OAuthConsumerMixin, SQLAlchemyStorage
 from flask_dance.consumer import oauth_authorized
 
 # Local imports
@@ -47,7 +54,7 @@ login_manager.login_message_category = 'info'
 google_bp = make_google_blueprint(
     client_id=os.environ.get('GOOGLE_OAUTH_CLIENT_ID'),
     client_secret=os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET'),
-    scope=['openid', 'email', 'profile']
+    scope=['openid', 'email', 'https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/userinfo.profile']
 )
 app.register_blueprint(google_bp, url_prefix='/login')
 

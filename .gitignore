@@ -160,3 +160,6 @@ user_settings.json.backup
 
 # Local development
 .claude/
+
+# Environment files with secrets
+.env.txt
