@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Contact Upload - Withdean Youth FC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-upload text-danger"></i> 
+            Bulk Contact Upload
+        </h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('settings') }}">Settings</a></li>
+                <li class="breadcrumb-item active">Bulk Contact Upload</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-upload"></i> Upload Team Contacts
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <!-- File Upload Option -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-file"></i> Option 1: Upload File</h6>
+                        <div class="mb-3">
+                            <label for="contact_file" class="form-label">Upload CSV or Excel File</label>
+                            <input type="file" class="form-control" id="contact_file" name="contact_file" 
+                                   accept=".csv,.txt,.xlsx,.xls">
+                            <div class="form-text">
+                                Supported formats: CSV (.csv), Text (.txt), Excel (.xlsx, .xls)
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mb-4">
+                        <span class="badge bg-secondary">OR</span>
+                    </div>
+
+                    <!-- Text Paste Option -->
+                    <div class="mb-4">
+                        <h6><i class="fas fa-paste"></i> Option 2: Paste Text</h6>
+                        <div class="mb-3">
+                            <label for="contact_text" class="form-label">Paste Contact Information</label>
+                            <textarea class="form-control" id="contact_text" name="contact_text" rows="10" 
+                                      placeholder="Paste your contact information here...
+
+Examples of supported formats:
+
+Brighton Hawks FC
+Manager: John Smith
+Email: john.smith@brightonhawks.com
+Phone: 07123 456789
+
+---
+
+U14 Eagles - Sarah Johnson (coach@eagles.com) - 01273 987654
+
+---
+
+Team Name,Contact,Email,Phone
+Hollingbury United,Mike Wilson,mike@hollingbury.co.uk,07987 654321
+Saltdean Tigers,Emma Brown,emma.brown@saltdean.org,01273 123456"></textarea>
+                            <div class="form-text">
+                                The system can automatically detect team names, contact names, email addresses, and phone numbers from various text formats.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-search"></i> Parse Contacts
+                        </button>
+                        <a href="{{ url_for('settings') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Help Card -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-question-circle"></i> How It Works
+                </h6>
+            </div>
+            <div class="card-body">
+                <ol class="small mb-3">
+                    <li><strong>Upload or Paste:</strong> Choose either a file upload or paste text directly</li>
+                    <li><strong>Smart Parsing:</strong> The system automatically extracts team names, contact names, emails, and phone numbers</li>
+                    <li><strong>Review & Edit:</strong> Preview and modify the detected information before importing</li>
+                    <li><strong>Import:</strong> Save the contacts to your team database</li>
+                </ol>
+                
+                <div class="alert alert-info small">
+                    <i class="fas fa-lightbulb"></i> 
+                    <strong>Tip:</strong> The system is very flexible and can handle various formats. Don't worry about perfect formatting!
+                </div>
+            </div>
+        </div>
+
+        <!-- Format Examples Card -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-list"></i> Supported Formats
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6 class="small text-muted">CSV/Excel Columns:</h6>
+                <ul class="small mb-3">
+                    <li>Team, Contact, Email, Phone</li>
+                    <li>Club Name, Manager, Email Address, Mobile</li>
+                    <li>Organisation, Person, Mail, Telephone</li>
+                </ul>
+
+                <h6 class="small text-muted">Text Formats:</h6>
+                <ul class="small mb-0">
+                    <li>Free-form text with contact details</li>
+                    <li>Line-separated entries</li>
+                    <li>Structured lists with labels</li>
+                    <li>Email signatures</li>
+                    <li>Contact cards</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-switch between file and text options
+document.getElementById('contact_file').addEventListener('change', function() {
+    if (this.files.length > 0) {
+        document.getElementById('contact_text').value = '';
+    }
+});
+
+document.getElementById('contact_text').addEventListener('input', function() {
+    if (this.value.trim()) {
+        document.getElementById('contact_file').value = '';
+    }
+});
+</script>
+{% endblock %}

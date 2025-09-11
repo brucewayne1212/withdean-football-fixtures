@@ -27,6 +27,7 @@ from smart_email_generator import SmartEmailGenerator
 from task_manager import TaskManager, TaskType, TaskStatus
 from text_fixture_parser import TextFixtureParser
 from auth_manager import AuthManager, User
+from contact_parser import ContactParser
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'withdean-youth-fc-fixtures-2024-dev')
@@ -523,6 +524,120 @@ def delete_team_contact(team_name):
     task_manager, user_manager = get_user_managers()
     user_manager.delete_team_contact(team_name)
     return jsonify({'success': True, 'message': f'Contact for "{team_name}" deleted successfully'})
+
+# Bulk contact upload routes
+@app.route('/settings/contacts/bulk', methods=['GET', 'POST'])
+@login_required
+def bulk_contact_upload():
+    """Bulk upload contacts from text, CSV, or Excel"""
+    if request.method == 'POST':
+        task_manager, user_manager = get_user_managers()
+        parser = ContactParser()
+        contacts = []
+        
+        try:
+            # Check if it's a file upload or text paste
+            if 'contact_file' in request.files and request.files['contact_file'].filename:
+                file = request.files['contact_file']
+                filename = secure_filename(file.filename)
+                file_content = file.read()
+                
+                if filename.lower().endswith(('.csv', '.txt')):
+                    contacts = parser.parse_csv_file(file_content)
+                elif filename.lower().endswith(('.xlsx', '.xls')):
+                    contacts = parser.parse_excel_file(file_content)
+                else:
+                    flash('Please upload a CSV, TXT, or Excel file', 'error')
+                    return redirect(url_for('bulk_contact_upload'))
+                    
+            elif request.form.get('contact_text', '').strip():
+                text = request.form.get('contact_text', '').strip()
+                contacts = parser.parse_text(text)
+            else:
+                flash('Please provide either text or upload a file', 'error')
+                return redirect(url_for('bulk_contact_upload'))
+            
+            if not contacts:
+                flash('No valid contacts found in the provided data', 'warning')
+                return redirect(url_for('bulk_contact_upload'))
+            
+            # Store contacts in session for preview
+            session['bulk_contacts'] = [
+                {
+                    'team_name': c.team_name,
+                    'contact_name': c.contact_name,
+                    'email': c.email,
+                    'phone': c.phone,
+                    'notes': c.notes,
+                    'original_text': c.original_text
+                }
+                for c in contacts
+            ]
+            
+            return redirect(url_for('bulk_contact_preview'))
+            
+        except Exception as e:
+            flash(f'Error parsing contacts: {str(e)}', 'error')
+            return redirect(url_for('bulk_contact_upload'))
+    
+    return render_template('bulk_contact_upload.html')
+
+@app.route('/settings/contacts/bulk/preview', methods=['GET', 'POST'])
+@login_required
+def bulk_contact_preview():
+    """Preview and confirm bulk contact import"""
+    if 'bulk_contacts' not in session:
+        flash('No contacts to preview. Please upload contacts first.', 'error')
+        return redirect(url_for('bulk_contact_upload'))
+    
+    if request.method == 'POST':
+        task_manager, user_manager = get_user_managers()
+        
+        # Get the contacts from session
+        bulk_contacts = session.get('bulk_contacts', [])
+        
+        # Process the form data to get user modifications
+        imported_count = 0
+        skipped_count = 0
+        
+        for i, contact_data in enumerate(bulk_contacts):
+            # Check if this contact should be imported
+            if request.form.get(f'import_{i}') == 'on':
+                team_name = request.form.get(f'team_name_{i}', '').strip()
+                contact_name = request.form.get(f'contact_name_{i}', '').strip()
+                email = request.form.get(f'email_{i}', '').strip()
+                phone = request.form.get(f'phone_{i}', '').strip()
+                notes = request.form.get(f'notes_{i}', '').strip()
+                
+                if team_name:  # Only import if team name is provided
+                    contact_info = {
+                        'contact_name': contact_name,
+                        'email': email,
+                        'phone': phone,
+                        'notes': notes
+                    }
+                    
+                    user_manager.add_or_update_team_contact(team_name, contact_info)
+                    imported_count += 1
+                else:
+                    skipped_count += 1
+            else:
+                skipped_count += 1
+        
+        # Clear the session data
+        session.pop('bulk_contacts', None)
+        
+        # Show results
+        if imported_count > 0:
+            flash(f'Successfully imported {imported_count} contacts! {skipped_count} skipped.', 'success')
+        else:
+            flash('No contacts were imported.', 'warning')
+        
+        return redirect(url_for('settings'))
+    
+    # GET request - show preview
+    bulk_contacts = session.get('bulk_contacts', [])
+    return render_template('bulk_contact_preview.html', contacts=bulk_contacts)
 
 @app.route('/add_fixture', methods=['GET', 'POST'])
 def add_fixture():
