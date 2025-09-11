@@ -233,3 +233,57 @@ The Following Footwear is Allowed
     def get_preference(self, key: str, default=None):
         """Get a specific preference"""
         return self.settings.get('preferences', {}).get(key, default)
+    
+    # Contact management methods
+    def get_all_contacts(self):
+        """Get all team contacts"""
+        return self.settings.get('team_contacts', {})
+    
+    def get_team_contact(self, team_name: str):
+        """Get contact information for a specific team"""
+        contacts = self.get_all_contacts()
+        
+        # Try exact match first
+        if team_name in contacts:
+            return contacts[team_name]
+        
+        # Try partial matches (case insensitive)
+        team_lower = team_name.lower().strip()
+        for name, contact in contacts.items():
+            if team_lower in name.lower() or name.lower() in team_lower:
+                return contact
+        
+        return None
+    
+    def add_or_update_team_contact(self, team_name: str, contact_info: Dict):
+        """Add or update contact information for a team"""
+        if 'team_contacts' not in self.settings:
+            self.settings['team_contacts'] = {}
+        
+        # Ensure contact_info has required fields
+        default_contact = {
+            'team_name': team_name,
+            'contact_name': '',
+            'email': '',
+            'phone': '',
+            'notes': ''
+        }
+        default_contact.update(contact_info)
+        
+        self.settings['team_contacts'][team_name] = default_contact
+        self.save_settings()
+    
+    def delete_team_contact(self, team_name: str):
+        """Delete contact information for a team"""
+        if 'team_contacts' in self.settings and team_name in self.settings['team_contacts']:
+            del self.settings['team_contacts'][team_name]
+            self.save_settings()
+    
+    def get_contacts_for_teams(self, team_names: List[str]) -> Dict[str, Dict]:
+        """Get contact information for multiple teams"""
+        result = {}
+        for team_name in team_names:
+            contact = self.get_team_contact(team_name)
+            if contact:
+                result[team_name] = contact
+        return result

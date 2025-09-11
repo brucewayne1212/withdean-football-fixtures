@@ -132,6 +132,57 @@
             </div>
         </div>
         
+        <!-- Team Contacts -->
+        {% if team_contacts %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-address-book"></i> Team Contacts
+                </h6>
+            </div>
+            <div class="card-body">
+                {% for team_name, contact in team_contacts.items() %}
+                <div class="mb-3 p-2 border rounded bg-light">
+                    <h6 class="text-primary mb-2">{{ team_name }}</h6>
+                    {% if contact.contact_name %}
+                    <p class="mb-1 small">
+                        <strong>Contact:</strong> {{ contact.contact_name }}
+                    </p>
+                    {% endif %}
+                    {% if contact.email %}
+                    <div class="mb-1 small">
+                        <strong>Email:</strong>
+                        <div class="d-flex align-items-center">
+                            <code class="flex-grow-1 me-2" style="font-size: 0.8em;">{{ contact.email }}</code>
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="copyToClipboard('{{ contact.email }}', 'Email copied!')" 
+                                    title="Copy email">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if contact.phone %}
+                    <p class="mb-1 small">
+                        <strong>Phone:</strong> {{ contact.phone }}
+                    </p>
+                    {% endif %}
+                    {% if contact.notes %}
+                    <p class="mb-0 small text-muted">
+                        <strong>Notes:</strong> {{ contact.notes }}
+                    </p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                
+                <div class="alert alert-info small mb-0">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Tip:</strong> Click the copy button next to email addresses to quickly copy them for pasting into your email client.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
         <div class="card mt-3">
             <div class="card-header">
                 <h6 class="mb-0">
@@ -366,6 +417,31 @@ function showCopyModal(text) {
     // Remove modal when closed
     document.getElementById('copyModal').addEventListener('hidden.bs.modal', function() {
         this.remove();
+    });
+}
+
+function copyToClipboard(text, message) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast(message || 'Copied to clipboard!');
+    }).catch(() => {
+        // Fallback for browsers that don't support clipboard API
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            showToast(message || 'Copied to clipboard!');
+        } catch (err) {
+            alert('Copy to clipboard failed. Please copy manually: ' + text);
+        }
+        
+        textArea.remove();
     });
 }
 

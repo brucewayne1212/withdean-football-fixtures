@@ -334,10 +334,15 @@ def generate_task_email(task_id):
     email_content = smart_generator.generate_email(fixture_data)
     subject_line = smart_generator.generate_subject_line(fixture_data)
     
+    # Get contact information for teams involved
+    teams_to_check = [task.team, task.opposition] if str(task.opposition) != 'nan' else [task.team]
+    team_contacts = user_manager.get_contacts_for_teams(teams_to_check)
+    
     return render_template('email_preview.html', 
                          task=task,
                          subject=subject_line,
-                         email_content=email_content)
+                         email_content=email_content,
+                         team_contacts=team_contacts)
 
 @app.route('/mark_completed/<task_id>', methods=['POST'])
 def mark_task_completed(task_id):
@@ -409,6 +414,7 @@ def settings():
                          managed_teams=user_manager.get_managed_teams(),
                          pitches=user_manager.get_all_pitches(),
                          preferences=user_manager.get_preferences(),
+                         team_contacts=user_manager.get_all_contacts(),
                          all_teams=all_teams)
 
 @app.route('/settings/user', methods=['POST'])
@@ -472,6 +478,39 @@ def update_preferences():
     user_manager.update_preferences(preferences)
     flash('Email preferences updated successfully!', 'success')
     return redirect(url_for('settings'))
+
+# Contact management routes
+@app.route('/settings/contacts', methods=['POST'])
+@login_required
+def add_or_update_contact():
+    """Add or update team contact information"""
+    team_name = request.form.get('team_name')
+    contact_info = {
+        'contact_name': request.form.get('contact_name', ''),
+        'email': request.form.get('email', ''),
+        'phone': request.form.get('phone', ''),
+        'notes': request.form.get('notes', '')
+    }
+    
+    user_manager.add_or_update_team_contact(team_name, contact_info)
+    flash(f'Contact information for {team_name} updated successfully!', 'success')
+    return redirect(url_for('settings'))
+
+@app.route('/settings/contacts/<team_name>')
+@login_required
+def get_team_contact(team_name):
+    """Get team contact information as JSON"""
+    contact = user_manager.get_team_contact(team_name)
+    if contact:
+        return jsonify(contact)
+    return jsonify({'error': 'Contact not found'}), 404
+
+@app.route('/settings/contacts/<team_name>', methods=['DELETE'])
+@login_required
+def delete_team_contact(team_name):
+    """Delete team contact information"""
+    user_manager.delete_team_contact(team_name)
+    return jsonify({'success': True, 'message': f'Contact for "{team_name}" deleted successfully'})
 
 @app.route('/add_fixture', methods=['GET', 'POST'])
 def add_fixture():

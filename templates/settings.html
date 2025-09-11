@@ -223,6 +223,79 @@
     </div>
 </div>
 
+<!-- Team Contacts Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-address-book"></i> Team Contacts
+                </h5>
+                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#addContactModal">
+                    <i class="fas fa-plus"></i> Add Contact
+                </button>
+            </div>
+            <div class="card-body">
+                {% if team_contacts %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Team</th>
+                                <th>Contact Name</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team_name, contact in team_contacts.items() %}
+                            <tr>
+                                <td><strong>{{ team_name }}</strong></td>
+                                <td>{{ contact.contact_name or '-' }}</td>
+                                <td>
+                                    {% if contact.email %}
+                                    <div class="d-flex align-items-center">
+                                        <code class="me-2">{{ contact.email }}</code>
+                                        <button class="btn btn-sm btn-outline-secondary" 
+                                                onclick="copyToClipboard('{{ contact.email }}', 'Email copied!')" 
+                                                title="Copy email">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>{{ contact.phone or '-' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="editContact('{{ team_name }}')" 
+                                            title="Edit contact">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                            onclick="deleteContact('{{ team_name }}')" 
+                                            title="Delete contact">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 
+                    No team contacts have been added yet. Click "Add Contact" to get started.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Team Selection Modal -->
 <div class="modal fade" id="selectTeamsModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
@@ -318,6 +391,48 @@
         </div>
     </div>
 </div>
+
+<!-- Add/Edit Contact Modal -->
+<div class="modal fade" id="addContactModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contactModalTitle">Add Team Contact</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="contactForm" method="POST" action="/settings/contacts">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="team_name" class="form-label">Team Name</label>
+                        <input type="text" class="form-control" id="team_name" name="team_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact_name" class="form-label">Contact Name</label>
+                        <input type="text" class="form-control" id="contact_name" name="contact_name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact_email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="contact_email" name="email">
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact_phone" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="contact_phone" name="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact_notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="contact_notes" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-save"></i> Save Contact
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -363,12 +478,106 @@ function deletePitch(pitchName) {
     }
 }
 
+// Contact management functions
+function copyToClipboard(text, message) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast(message || 'Copied to clipboard!');
+    }).catch(() => {
+        // Fallback for browsers that don't support clipboard API
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            showToast(message || 'Copied to clipboard!');
+        } catch (err) {
+            alert('Copy to clipboard failed. Please copy manually: ' + text);
+        }
+        
+        textArea.remove();
+    });
+}
+
+function editContact(teamName) {
+    fetch(`/settings/contacts/${encodeURIComponent(teamName)}`)
+        .then(response => response.json())
+        .then(contact => {
+            document.getElementById('contactModalTitle').textContent = 'Edit Team Contact';
+            document.getElementById('team_name').value = contact.team_name || teamName;
+            document.getElementById('contact_name').value = contact.contact_name || '';
+            document.getElementById('contact_email').value = contact.email || '';
+            document.getElementById('contact_phone').value = contact.phone || '';
+            document.getElementById('contact_notes').value = contact.notes || '';
+            
+            const modal = new bootstrap.Modal(document.getElementById('addContactModal'));
+            modal.show();
+        })
+        .catch(error => {
+            alert('Error loading contact information');
+        });
+}
+
+function deleteContact(teamName) {
+    if (confirm(`Are you sure you want to delete the contact for ${teamName}?`)) {
+        fetch(`/settings/contacts/${encodeURIComponent(teamName)}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast(`Contact for ${teamName} deleted successfully!`);
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                alert('Error deleting contact');
+            }
+        })
+        .catch(error => {
+            alert('Error deleting contact');
+        });
+    }
+}
+
+function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed top-0 end-0 m-3';
+    toast.style.zIndex = '1050';
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto"></button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
 // Reset modal when adding new pitch
 document.addEventListener('DOMContentLoaded', function() {
     const addPitchModal = document.getElementById('addPitchModal');
     addPitchModal.addEventListener('hidden.bs.modal', function () {
         document.getElementById('pitchModalTitle').textContent = 'Add New Pitch';
         document.getElementById('pitchForm').reset();
+    });
+    
+    // Reset contact modal when closing
+    const addContactModal = document.getElementById('addContactModal');
+    addContactModal.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('contactModalTitle').textContent = 'Add Team Contact';
+        document.getElementById('contactForm').reset();
     });
 });
 </script>
