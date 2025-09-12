@@ -21,71 +21,79 @@
 <!-- Summary Cards -->
 <div class="row mb-4">
     <div class="col-md-3">
-        <div class="card bg-warning text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title">Pending</h5>
-                        <h2>{{ summary.pending }}</h2>
-                        <p class="card-text">Home games to send</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-clock fa-2x"></i>
+        <a href="{{ url_for('view_tasks', status='pending') }}" class="text-decoration-none">
+            <div class="card bg-warning text-white shadow-hover">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Pending</h5>
+                            <h2>{{ summary.pending }}</h2>
+                            <p class="card-text">Home games to send</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
     
     <div class="col-md-3">
-        <div class="card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title">Waiting</h5>
-                        <h2>{{ summary.waiting }}</h2>
-                        <p class="card-text">Away games waiting</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-hourglass-half fa-2x"></i>
+        <a href="{{ url_for('view_tasks', status='waiting') }}" class="text-decoration-none">
+            <div class="card bg-info text-white shadow-hover">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Waiting</h5>
+                            <h2>{{ summary.waiting }}</h2>
+                            <p class="card-text">Away games waiting</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-hourglass-half fa-2x"></i>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
     
     <div class="col-md-3">
-        <div class="card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title">In Progress</h5>
-                        <h2>{{ summary.in_progress }}</h2>
-                        <p class="card-text">Currently working on</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-spinner fa-2x"></i>
+        <a href="{{ url_for('view_tasks', status='in_progress') }}" class="text-decoration-none">
+            <div class="card bg-primary text-white shadow-hover">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">In Progress</h5>
+                            <h2>{{ summary.in_progress }}</h2>
+                            <p class="card-text">Currently working on</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-spinner fa-2x"></i>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
     
     <div class="col-md-3">
-        <div class="card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h5 class="card-title">Completed</h5>
-                        <h2>{{ summary.completed }}</h2>
-                        <p class="card-text">Tasks finished</p>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-check fa-2x"></i>
+        <a href="{{ url_for('view_tasks', status='completed') }}" class="text-decoration-none">
+            <div class="card bg-success text-white shadow-hover">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Completed</h5>
+                            <h2>{{ summary.completed }}</h2>
+                            <p class="card-text">Tasks finished</p>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-check fa-2x"></i>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 </div>
 

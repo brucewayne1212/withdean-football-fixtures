@@ -53,10 +53,10 @@ class UserManager:
                 'created_date': datetime.now().isoformat()
             },
             'managed_teams': [
-                'U9 Red',
-                'U14 Red', 
+                'U9 Blue',
+                'U14 Blue', 
                 'U14 Black',
-                'U14 Girls Red',
+                'U14 Girls Blue',
                 'U14 White'
             ],
             'pitches': {
@@ -111,7 +111,7 @@ The Following Footwear is Allowed
             },
             'preferences': {
                 'default_referee_note': 'Referees have been requested for all fixtures but are as yet unconfirmed',
-                'default_colours': 'Withdean Youth FC play in Red and Black Shirts, Black Shorts and Red and Black Hooped Socks',
+                'default_colours': 'Withdean Youth FC play in Blue and Black Shirts, Black Shorts and Blue and Black Hooped Socks',
                 'email_signature': 'Many thanks\n\nWithdean Youth FC',
                 'default_day': 'Sunday'
             }
@@ -240,14 +240,43 @@ The Following Footwear is Allowed
         return self.settings.get('team_contacts', {})
     
     def get_team_contact(self, team_name: str):
-        """Get contact information for a specific team"""
+        """Get contact information for a specific team with fuzzy matching"""
         contacts = self.get_all_contacts()
         
         # Try exact match first
         if team_name in contacts:
             return contacts[team_name]
         
-        # Try partial matches (case insensitive)
+        # Normalize team name for better matching
+        def normalize_team_name(name):
+            """Normalize team name for better matching"""
+            if not name:
+                return ""
+            # Convert to lowercase and remove common suffixes/prefixes
+            normalized = name.lower().strip()
+            # Remove common football terms
+            for term in ['fc', 'football club', 'afc', 'united', 'youth', 'junior', 'senior']:
+                normalized = normalized.replace(term, '').strip()
+            # Remove extra whitespace
+            normalized = ' '.join(normalized.split())
+            return normalized
+        
+        team_normalized = normalize_team_name(team_name)
+        
+        # Try normalized matches
+        for name, contact in contacts.items():
+            name_normalized = normalize_team_name(name)
+            
+            # Exact match after normalization
+            if team_normalized == name_normalized:
+                return contact
+            
+            # Partial match (both directions)
+            if team_normalized and name_normalized:
+                if team_normalized in name_normalized or name_normalized in team_normalized:
+                    return contact
+        
+        # Fallback to original partial matching logic
         team_lower = team_name.lower().strip()
         for name, contact in contacts.items():
             if team_lower in name.lower() or name.lower() in team_lower:
@@ -287,3 +316,153 @@ The Following Footwear is Allowed
             if contact:
                 result[team_name] = contact
         return result
+    
+    # Coach/Manager management methods for internal teams
+    def get_all_coaches(self):
+        """Get all coach/manager contacts for internal teams"""
+        return self.settings.get('team_coaches', {})
+    
+    def get_team_coach(self, team_name: str):
+        """Get coach/manager information for a specific internal team with fuzzy matching"""
+        coaches = self.get_all_coaches()
+        
+        # Try exact match first
+        if team_name in coaches:
+            return coaches[team_name]
+        
+        # Try partial matches using the same logic as team contacts
+        team_lower = team_name.lower().strip()
+        for name, coach in coaches.items():
+            if team_lower in name.lower() or name.lower() in team_lower:
+                return coach
+        
+        return None
+    
+    def add_or_update_team_coach(self, team_name: str, coach_info: Dict):
+        """Add or update coach/manager information for an internal team"""
+        if 'team_coaches' not in self.settings:
+            self.settings['team_coaches'] = {}
+        
+        # Ensure coach_info has required fields
+        default_coach = {
+            'team_name': team_name,
+            'coach_name': '',
+            'email': '',
+            'phone': '',
+            'role': 'Coach',  # Coach, Manager, Assistant Coach, etc.
+            'notes': ''
+        }
+        default_coach.update(coach_info)
+        
+        self.settings['team_coaches'][team_name] = default_coach
+        self.save_settings()
+    
+    def delete_team_coach(self, team_name: str):
+        """Delete coach/manager information for an internal team"""
+        if 'team_coaches' in self.settings and team_name in self.settings['team_coaches']:
+            del self.settings['team_coaches'][team_name]
+            self.save_settings()
+    
+    def get_coaches_for_teams(self, team_names: List[str]) -> Dict[str, Dict]:
+        """Get coach/manager information for multiple internal teams"""
+        result = {}
+        for team_name in team_names:
+            coach = self.get_team_coach(team_name)
+            if coach:
+                result[team_name] = coach
+        return result
+    
+    def get_team_coaches(self, team_name: str):
+        """Get coaches for a specific team (returns list for template compatibility)"""
+        coach = self.get_team_coach(team_name)
+        if coach:
+            # Return as list with single coach for template compatibility
+            return [coach]
+        return []
+    
+    # Email template management methods
+    def get_email_template(self):
+        """Get custom email template or return default"""
+        return self.settings.get('email_template', self._get_default_email_template())
+    
+    def update_email_template(self, template_content: str):
+        """Update custom email template"""
+        self.settings['email_template'] = template_content
+        self.save_settings()
+    
+    def reset_email_template(self):
+        """Reset email template to default"""
+        if 'email_template' in self.settings:
+            del self.settings['email_template']
+            self.save_settings()
+    
+    def _get_default_email_template(self):
+        """Get the default email template with merge fields"""
+        return """<p><strong><u>In the event of any issues impacting your fixture please communicate directly with your opposition manager - This email will NOT be monitored</u></strong></p>
+
+<p>Dear Fixtures Secretary</p>
+
+<p>Please find details of your upcoming fixture at <strong>Withdean Youth FC</strong></p>
+
+<p><strong>Please confirm receipt:</strong> Please copy the relevant Withdean Youth FC manager to your response.</p>
+
+<p><strong>Any issues:</strong> Managers please contact your opposition directly using the contact details supplied if you have any issues that will impact your attendance (ideally by phone call or text message).</p>
+
+<p><strong>Please Contact Managers Directly:</strong> Our Fixtures secretaries will not pick up on late messages so it is vital you communicate directly with your opposition manager once you have been put in touch.</p>
+
+<h3>FIXTURE DETAILS</h3>
+
+<p><strong>Date:</strong> {{date_display}}</p>
+
+<p><strong>Kick-off Time:</strong> {{time_display}}</p>
+
+<p><strong>Pitch Location:</strong> {{pitch_name}} (see attached map for relevant pitch location)</p>
+
+<p><strong>Home Colours:</strong> {{home_colours}}</p>
+
+<p><strong>Match Format:</strong> {{match_format}}</p>
+
+<p><strong>Referees:</strong> {{referee_note}}</p>
+
+<h3>VENUE INFORMATION</h3>
+
+<p><strong>Address:</strong> {{pitch_address}}</p>
+
+<p><strong>Parking:</strong> {{pitch_parking}}</p>
+
+<p><strong>Toilets:</strong> {{pitch_toilets}}</p>
+
+<p><strong>Arrival & Setup:</strong> {{pitch_opening_notes}}</p>
+
+<p><strong>Warm-up:</strong> {{pitch_warm_up_notes}}</p>
+
+<p><strong>Special Instructions:</strong> {{pitch_special_instructions}}</p>
+
+<h3>CONTACT INFORMATION</h3>
+
+<p><strong>Manager:</strong> {{manager_name}}</p>
+<p><strong>Manager Contact:</strong> {{manager_contact}}</p>
+
+<p>{{email_signature}}</p>"""
+    
+    def get_available_merge_fields(self):
+        """Get list of available merge fields for email templates"""
+        return [
+            '{{date_display}}',
+            '{{time_display}}', 
+            '{{pitch_name}}',
+            '{{pitch_address}}',
+            '{{pitch_parking}}',
+            '{{pitch_toilets}}',
+            '{{pitch_opening_notes}}',
+            '{{pitch_warm_up_notes}}',
+            '{{pitch_special_instructions}}',
+            '{{home_colours}}',
+            '{{match_format}}',
+            '{{referee_note}}',
+            '{{manager_name}}',
+            '{{manager_contact}}',
+            '{{email_signature}}',
+            '{{team_name}}',
+            '{{opposition_name}}'
+        ]

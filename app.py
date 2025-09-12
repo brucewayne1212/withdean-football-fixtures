@@ -4,6 +4,9 @@ import pandas as pd
 from werkzeug.utils import secure_filename
 from datetime import datetime
 import json
+import tempfile
+import pickle
+import uuid
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -43,6 +46,101 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Create user_data directory for multi-user storage
 os.makedirs('user_data', exist_ok=True)
+
+# Create temporary directory for bulk contact storage
+TEMP_DIR = os.path.join(tempfile.gettempdir(), 'bulk_contacts')
+os.makedirs(TEMP_DIR, exist_ok=True)
+
+def store_bulk_contacts(user_id, contacts):
+    """Store bulk contacts in a temporary file"""
+    contact_data = []
+    for contact in contacts:
+        contact_dict = {
+            'team_name': contact.team_name,
+            'contact_name': contact.contact_name,
+            'email': contact.email,
+            'phone': contact.phone,
+            'notes': contact.notes,
+            'original_text': contact.original_text
+        }
+        contact_data.append(contact_dict)
+    
+    # Generate unique filename for this user and session
+    bulk_id = str(uuid.uuid4())
+    filename = f"{user_id}_{bulk_id}.pkl"
+    filepath = os.path.join(TEMP_DIR, filename)
+    
+    with open(filepath, 'wb') as f:
+        pickle.dump(contact_data, f)
+    
+    return bulk_id
+
+def get_bulk_contacts(user_id, bulk_id):
+    """Retrieve bulk contacts from temporary file"""
+    filename = f"{user_id}_{bulk_id}.pkl"
+    filepath = os.path.join(TEMP_DIR, filename)
+    
+    try:
+        with open(filepath, 'rb') as f:
+            return pickle.load(f)
+    except FileNotFoundError:
+        return None
+
+def cleanup_bulk_contacts(user_id, bulk_id):
+    """Remove temporary bulk contact file"""
+    filename = f"{user_id}_{bulk_id}.pkl"
+    filepath = os.path.join(TEMP_DIR, filename)
+    
+    try:
+        os.remove(filepath)
+    except FileNotFoundError:
+        pass
+
+def store_bulk_coaches(user_id, coaches):
+    """Store bulk coaches in a temporary file"""
+    coach_data = []
+    for coach in coaches:
+        if coach.contact_type == "coach":  # Only store coaches
+            coach_dict = {
+                'name': coach.contact_name,
+                'email': coach.email,
+                'phone': coach.phone,
+                'role': coach.role,
+                'team': coach.team_name,
+                'original_text': coach.original_text
+            }
+            coach_data.append(coach_dict)
+    
+    # Generate unique filename for this user and session
+    bulk_id = str(uuid.uuid4())
+    filename = f"coaches_{user_id}_{bulk_id}.pkl"
+    filepath = os.path.join(TEMP_DIR, filename)
+    
+    with open(filepath, 'wb') as f:
+        pickle.dump(coach_data, f)
+    
+    return bulk_id
+
+def get_bulk_coaches(user_id, bulk_id):
+    """Retrieve bulk coaches from temporary file"""
+    filename = f"coaches_{user_id}_{bulk_id}.pkl"
+    filepath = os.path.join(TEMP_DIR, filename)
+    
+    try:
+        with open(filepath, 'rb') as f:
+            return pickle.load(f)
+    except FileNotFoundError:
+        return None
+
+def cleanup_bulk_coaches(user_id, bulk_id):
+    """Remove temporary bulk coach file"""
+    filename = f"coaches_{user_id}_{bulk_id}.pkl"
+    filepath = os.path.join(TEMP_DIR, filename)
+    
+    try:
+        os.remove(filepath)
+    except FileNotFoundError:
+        pass
 
 # Initialize authentication
 login_manager = LoginManager()
@@ -176,6 +274,8 @@ def dashboard():
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_file():
     """Handle CSV file upload and fixture import"""
+    task_manager, user_manager = get_user_managers()
+    
     if request.method == 'POST':
         if 'file' not in request.files:
             flash('No file selected', 'error')
@@ -290,6 +390,7 @@ def view_tasks():
 @app.route('/task/<task_id>')
 def task_detail(task_id):
     """View detailed information about a specific task"""
+    task_manager, user_manager = get_user_managers()
     task = task_manager.tasks.get(task_id)
     if not task:
         flash('Task not found', 'error')
@@ -300,6 +401,7 @@ def task_detail(task_id):
 @app.route('/generate_email/<task_id>')
 def generate_task_email(task_id):
     """Generate email for a specific home game task"""
+    task_manager, user_manager = get_user_managers()
     task = task_manager.tasks.get(task_id)
     if not task:
         flash('Task not found', 'error')
@@ -340,15 +442,21 @@ def generate_task_email(task_id):
     teams_to_check = [task.team, task.opposition] if str(task.opposition) != 'nan' else [task.team]
     team_contacts = user_manager.get_contacts_for_teams(teams_to_check)
     
+    # Get coach/manager information for internal teams
+    internal_teams = [task.team]  # Only get coaches for our own team
+    team_coaches = user_manager.get_coaches_for_teams(internal_teams)
+    
     return render_template('email_preview.html', 
                          task=task,
                          subject=subject_line,
                          email_content=email_content,
-                         team_contacts=team_contacts)
+                         team_contacts=team_contacts,
+                         team_coaches=team_coaches)
 
 @app.route('/mark_completed/<task_id>', methods=['POST'])
 def mark_task_completed(task_id):
     """Mark a task as completed"""
+    task_manager, user_manager = get_user_managers()
     task = task_manager.tasks.get(task_id)
     if not task:
         return jsonify({'error': 'Task not found'}), 404
@@ -419,7 +527,9 @@ def settings():
                          pitches=user_manager.get_all_pitches(),
                          preferences=user_manager.get_preferences(),
                          team_contacts=user_manager.get_all_contacts(),
-                         all_teams=all_teams)
+                         team_coaches=user_manager.get_all_coaches(),
+                         all_teams=all_teams,
+                         user_manager=user_manager)
 
 @app.route('/settings/user', methods=['POST'])
 def update_user():
@@ -530,7 +640,10 @@ def delete_team_contact(team_name):
 @login_required
 def bulk_contact_upload():
     """Bulk upload contacts from text, CSV, or Excel"""
+    print("Bulk contact upload route called")  # Debug
+    
     if request.method == 'POST':
+        print("POST request received")  # Debug
         task_manager, user_manager = get_user_managers()
         parser = ContactParser()
         contacts = []
@@ -555,33 +668,26 @@ def bulk_contact_upload():
             elif request.form.get('contact_text', '').strip():
                 text = request.form.get('contact_text', '').strip()
                 print(f"Processing text input: {len(text)} characters")  # Debug
-                print(f"Text preview: {text[:200]}...")  # Debug
                 contacts = parser.parse_text(text)
                 print(f"Parsed {len(contacts)} contacts")  # Debug
             else:
+                print("No file or text provided")  # Debug
                 flash('Please provide either text or upload a file', 'error')
                 return redirect(url_for('bulk_contact_upload'))
             
             if not contacts:
+                print("No contacts found after parsing")  # Debug
                 flash('No valid contacts found in the provided data. Please check that your data contains email addresses or phone numbers.', 'warning')
                 return redirect(url_for('bulk_contact_upload'))
             
-            # Store contacts in session for preview (simplified to avoid session size issues)
-            session['bulk_contacts'] = [
-                {
-                    'team_name': c.team_name or "",
-                    'contact_name': c.contact_name or "",
-                    'email': c.email or "",
-                    'phone': c.phone or "",
-                    'notes': c.notes or "",
-                    'original_text': (c.original_text[:100] + "...") if c.original_text and len(c.original_text) > 100 else (c.original_text or "")
-                }
-                for c in contacts
-            ]
+            # Store contacts in temporary file
+            user_id = current_user.id
+            bulk_id = store_bulk_contacts(user_id, contacts)
             
-            print(f"Stored {len(session['bulk_contacts'])} contacts in session")  # Debug
+            print(f"Stored {len(contacts)} contacts in temporary file with ID: {bulk_id}")  # Debug
             
-            return redirect(url_for('bulk_contact_preview'))
+            # Redirect to preview with bulk_id parameter
+            return redirect(url_for('bulk_contact_preview', bulk_id=bulk_id))
             
         except Exception as e:
             print(f"Error parsing contacts: {str(e)}")  # Debug
@@ -590,27 +696,31 @@ def bulk_contact_upload():
             flash(f'Error parsing contacts: {str(e)}', 'error')
             return redirect(url_for('bulk_contact_upload'))
     
+    print("Rendering bulk contact upload template")  # Debug
     return render_template('bulk_contact_upload.html')
 
-@app.route('/settings/contacts/bulk/preview', methods=['GET', 'POST'])
+@app.route('/settings/contacts/bulk/preview/<bulk_id>', methods=['GET', 'POST'])
 @login_required
-def bulk_contact_preview():
+def bulk_contact_preview(bulk_id):
     """Preview and confirm bulk contact import"""
-    print(f"Preview route called. Session keys: {list(session.keys())}")  # Debug
+    print(f"Preview route called with bulk_id: {bulk_id}")  # Debug
     
-    if 'bulk_contacts' not in session:
-        print("No bulk_contacts in session")  # Debug
+    # Get contacts from temporary file
+    user_id = current_user.id
+    bulk_contacts = get_bulk_contacts(user_id, bulk_id)
+    
+    if bulk_contacts is None:
+        print("No bulk_contacts found in temporary file")  # Debug
         flash('No contacts to preview. Please upload contacts first.', 'error')
         return redirect(url_for('bulk_contact_upload'))
     
-    bulk_contacts = session.get('bulk_contacts', [])
-    print(f"Found {len(bulk_contacts)} contacts in session")  # Debug
+    print(f"Found {len(bulk_contacts)} contacts in temporary file")  # Debug
     
     if request.method == 'POST':
         task_manager, user_manager = get_user_managers()
         
-        # Get the contacts from session
-        bulk_contacts = session.get('bulk_contacts', [])
+        # Get the contacts from temporary file
+        bulk_contacts = get_bulk_contacts(user_id, bulk_id)
         
         # Process the form data to get user modifications
         imported_count = 0
@@ -640,8 +750,8 @@ def bulk_contact_preview():
             else:
                 skipped_count += 1
         
-        # Clear the session data
-        session.pop('bulk_contacts', None)
+        # Clean up temporary file
+        cleanup_bulk_contacts(user_id, bulk_id)
         
         # Show results
         if imported_count > 0:
@@ -652,8 +762,262 @@ def bulk_contact_preview():
         return redirect(url_for('settings'))
     
     # GET request - show preview
-    bulk_contacts = session.get('bulk_contacts', [])
     return render_template('bulk_contact_preview.html', contacts=bulk_contacts)
+
+# Coach/Manager management routes for internal teams
+@app.route('/settings/coaches', methods=['POST'])
+@login_required
+def add_or_update_coach():
+    """Add or update a coach/manager for an internal team"""
+    task_manager, user_manager = get_user_managers()
+    
+    team_name = request.form.get('team_name', '').strip()
+    coach_name = request.form.get('coach_name', '').strip()
+    email = request.form.get('email', '').strip()
+    phone = request.form.get('phone', '').strip()
+    role = request.form.get('role', 'Coach').strip()
+    notes = request.form.get('notes', '').strip()
+    
+    if team_name:
+        coach_info = {
+            'coach_name': coach_name,
+            'email': email,
+            'phone': phone,
+            'role': role,
+            'notes': notes
+        }
+        
+        user_manager.add_or_update_team_coach(team_name, coach_info)
+        
+        # Check if this is a fetch/AJAX request (look for Accept header)
+        if request.headers.get('Accept', '').find('application/json') != -1:
+            return jsonify({'success': True, 'message': f'Coach/Manager updated for {team_name}'})
+        else:
+            flash(f'Coach/Manager updated for {team_name}', 'success')
+            return redirect(url_for('settings'))
+    else:
+        # Check if this is a fetch/AJAX request
+        if request.headers.get('Accept', '').find('application/json') != -1:
+            return jsonify({'success': False, 'message': 'Team name is required'})
+        else:
+            flash('Team name is required', 'error')
+            return redirect(url_for('settings'))
+
+@app.route('/settings/coaches/<team_name>')
+@login_required
+def get_team_coach(team_name):
+    """Get coach/manager information for a team (AJAX)"""
+    task_manager, user_manager = get_user_managers()
+    coach = user_manager.get_team_coach(team_name)
+    
+    if coach:
+        return jsonify(coach)
+    else:
+        return jsonify({})
+
+@app.route('/settings/coaches/<team_name>', methods=['DELETE'])
+@login_required
+def delete_team_coach(team_name):
+    """Delete coach/manager information for a team"""
+    task_manager, user_manager = get_user_managers()
+    user_manager.delete_team_coach(team_name)
+    return jsonify({'status': 'success'})
+
+@app.route('/settings/coaches/team/<team_name>', methods=['GET'])
+@login_required
+def get_team_coaches(team_name):
+    """Get all coaches for a specific team"""
+    task_manager, user_manager = get_user_managers()
+    coaches = user_manager.get_team_coaches(team_name)
+    
+    # Convert to list of dictionaries for JSON response
+    coach_list = []
+    if coaches:
+        for coach in coaches:
+            coach_dict = {
+                'coach_name': coach.coach_name,
+                'role': coach.role or 'Coach',
+                'email': coach.email or '',
+                'phone': coach.phone or '',
+                'notes': coach.notes or ''
+            }
+            coach_list.append(coach_dict)
+    
+    return jsonify(coach_list)
+
+@app.route('/settings/coaches/delete', methods=['POST'])
+@login_required
+def delete_specific_coach():
+    """Delete a specific coach from a team"""
+    task_manager, user_manager = get_user_managers()
+    
+    team_name = request.form.get('team_name', '').strip()
+    coach_name = request.form.get('coach_name', '').strip()
+    
+    if not team_name or not coach_name:
+        return jsonify({'success': False, 'message': 'Team name and coach name are required'})
+    
+    # Get current coaches for the team
+    current_coaches = user_manager.get_team_coaches(team_name)
+    
+    if current_coaches:
+        # Remove the specified coach
+        updated_coaches = [coach for coach in current_coaches if coach.coach_name != coach_name]
+        
+        # Update the team coaches list
+        user_manager.settings['team_coaches'] = user_manager.settings.get('team_coaches', {})
+        user_manager.settings['team_coaches'][team_name] = updated_coaches
+        user_manager.save_settings()
+        
+        return jsonify({'success': True, 'message': f'Coach "{coach_name}" removed from "{team_name}"'})
+    else:
+        return jsonify({'success': False, 'message': 'No coaches found for this team'})
+
+# Email template management routes
+@app.route('/settings/email-template', methods=['GET', 'POST'])
+@login_required
+def manage_email_template():
+    """Manage custom email template"""
+    task_manager, user_manager = get_user_managers()
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'save':
+            template_content = request.form.get('template_content', '').strip()
+            if template_content:
+                user_manager.update_email_template(template_content)
+                flash('Email template updated successfully!', 'success')
+            else:
+                flash('Template content cannot be empty', 'error')
+        
+        elif action == 'reset':
+            user_manager.reset_email_template()
+            flash('Email template reset to default', 'success')
+        
+        return redirect(url_for('manage_email_template'))
+    
+    # GET request - show template editor
+    template_content = user_manager.get_email_template()
+    merge_fields = user_manager.get_available_merge_fields()
+    
+    return render_template('email_template_editor.html',
+                         template_content=template_content,
+                         merge_fields=merge_fields)
+
+# Bulk coach upload routes
+@app.route('/settings/coaches/bulk', methods=['GET', 'POST'])
+@login_required
+def bulk_coach_upload():
+    """Bulk upload coaches from text, CSV, or Excel"""
+    if request.method == 'POST':
+        task_manager, user_manager = get_user_managers()
+        parser = ContactParser()
+        contacts = []
+        
+        try:
+            # Check if it's a file upload or text paste
+            if 'coach_file' in request.files and request.files['coach_file'].filename:
+                file = request.files['coach_file']
+                filename = secure_filename(file.filename)
+                file_content = file.read()
+                
+                if filename.lower().endswith(('.csv', '.txt')):
+                    contacts = parser.parse_csv_file(file_content)
+                elif filename.lower().endswith(('.xlsx', '.xls')):
+                    contacts = parser.parse_excel_file(file_content)
+                else:
+                    flash('Please upload a CSV, TXT, or Excel file', 'error')
+                    return redirect(url_for('bulk_coach_upload'))
+                    
+            elif request.form.get('coach_text', '').strip():
+                text = request.form.get('coach_text', '').strip()
+                contacts = parser.parse_text(text)
+            else:
+                flash('Please provide coach data via file upload or text input', 'error')
+                return redirect(url_for('bulk_coach_upload'))
+            
+            if contacts:
+                # Store coaches in temporary file
+                user_id = current_user.id
+                bulk_id = store_bulk_coaches(user_id, contacts)
+                
+                flash(f'Successfully parsed {len(contacts)} coaches!', 'success')
+                return redirect(url_for('bulk_coach_preview', bulk_id=bulk_id))
+            else:
+                flash('No coach information found in the provided data', 'warning')
+                return redirect(url_for('bulk_coach_upload'))
+        
+        except Exception as e:
+            flash(f'Error parsing coaches: {str(e)}', 'error')
+            return redirect(url_for('bulk_coach_upload'))
+    
+    return render_template('bulk_coach_upload.html', available_teams=get_managed_teams())
+
+@app.route('/settings/coaches/bulk/preview/<bulk_id>', methods=['GET', 'POST'])
+@login_required  
+def bulk_coach_preview(bulk_id):
+    """Preview and confirm bulk coach import"""
+    # Get coaches from temporary file
+    user_id = current_user.id
+    bulk_coaches = get_bulk_coaches(user_id, bulk_id)
+    
+    if bulk_coaches is None:
+        flash('No coaches to preview. Please upload coaches first.', 'error')
+        return redirect(url_for('bulk_coach_upload'))
+    
+    if request.method == 'POST':
+        task_manager, user_manager = get_user_managers()
+        
+        imported_count = 0
+        skipped_count = 0
+        
+        for i, coach_data in enumerate(bulk_coaches):
+            # Check if this coach should be imported
+            if request.form.get(f'import_{i}') == 'on':
+                team_name = request.form.get(f'team_name_{i}', '').strip()
+                coach_name = request.form.get(f'coach_name_{i}', '').strip()
+                email = request.form.get(f'email_{i}', '').strip()
+                phone = request.form.get(f'phone_{i}', '').strip()
+                role = request.form.get(f'role_{i}', 'Coach').strip()
+                notes = request.form.get(f'notes_{i}', '').strip()
+                
+                if team_name:  # Only import if team name is provided
+                    coach_info = {
+                        'coach_name': coach_name,
+                        'email': email,
+                        'phone': phone,
+                        'role': role,
+                        'notes': notes
+                    }
+                    
+                    user_manager.add_or_update_team_coach(team_name, coach_info)
+                    imported_count += 1
+                else:
+                    skipped_count += 1
+            else:
+                skipped_count += 1
+        
+        # Clean up temporary file
+        cleanup_bulk_coaches(user_id, bulk_id)
+        
+        # Show results
+        if imported_count > 0:
+            flash(f'Successfully imported {imported_count} coaches! {skipped_count} skipped.', 'success')
+        else:
+            flash('No coaches were imported.', 'warning')
+        
+        return redirect(url_for('settings'))
+    
+    # GET request - show preview
+    managed_teams = get_managed_teams()
+    # Convert bulk coaches to enumerated list for template
+    coaches_with_indices = list(enumerate(bulk_coaches))
+    
+    return render_template('bulk_coach_preview.html', 
+                         coaches=coaches_with_indices, 
+                         available_teams=managed_teams,
+                         default_team='')
 
 @app.route('/add_fixture', methods=['GET', 'POST'])
 def add_fixture():

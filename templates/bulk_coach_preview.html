@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Review Coach Upload - Withdean Youth FC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-eye text-danger"></i> 
+            Review Coach Upload
+        </h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('settings') }}">Settings</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('bulk_coach_upload') }}">Bulk Coach Upload</a></li>
+                <li class="breadcrumb-item active">Review</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle"></i>
+    <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
+{% if coaches %}
+<div class="alert alert-info">
+    <i class="fas fa-info-circle"></i>
+    <strong>Found {{ coaches|length }} coach(es)</strong> - Please review the information below and make any necessary corrections before saving.
+</div>
+
+<form method="POST">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-users"></i> Detected Coaches
+                    </h5>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="select-all">
+                            Select All
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="deselect-all">
+                            Deselect All
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 50px;">
+                                        <input type="checkbox" id="master-checkbox" class="form-check-input">
+                                    </th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Role</th>
+                                    <th>Team</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for i, coach in coaches %}
+                                <tr id="coach-row-{{ i }}">
+                                    <td>
+                                        <input type="checkbox" name="selected_coaches" value="{{ i }}" 
+                                               class="form-check-input coach-checkbox" checked>
+                                    </td>
+                                    <td>
+                                        <input type="text" name="coach_{{ i }}_name" value="{{ coach.name }}" 
+                                               class="form-control form-control-sm" required>
+                                    </td>
+                                    <td>
+                                        <input type="email" name="coach_{{ i }}_email" value="{{ coach.email or '' }}" 
+                                               class="form-control form-control-sm">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="coach_{{ i }}_phone" value="{{ coach.phone or '' }}" 
+                                               class="form-control form-control-sm">
+                                    </td>
+                                    <td>
+                                        <input type="text" name="coach_{{ i }}_role" value="{{ coach.role or 'Coach' }}" 
+                                               class="form-control form-control-sm">
+                                    </td>
+                                    <td>
+                                        <select name="coach_{{ i }}_team" class="form-select form-select-sm" required>
+                                            <option value="">Select team...</option>
+                                            {% for team in available_teams %}
+                                            <option value="{{ team }}" 
+                                                {% if coach.team == team or (default_team == team and not coach.team) %}selected{% endif %}>
+                                                {{ team }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-coach" 
+                                                data-row="coach-row-{{ i }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="d-flex gap-2">
+                <button type="submit" name="action" value="save" class="btn btn-danger">
+                    <i class="fas fa-save"></i> Save Coaches
+                </button>
+                <button type="submit" name="action" value="save_and_continue" class="btn btn-success">
+                    <i class="fas fa-save"></i> Save & Upload More
+                </button>
+                <a href="{{ url_for('bulk_coach_upload') }}" class="btn btn-warning">
+                    <i class="fas fa-arrow-left"></i> Back to Upload
+                </a>
+                <a href="{{ url_for('settings') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% else %}
+<div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle"></i>
+    <strong>No coaches found</strong> in the uploaded data. Please check your file format and try again.
+</div>
+
+<div class="d-flex gap-2">
+    <a href="{{ url_for('bulk_coach_upload') }}" class="btn btn-primary">
+        <i class="fas fa-arrow-left"></i> Back to Upload
+    </a>
+    <a href="{{ url_for('settings') }}" class="btn btn-secondary">
+        <i class="fas fa-home"></i> Back to Settings
+    </a>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Master checkbox functionality
+    const masterCheckbox = document.getElementById('master-checkbox');
+    const coachCheckboxes = document.querySelectorAll('.coach-checkbox');
+    
+    masterCheckbox.addEventListener('change', function() {
+        coachCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+    
+    // Individual checkbox change
+    coachCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const checkedBoxes = document.querySelectorAll('.coach-checkbox:checked');
+            masterCheckbox.checked = checkedBoxes.length === coachCheckboxes.length;
+            masterCheckbox.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < coachCheckboxes.length;
+        });
+    });
+    
+    // Select/Deselect all buttons
+    document.getElementById('select-all').addEventListener('click', function() {
+        coachCheckboxes.forEach(checkbox => checkbox.checked = true);
+        masterCheckbox.checked = true;
+        masterCheckbox.indeterminate = false;
+    });
+    
+    document.getElementById('deselect-all').addEventListener('click', function() {
+        coachCheckboxes.forEach(checkbox => checkbox.checked = false);
+        masterCheckbox.checked = false;
+        masterCheckbox.indeterminate = false;
+    });
+    
+    // Remove coach functionality
+    document.querySelectorAll('.remove-coach').forEach(button => {
+        button.addEventListener('click', function() {
+            const rowId = this.dataset.row;
+            const row = document.getElementById(rowId);
+            if (row && confirm('Are you sure you want to remove this coach?')) {
+                row.style.display = 'none';
+                const checkbox = row.querySelector('.coach-checkbox');
+                if (checkbox) {
+                    checkbox.checked = false;
+                    checkbox.disabled = true;
+                }
+            }
+        });
+    });
+    
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const selectedBoxes = document.querySelectorAll('.coach-checkbox:checked');
+        if (selectedBoxes.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one coach to save.');
+            return false;
+        }
+        
+        // Validate required fields for selected coaches
+        let hasErrors = false;
+        selectedBoxes.forEach(checkbox => {
+            const row = checkbox.closest('tr');
+            const nameInput = row.querySelector('input[name*="_name"]');
+            const teamSelect = row.querySelector('select[name*="_team"]');
+            
+            if (!nameInput.value.trim()) {
+                nameInput.classList.add('is-invalid');
+                hasErrors = true;
+            } else {
+                nameInput.classList.remove('is-invalid');
+            }
+            
+            if (!teamSelect.value) {
+                teamSelect.classList.add('is-invalid');
+                hasErrors = true;
+            } else {
+                teamSelect.classList.remove('is-invalid');
+            }
+        });
+        
+        if (hasErrors) {
+            e.preventDefault();
+            alert('Please fill in all required fields (Name and Team) for selected coaches.');
+            return false;
+        }
+    });
+});
+</script>
+
+<style>
+.table th {
+    border-top: none;
+}
+.form-control-sm, .form-select-sm {
+    font-size: 0.875rem;
+}
+.is-invalid {
+    border-color: #dc3545;
+}
+</style>
+{% endblock %}

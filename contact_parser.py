@@ -19,6 +19,8 @@ class ContactInfo:
     phone: str = ""
     notes: str = ""
     original_text: str = ""
+    contact_type: str = "contact"  # "contact" or "coach"
+    role: str = ""  # For coaches: Coach, Manager, Assistant Coach, etc.
 
 
 class ContactParser:
@@ -33,20 +35,39 @@ class ContactParser:
         
         # Phone number patterns (various formats)
         self.phone_patterns = [
-            re.compile(r'\b(?:\+44\s?)?(?:0\s?)?(?:1\d{2,4}|2\d|3\d|5\d|6\d|7\d|8\d|9\d)\s?\d{3,4}\s?\d{3,4}\b'),  # UK
-            re.compile(r'\b(?:\+1\s?)?(?:\(\d{3}\)\s?|\d{3}[-.\s]?)\d{3}[-.\s]?\d{4}\b'),  # US/Canada
-            re.compile(r'\b\d{10,11}\b'),  # Simple 10-11 digit numbers
-            re.compile(r'\b\d{3}[-.\s]\d{3}[-.\s]\d{4}\b'),  # XXX-XXX-XXXX format
-            re.compile(r'\b\(\d{3}\)\s?\d{3}[-.\s]\d{4}\b'),  # (XXX) XXX-XXXX format
+            # UK mobile numbers: 07xxx xxxxxx
+            re.compile(r'\b(?:\+44\s?)?(?:0)?7\d{3}\s?\d{6}\b'),
+            # UK mobile with spaces: 07885 376628
+            re.compile(r'\b(?:\+44\s?)?(?:0)?7\d{3}\s?\d{3}\s?\d{3}\b'),
+            # UK landline: 01273 123456  
+            re.compile(r'\b(?:\+44\s?)?(?:0)?1\d{3}\s?\d{6}\b'),
+            # International format: +44 7890 123456
+            re.compile(r'\b\+44\s?7\d{3}\s?\d{3}\s?\d{3}\b'),
+            # General UK format
+            re.compile(r'\b(?:\+44\s?)?(?:0\s?)?(?:1\d{2,4}|2\d|3\d|5\d|6\d|7\d|8\d|9\d)\s?\d{3,4}\s?\d{3,4}\b'),
+            # US/Canada format
+            re.compile(r'\b(?:\+1\s?)?(?:\(\d{3}\)\s?|\d{3}[-.\s]?)\d{3}[-.\s]?\d{4}\b'),
+            # Simple consecutive digits (10-11 digits)
+            re.compile(r'\b\d{10,11}\b'),
+            # Common separated formats
+            re.compile(r'\b\d{3}[-.\s]\d{3}[-.\s]\d{4}\b'),
+            re.compile(r'\b\(\d{3}\)\s?\d{3}[-.\s]\d{4}\b'),
         ]
         
         # Common team name patterns
         self.team_patterns = [
-            re.compile(r'\b\w+\s+(?:FC|United|City|Town|Athletic|Rovers|Wanderers|Albion)\b', re.IGNORECASE),
-            re.compile(r'\b(?:U\d+|Under\s+\d+)\s+\w+\b', re.IGNORECASE),
-            re.compile(r'\b\w+\s+(?:Youth|Junior|Senior)\s+FC\b', re.IGNORECASE),
-            re.compile(r'\b\w+\s+Hawks?\b', re.IGNORECASE),
-            re.compile(r'\b\w+\s+Eagles?\b', re.IGNORECASE),
+            # Standard club formats: "Name FC", "Name United", etc.
+            re.compile(r'\b\w+(?:\s+\w+)?\s+(?:FC|United|City|Town|Athletic|Rovers|Wanderers|Albion)\b', re.IGNORECASE),
+            # AFC formats: "AFC Name"
+            re.compile(r'\b(?:AFC|FC)\s+\w+(?:\s+\w+)?\b', re.IGNORECASE),
+            # Age group formats: "U14 Name", "Under 16 Name"
+            re.compile(r'\b(?:U\d+|Under\s+\d+)\s+\w+(?:\s+\w+)?\b', re.IGNORECASE),
+            # Youth/Junior formats with FC
+            re.compile(r'\b\w+(?:\s+\w+)?\s+(?:Youth|Junior|Senior)\s+FC\b', re.IGNORECASE),
+            # Animal names (common in youth football)
+            re.compile(r'\b\w+(?:\s+\w+)?\s+(?:Hawks?|Eagles?|Lions?|Tigers?|Bears?|Wolves?)\b', re.IGNORECASE),
+            # Simple team names that start with typical football words
+            re.compile(r'\b(?:AFC|FC|United|Athletic|City|Town|Rovers|Wanderers|Albion)\s+\w+(?:\s+\w+)?\b', re.IGNORECASE),
         ]
     
     def parse_text(self, text: str) -> List[ContactInfo]:
@@ -167,6 +188,13 @@ class ContactParser:
             contact.contact_name = contact_name
             print(f"Found contact name: {contact.contact_name}")  # Debug
         
+        # Extract role and determine contact type
+        role = self._find_role(text)
+        if role:
+            contact.role = role
+            contact.contact_type = "coach"
+            print(f"Found role: {contact.role}")  # Debug
+        
         # If no team name found, try to infer from context
         if not contact.team_name and contact.contact_name:
             # Look for team-like words near the contact name
@@ -207,26 +235,77 @@ class ContactParser:
     
     def _find_team_name(self, text: str) -> Optional[str]:
         """Find team name in text"""
+        # Clean up text first - remove extra whitespace
+        text = ' '.join(text.split())
+        
         for pattern in self.team_patterns:
             match = pattern.search(text)
             if match:
-                return match.group().strip()
+                team_name = match.group().strip()
+                # Clean up team name to avoid including person names
+                words = team_name.split()
+                
+                # For AFC/FC patterns that might capture too much, be more precise
+                if len(words) >= 3 and words[0].upper() in ['AFC', 'FC']:
+                    # AFC LANGNEY Gavin -> AFC LANGNEY
+                    remaining_text = text[match.end():].strip()
+                    if remaining_text and self._looks_like_person_name(remaining_text.split()[0] if remaining_text.split() else ""):
+                        team_name = ' '.join(words[:2])  # Take just AFC + next word
+                
+                return team_name
         
-        # Look for other team indicators
-        team_keywords = ['fc', 'football club', 'youth', 'junior', 'senior', 'academy', 'hawks', 'eagles', 'united', 'city']
+        # Look for other team indicators with better word boundary detection
+        team_keywords = ['fc', 'football club', 'youth', 'junior', 'senior', 'academy', 'hawks', 'eagles', 'united', 'city', 'afc']
         words = text.lower().split()
         
         for i, word in enumerate(words):
             if word in team_keywords:
-                # Take 1-2 words before the keyword as potential team name
-                start = max(0, i - 2)
-                end = min(len(words), i + 2)
-                potential_team = ' '.join(words[start:end])
-                
-                # Clean up and validate
-                potential_team = re.sub(r'[^\w\s]', '', potential_team).strip()
-                if len(potential_team) > 3 and len(potential_team) < 50:
-                    return potential_team.title()
+                if word == 'afc' and i + 1 < len(words):
+                    # AFC usually comes first: "AFC Langney"
+                    team_name = f"AFC {words[i + 1].title()}"
+                    return team_name
+                elif word in ['fc', 'united', 'city', 'hawks', 'eagles'] and i > 0:
+                    # These usually come after: "Brighton Hawks"
+                    start = max(0, i - 1)
+                    potential_team = ' '.join(words[start:i + 1])
+                    potential_team = potential_team.title()
+                    if len(potential_team) > 3 and len(potential_team) < 50:
+                        return potential_team
+        
+        return None
+    
+    def _looks_like_person_name(self, word: str) -> bool:
+        """Check if a word looks like a person's first name"""
+        # Simple heuristic: capitalized word that's not a common team word
+        team_words = ['fc', 'united', 'city', 'town', 'athletic', 'rovers', 'wanderers', 'albion', 'hawks', 'eagles', 'lions', 'tigers']
+        return word and word[0].isupper() and word.lower() not in team_words
+    
+    def _find_role(self, text: str) -> Optional[str]:
+        """Find role/position in text"""
+        role_patterns = [
+            # Direct role mentions
+            re.compile(r'\b(coach|manager|assistant coach|head coach|team manager|secretary|trainer)\b', re.IGNORECASE),
+            # Prefixed role mentions
+            re.compile(r'(?:role|position|title):\s*([a-z\s]+)', re.IGNORECASE),
+            # Common coaching phrases
+            re.compile(r'\b(coaching|managing|training)\s+([a-z\s]+)', re.IGNORECASE),
+        ]
+        
+        for pattern in role_patterns:
+            match = pattern.search(text)
+            if match:
+                role = match.group(1).strip().title()
+                # Normalize common roles
+                role_mapping = {
+                    'Manager': 'Manager',
+                    'Coach': 'Coach', 
+                    'Assistant Coach': 'Assistant Coach',
+                    'Head Coach': 'Head Coach',
+                    'Team Manager': 'Team Manager',
+                    'Secretary': 'Secretary',
+                    'Trainer': 'Coach'
+                }
+                return role_mapping.get(role, role)
         
         return None
     

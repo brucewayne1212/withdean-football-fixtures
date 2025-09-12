@@ -55,5 +55,812 @@
     "default_colours": "Withdean Youth FC play in Red and Black Shirts, Black Shorts and Red and Black Hooped Socks",
     "email_signature": "Many thanks\n\nWithdean Youth FC",
     "default_day": "Sunday"
+  },
+  "team_contacts": {
+    "AFC LANGNEY": {
+      "team_name": "AFC LANGNEY",
+      "contact_name": "07885 376628",
+      "email": "gavinboddy88@gmail.com",
+      "phone": "07885 376628",
+      "notes": ""
+    },
+    "AFC VARNDEANIANS": {
+      "team_name": "AFC VARNDEANIANS",
+      "contact_name": "07939 216666",
+      "email": "hello@stevenwilsonstudio.com",
+      "phone": "07939 216666",
+      "notes": ""
+    },
+    "AFC WORTHING YOUTH": {
+      "team_name": "AFC WORTHING YOUTH",
+      "contact_name": "07891 557471",
+      "email": "tompickfordafcwy@gmail.com",
+      "phone": "07891 557471",
+      "notes": ""
+    },
+    "ALFOLD": {
+      "team_name": "ALFOLD",
+      "contact_name": "07833 016325",
+      "email": "elliott.masterson@alfoldfc.com",
+      "phone": "07833 016325",
+      "notes": ""
+    },
+    "ARUNDEL": {
+      "team_name": "ARUNDEL",
+      "contact_name": "07778 783294",
+      "email": "mullets@btinternet.com",
+      "phone": "07778 783294",
+      "notes": ""
+    },
+    "AS EASTBOURNE": {
+      "team_name": "AS EASTBOURNE",
+      "contact_name": "07723 592516",
+      "email": "allstarseastbourne@gmail.com",
+      "phone": "07723 592516",
+      "notes": ""
+    },
+    "ASC STRIKERS": {
+      "team_name": "ASC STRIKERS",
+      "contact_name": "07818 258782",
+      "email": "ascstrikersfixtures@gmail.com",
+      "phone": "07818 258782",
+      "notes": ""
+    },
+    "ASHURST WOOD JUNIORS": {
+      "team_name": "ASHURST WOOD JUNIORS",
+      "contact_name": "07547 767417",
+      "email": "raylesdennis@hotmail.co.uk",
+      "phone": "07547 767417",
+      "notes": ""
+    },
+    "BOGNOR REGIS TOWN YOUTH": {
+      "team_name": "BOGNOR REGIS TOWN YOUTH",
+      "contact_name": "07716 516598",
+      "email": "andyweir21@hotmail.com",
+      "phone": "07716 516598",
+      "notes": ""
+    },
+    "BOLNORE JUNIORS": {
+      "team_name": "BOLNORE JUNIORS",
+      "contact_name": "07415 171159",
+      "email": "Bolnorejuniors@gmail.com",
+      "phone": "07415 171159",
+      "notes": ""
+    },
+    "BRIGHTON AND HOVE ALBION FC": {
+      "team_name": "BRIGHTON AND HOVE ALBION FC",
+      "contact_name": "07833 294578",
+      "email": "alethea.paul@brightonandhovealbion.com",
+      "phone": "07833 294578",
+      "notes": ""
+    },
+    "BROADBRIDGE HEATH": {
+      "team_name": "BROADBRIDGE HEATH",
+      "contact_name": "07525 078031",
+      "email": "msyflsecretarybbhjfc@outlook.com",
+      "phone": "07525 078031",
+      "notes": ""
+    },
+    "BURGESS HILL TOWN JUNIORS": {
+      "team_name": "BURGESS HILL TOWN JUNIORS",
+      "contact_name": "07803 930845",
+      "email": "burgesshilljuniorsfixtures@gmail.com",
+      "phone": "07803 930845",
+      "notes": ""
+    },
+    "BUXTED": {
+      "team_name": "BUXTED",
+      "contact_name": "07795 493801",
+      "email": "samhill@regencydesign.co.uk",
+      "phone": "07795 493801",
+      "notes": ""
+    },
+    "BUXTED RANGERS": {
+      "team_name": "BUXTED RANGERS",
+      "contact_name": "07799 716119",
+      "email": "buxtedfcsecretary@gmail.com",
+      "phone": "07799 716119",
+      "notes": ""
+    },
+    "CAPEL COMETS YOUTH": {
+      "team_name": "CAPEL COMETS YOUTH",
+      "contact_name": "07986 436282",
+      "email": "Furlongerbeans@aol.com",
+      "phone": "07986 436282",
+      "notes": ""
+    },
+    "CHAILEY & NEWICK COLTS": {
+      "team_name": "CHAILEY & NEWICK COLTS",
+      "contact_name": "07500 660856",
+      "email": "chaileyandnewickcoltsfixtures@gmail.com",
+      "phone": "07500 660856",
+      "notes": ""
+    },
+    "CHICHESTER CITY YOUTH": {
+      "team_name": "CHICHESTER CITY YOUTH",
+      "contact_name": "07850 333509",
+      "email": "gavindutton77@gmail.com",
+      "phone": "07850 333509",
+      "notes": ""
+    },
+    "CLINICAL TRAINING": {
+      "team_name": "CLINICAL TRAINING",
+      "contact_name": "07447 668308",
+      "email": "admin@clinicaltrainingfc.com",
+      "phone": "07447 668308",
+      "notes": ""
+    },
+    "COLDEAN COLTS": {
+      "team_name": "COLDEAN COLTS",
+      "contact_name": "07979 157958",
+      "email": "Coldeancyfcminifixtures@gmail.com",
+      "phone": "07979 157958",
+      "notes": ""
+    },
+    "COPTHORNE YOUTH": {
+      "team_name": "COPTHORNE YOUTH",
+      "contact_name": "07852 573535",
+      "email": "lisabradley@hotmail.co.uk",
+      "phone": "07852 573535",
+      "notes": ""
+    },
+    "CRAWLEY & MAIDENBOWER PANTHERS": {
+      "team_name": "CRAWLEY & MAIDENBOWER PANTHERS",
+      "contact_name": "07850 379140",
+      "email": "fixtures.cmpanthersfc@outlook.com",
+      "phone": "07850 379140",
+      "notes": ""
+    },
+    "CRAWLEY DOWN GATWICK": {
+      "team_name": "CRAWLEY DOWN GATWICK",
+      "contact_name": "07585 945218",
+      "email": "staceycdgfc@outlook.com",
+      "phone": "07585 945218",
+      "notes": ""
+    },
+    "CRAWLEY UNITED": {
+      "team_name": "CRAWLEY UNITED",
+      "contact_name": "07816 643636",
+      "email": "cpenfold442@gmail.com",
+      "phone": "07816 643636",
+      "notes": ""
+    },
+    "CREW CLUB HAWKS": {
+      "team_name": "CREW CLUB HAWKS",
+      "contact_name": "07413 065785",
+      "email": "david@crewclub.co.uk",
+      "phone": "07413 065785",
+      "notes": ""
+    },
+    "CUCKFIELD COSMOS": {
+      "team_name": "CUCKFIELD COSMOS",
+      "contact_name": "07973 748311",
+      "email": "best701@btinternet.com",
+      "phone": "07973 748311",
+      "notes": ""
+    },
+    "DEVILS": {
+      "team_name": "DEVILS",
+      "contact_name": "07903 791101",
+      "email": "suzannelane29@gmail.com",
+      "phone": "07903 791101",
+      "notes": ""
+    },
+    "EAST GRINSTEAD MEADS": {
+      "team_name": "EAST GRINSTEAD MEADS",
+      "contact_name": "07721 849747",
+      "email": "fixtures@egmeadsfc.co.uk",
+      "phone": "07721 849747",
+      "notes": ""
+    },
+    "EAST GRINSTEAD TOWN": {
+      "team_name": "EAST GRINSTEAD TOWN",
+      "contact_name": "07802 528513",
+      "email": "brian.mcc@egtfc.co.uk",
+      "phone": "07802 528513",
+      "notes": ""
+    },
+    "EASTBOURNE": {
+      "team_name": "EASTBOURNE",
+      "contact_name": "07525 419844",
+      "email": "Eastbournefc.clubsec@gmail.com",
+      "phone": "07525 419844",
+      "notes": ""
+    },
+    "EASTBOURNE BOROUGH YOUTH": {
+      "team_name": "EASTBOURNE BOROUGH YOUTH",
+      "contact_name": "07954 316076",
+      "email": "youth.fixtures@ebfc.co.uk",
+      "phone": "07954 316076",
+      "notes": ""
+    },
+    "EASTBOURNE TOWN YOUTH": {
+      "team_name": "EASTBOURNE TOWN YOUTH",
+      "contact_name": "07786 573838",
+      "email": "james.etyfc@mail.com",
+      "phone": "07786 573838",
+      "notes": ""
+    },
+    "EASTBOURNE UNITED YOUTH FC": {
+      "team_name": "EASTBOURNE UNITED YOUTH FC",
+      "contact_name": "07514 951440",
+      "email": "ebuy.fixtures@outlook.com",
+      "phone": "07514 951440",
+      "notes": ""
+    },
+    "EDC": {
+      "team_name": "EDC",
+      "contact_name": "07585 229692",
+      "email": "fixtures@elitedevelopmentcoaching.co.uk",
+      "phone": "07585 229692",
+      "notes": ""
+    },
+    "FISHERSGATE FLYERS": {
+      "team_name": "FISHERSGATE FLYERS",
+      "contact_name": "07528 857201",
+      "email": "fishersgateflyers.fixtures@gmail.com",
+      "phone": "07528 857201",
+      "notes": ""
+    },
+    "FURNGATE YOUTH": {
+      "team_name": "FURNGATE YOUTH",
+      "contact_name": "07478 279020",
+      "email": "Furngatefixtures@gmail.com",
+      "phone": "07478 279020",
+      "notes": ""
+    },
+    "GAMECHANGERS": {
+      "team_name": "GAMECHANGERS",
+      "contact_name": "07594 722513",
+      "email": "fixtures@crawleygamechangers.co.uk",
+      "phone": "07594 722513",
+      "notes": ""
+    },
+    "GATWICK WARRIORS": {
+      "team_name": "GATWICK WARRIORS",
+      "contact_name": "07397 574048",
+      "email": "fixturesgatwickwarriorsfc@gmail.com",
+      "phone": "07397 574048",
+      "notes": ""
+    },
+    "GOLDSTONE VALLEY": {
+      "team_name": "GOLDSTONE VALLEY",
+      "contact_name": "07779 119425",
+      "email": "jonstubbs1978@hotmail.co.uk",
+      "phone": "07779 119425",
+      "notes": ""
+    },
+    "HAILSHAM TOWN": {
+      "team_name": "HAILSHAM TOWN",
+      "contact_name": "07542 737884",
+      "email": "dominique_corbett@hotmail.com",
+      "phone": "07542 737884",
+      "notes": ""
+    },
+    "HAILSHAM UNITED JUNIORS": {
+      "team_name": "HAILSHAM UNITED JUNIORS",
+      "contact_name": "07495 760066",
+      "email": "shellxxxx@googlemail.com",
+      "phone": "07495 760066",
+      "notes": ""
+    },
+    "HANGLETON RANGERS YOUTH": {
+      "team_name": "HANGLETON RANGERS YOUTH",
+      "contact_name": "07748 152483",
+      "email": "fixtures@hangletonrangers.com",
+      "phone": "07748 152483",
+      "notes": ""
+    },
+    "HASSOCKS JUNIORS": {
+      "team_name": "HASSOCKS JUNIORS",
+      "contact_name": "07846 438979",
+      "email": "hjfcfixtures@gmail.com",
+      "phone": "07846 438979",
+      "notes": ""
+    },
+    "HASTINGS UNITED": {
+      "team_name": "HASTINGS UNITED",
+      "contact_name": "07929 047284",
+      "email": "charmaine.ridgers@hastingsunited.com",
+      "phone": "07929 047284",
+      "notes": ""
+    },
+    "HAYWARDS HEATH TOWN YOUTH": {
+      "team_name": "HAYWARDS HEATH TOWN YOUTH",
+      "contact_name": "07751 691147",
+      "email": "Chrisfixtureshh@gmail.com",
+      "phone": "07751 691147",
+      "notes": ""
+    },
+    "HOLBROOK OLYMPIC": {
+      "team_name": "HOLBROOK OLYMPIC",
+      "contact_name": "07803 847633",
+      "email": "celpaulwilliams@gmail.com",
+      "phone": "07803 847633",
+      "notes": ""
+    },
+    "HORLEY TOWN YOUTH": {
+      "team_name": "HORLEY TOWN YOUTH",
+      "contact_name": "07949 957528",
+      "email": "horleytownfcjuniors@gmail.com",
+      "phone": "07949 957528",
+      "notes": ""
+    },
+    "HORLEY UNITED": {
+      "team_name": "HORLEY UNITED",
+      "contact_name": "07769 723514",
+      "email": "secretary@horleyunitedfc.club",
+      "phone": "07769 723514",
+      "notes": ""
+    },
+    "HORSHAM": {
+      "team_name": "HORSHAM",
+      "contact_name": "07368 581535",
+      "email": "youthsecretary@horshamfc.co.uk",
+      "phone": "07368 581535",
+      "notes": ""
+    },
+    "HORSHAM ATHLETIC": {
+      "team_name": "HORSHAM ATHLETIC",
+      "contact_name": "07731 310055",
+      "email": "ahhafc2012@gmail.com",
+      "phone": "07731 310055",
+      "notes": ""
+    },
+    "HORSHAM SPARROWS": {
+      "team_name": "HORSHAM SPARROWS",
+      "contact_name": "07791 693260",
+      "email": "boys2008@horshamsparrows.co.uk",
+      "phone": "07791 693260",
+      "notes": ""
+    },
+    "HOVE": {
+      "team_name": "HOVE",
+      "contact_name": "07563 349600",
+      "email": "callum.h.ritchie@gmail.com",
+      "phone": "07563 349600",
+      "notes": ""
+    },
+    "HOVE PARK COLTS": {
+      "team_name": "HOVE PARK COLTS",
+      "contact_name": "07966 224301",
+      "email": "midsx.fixtures@hoveparkcoltsfc.org",
+      "phone": "07966 224301",
+      "notes": ""
+    },
+    "HURSTPIERPOINT": {
+      "team_name": "HURSTPIERPOINT",
+      "contact_name": "07733 015060",
+      "email": "jimdwaters@gmail.com",
+      "phone": "07733 015060",
+      "notes": ""
+    },
+    "IFIELD": {
+      "team_name": "IFIELD",
+      "contact_name": "07545 880544",
+      "email": "ifieldfixtures@gmail.com",
+      "phone": "07545 880544",
+      "notes": ""
+    },
+    "IFIELD SPORTS": {
+      "team_name": "IFIELD SPORTS",
+      "contact_name": "07429 425598",
+      "email": "Ian.ifieldsports@gmail.com",
+      "phone": "07429 425598",
+      "notes": ""
+    },
+    "JARVIS BROOK": {
+      "team_name": "JARVIS BROOK",
+      "contact_name": "07968 561226",
+      "email": "JBFC-chairman@outlook.com",
+      "phone": "07968 561226",
+      "notes": ""
+    },
+    "LANCING": {
+      "team_name": "LANCING",
+      "contact_name": "07908 912512",
+      "email": "philneaves86@gmail.com",
+      "phone": "07908 912512",
+      "notes": ""
+    },
+    "LANCING UNITED COLTS": {
+      "team_name": "LANCING UNITED COLTS",
+      "contact_name": "07710 526003",
+      "email": "jonoevans1990@gmail.com",
+      "phone": "07710 526003",
+      "notes": ""
+    },
+    "LANGTON GREEN CSA": {
+      "team_name": "LANGTON GREEN CSA",
+      "contact_name": "07708 739915",
+      "email": "chris.allen@langtongreencsa.org.uk",
+      "phone": "07708 739915",
+      "notes": ""
+    },
+    "LEWES FC JUNIORS": {
+      "team_name": "LEWES FC JUNIORS",
+      "contact_name": "07900 783393",
+      "email": "lewesjfcfixtures@gmail.com",
+      "phone": "07900 783393",
+      "notes": ""
+    },
+    "LIMITLESS YOUTH": {
+      "team_name": "LIMITLESS YOUTH",
+      "contact_name": "07738 897621",
+      "email": "fixtures@limitlessyouthfc.com",
+      "phone": "07738 897621",
+      "notes": ""
+    },
+    "LINDFIELD JUNIORS": {
+      "team_name": "LINDFIELD JUNIORS",
+      "contact_name": "07802 930499",
+      "email": "5v5.fixtures.lindfield.jnrs@gmail.com",
+      "phone": "07802 930499",
+      "notes": ""
+    },
+    "LINGFIELD YOUTH": {
+      "team_name": "LINGFIELD YOUTH",
+      "contact_name": "07973 657307",
+      "email": "Secretary@LingfieldYFC.com",
+      "phone": "07973 657307",
+      "notes": ""
+    },
+    "LINK FC HELLINGLY": {
+      "team_name": "LINK FC HELLINGLY",
+      "contact_name": "07730 012471",
+      "email": "info@linkcoaching.co.uk",
+      "phone": "07730 012471",
+      "notes": ""
+    },
+    "LOXWOOD": {
+      "team_name": "LOXWOOD",
+      "contact_name": "07977 496283",
+      "email": "secretary@loxwoodfc.co.uk",
+      "phone": "07977 496283",
+      "notes": ""
+    },
+    "MAIDEBOWER COLTS": {
+      "team_name": "MAIDEBOWER COLTS",
+      "contact_name": "07710 979307",
+      "email": "dchfooty11@gmail.com",
+      "phone": "07710 979307",
+      "notes": ""
+    },
+    "MARLE PLACE WANDERERS": {
+      "team_name": "MARLE PLACE WANDERERS",
+      "contact_name": "07809 426224",
+      "email": "mpfcfixtures@gmail.com",
+      "phone": "07809 426224",
+      "notes": ""
+    },
+    "MILE OAK": {
+      "team_name": "MILE OAK",
+      "contact_name": "07470 265786",
+      "email": "msyfl.mileoakfc@gmail.com",
+      "phone": "07470 265786",
+      "notes": ""
+    },
+    "MONTPELIER VILLA AFC": {
+      "team_name": "MONTPELIER VILLA AFC",
+      "contact_name": "07465 429759",
+      "email": "mennacreedmvyfc@gmail.com",
+      "phone": "07465 429759",
+      "notes": ""
+    },
+    "MONTPELIER VILLA YOUTH": {
+      "team_name": "MONTPELIER VILLA YOUTH",
+      "contact_name": "07775 024150",
+      "email": "youthfixturesmvfc@gmail.com",
+      "phone": "07775 024150",
+      "notes": ""
+    },
+    "MOULSECOOMB WOLVES": {
+      "team_name": "MOULSECOOMB WOLVES",
+      "contact_name": "07469 250771",
+      "email": "team@mwfc.org.uk",
+      "phone": "07469 250771",
+      "notes": ""
+    },
+    "NEWHAVEN": {
+      "team_name": "NEWHAVEN",
+      "contact_name": "07864 770843",
+      "email": "newhavenfcfixtures@yahoo.com",
+      "phone": "07864 770843",
+      "notes": ""
+    },
+    "NXTGEN": {
+      "team_name": "NXTGEN",
+      "contact_name": "07852 154916",
+      "email": "Nxtgenacademysecretary1@gmail.com",
+      "phone": "07852 154916",
+      "notes": ""
+    },
+    "OAKWOOD YOUTH": {
+      "team_name": "OAKWOOD YOUTH",
+      "contact_name": "07762 508889",
+      "email": "sarah.daly13@hotmail.co.uk",
+      "phone": "07762 508889",
+      "notes": ""
+    },
+    "PATCHAM UNITED": {
+      "team_name": "PATCHAM UNITED",
+      "contact_name": "07966 877553",
+      "email": "fixturespatchamunitedfc@gmail.com",
+      "phone": "07966 877553",
+      "notes": ""
+    },
+    "PEACEHAVEN & TELSCOMBE YOUTH": {
+      "team_name": "PEACEHAVEN & TELSCOMBE YOUTH",
+      "contact_name": "07977 845143",
+      "email": "samdowsett@yahoo.co.uk",
+      "phone": "07977 845143",
+      "notes": ""
+    },
+    "PERRYWOOD SPORTS": {
+      "team_name": "PERRYWOOD SPORTS",
+      "contact_name": "07903 664505",
+      "email": "Suzannemiles@live.com",
+      "phone": "07903 664505",
+      "notes": ""
+    },
+    "PFD": {
+      "team_name": "PFD",
+      "contact_name": "07912 301602",
+      "email": "sarahmillard75@gmail.com",
+      "phone": "07912 301602",
+      "notes": ""
+    },
+    "PLUMPTON ATHLETIC JUNIORS": {
+      "team_name": "PLUMPTON ATHLETIC JUNIORS",
+      "contact_name": "",
+      "email": "plumptonathleticjnrs@gmail.com",
+      "phone": "",
+      "notes": ""
+    },
+    "POETS CORNER": {
+      "team_name": "POETS CORNER",
+      "contact_name": "07703 723000",
+      "email": "james@hubbranded.co.uk",
+      "phone": "07703 723000",
+      "notes": ""
+    },
+    "POLEGATE GRASSHOPPERS": {
+      "team_name": "POLEGATE GRASSHOPPERS",
+      "contact_name": "07736 687472",
+      "email": "Fixtures@pgfc.co.uk",
+      "phone": "07736 687472",
+      "notes": ""
+    },
+    "PREMIER UNITED": {
+      "team_name": "PREMIER UNITED",
+      "contact_name": "07929 465120",
+      "email": "vicky@maid2help.co.uk",
+      "phone": "07929 465120",
+      "notes": ""
+    },
+    "RINGMER AFC": {
+      "team_name": "RINGMER AFC",
+      "contact_name": "07834 197731",
+      "email": "ringmerafcfixtures@outlook.com",
+      "phone": "07834 197731",
+      "notes": ""
+    },
+    "RINGMER ROVERS JUNIOR": {
+      "team_name": "RINGMER ROVERS JUNIOR",
+      "contact_name": "07747 616051",
+      "email": "secretary@ringmerrovers.org.uk",
+      "phone": "07747 616051",
+      "notes": ""
+    },
+    "ROTTINGDEAN VILLAGE YOUTH": {
+      "team_name": "ROTTINGDEAN VILLAGE YOUTH",
+      "contact_name": "07771 896287",
+      "email": "oakhurst@btconnect.com",
+      "phone": "07771 896287",
+      "notes": ""
+    },
+    "ROYAL EARLSWOOD": {
+      "team_name": "ROYAL EARLSWOOD",
+      "contact_name": "07780 662785",
+      "email": "mattwat78@hotmail.com",
+      "phone": "07780 662785",
+      "notes": ""
+    },
+    "RUDGWICK": {
+      "team_name": "RUDGWICK",
+      "contact_name": "07514 899711",
+      "email": "Fixtures@rudgwickfc.co.uk",
+      "phone": "07514 899711",
+      "notes": ""
+    },
+    "SALTDEAN UNITED": {
+      "team_name": "SALTDEAN UNITED",
+      "contact_name": "07738 630059",
+      "email": "sufcfixtures@gmail.com",
+      "phone": "07738 630059",
+      "notes": ""
+    },
+    "SC PASS+MOVE": {
+      "team_name": "SC PASS+MOVE",
+      "contact_name": "07545 813535",
+      "email": "TH@portdesigns.com",
+      "phone": "07545 813535",
+      "notes": ""
+    },
+    "SEAFORD TOWN": {
+      "team_name": "SEAFORD TOWN",
+      "contact_name": "07728 721385",
+      "email": "youth.fixtures@seafordtownfc.com",
+      "phone": "07728 721385",
+      "notes": ""
+    },
+    "SEAGULLS": {
+      "team_name": "SEAGULLS",
+      "contact_name": "07714 743784",
+      "email": "seagullsfixtures@gmail.com",
+      "phone": "07714 743784",
+      "notes": ""
+    },
+    "SEASIDE RANGERS": {
+      "team_name": "SEASIDE RANGERS",
+      "contact_name": "07958 931185",
+      "email": "seasidefcsecretary@gmail.com",
+      "phone": "07958 931185",
+      "notes": ""
+    },
+    "SHOREHAM": {
+      "team_name": "SHOREHAM",
+      "contact_name": "07706 005299",
+      "email": "vickieryall@gmail.com",
+      "phone": "07706 005299",
+      "notes": ""
+    },
+    "SMALLFIELD JUNIORS": {
+      "team_name": "SMALLFIELD JUNIORS",
+      "contact_name": "07950 372971",
+      "email": "sffcdmn@gmail.com",
+      "phone": "07950 372971",
+      "notes": ""
+    },
+    "SOUTHDOWN ROVERS": {
+      "team_name": "SOUTHDOWN ROVERS",
+      "contact_name": "07956 457484",
+      "email": "fixturessecretarysdfc@gmail.com",
+      "phone": "07956 457484",
+      "notes": ""
+    },
+    "SOUTHWICK RANGERS": {
+      "team_name": "SOUTHWICK RANGERS",
+      "contact_name": "07828 532619",
+      "email": "sara.tuffin@southwickrangers.org",
+      "phone": "07828 532619",
+      "notes": ""
+    },
+    "SOUTHWICK YOUTH": {
+      "team_name": "SOUTHWICK YOUTH",
+      "contact_name": "07534 908840",
+      "email": "Kerry.stanton@southwickfcyouth.org",
+      "phone": "07534 908840",
+      "notes": ""
+    },
+    "SOVEREIGN SAINTS": {
+      "team_name": "SOVEREIGN SAINTS",
+      "contact_name": "07778 557538",
+      "email": "paulgarnell68@gmail.com",
+      "phone": "07778 557538",
+      "notes": ""
+    },
+    "ST FRANCIS RANGERS": {
+      "team_name": "ST FRANCIS RANGERS",
+      "contact_name": "07894 725 196",
+      "email": "sfrjnrs.fixtures@gmail.com",
+      "phone": "07894 725 196",
+      "notes": ""
+    },
+    "STEYNING TOWN COMMUNITY": {
+      "team_name": "STEYNING TOWN COMMUNITY",
+      "contact_name": "07984 603745",
+      "email": "secretary.stcfc@gmail.com",
+      "phone": "07984 603745",
+      "notes": ""
+    },
+    "STORRINGTON COMMUNITY": {
+      "team_name": "STORRINGTON COMMUNITY",
+      "contact_name": "07866 588099",
+      "email": "miles.scerri@icloud.com",
+      "phone": "07866 588099",
+      "notes": ""
+    },
+    "SUSSEX RANGERS": {
+      "team_name": "SUSSEX RANGERS",
+      "contact_name": "07585 337123",
+      "email": "club.info@sussexrangersfc.club",
+      "phone": "07585 337123",
+      "notes": ""
+    },
+    "TD SHIPLEY YOUTH": {
+      "team_name": "TD SHIPLEY YOUTH",
+      "contact_name": "07840 464122",
+      "email": "youthsecretarytdshipleyfc@gmail.com",
+      "phone": "07840 464122",
+      "notes": ""
+    },
+    "TELSCOMBE RAIDERS": {
+      "team_name": "TELSCOMBE RAIDERS",
+      "contact_name": "07512 750215",
+      "email": "fixtures@telscomberaidersfc.com",
+      "phone": "07512 750215",
+      "notes": ""
+    },
+    "THREE BRIDGES YOUTH": {
+      "team_name": "THREE BRIDGES YOUTH",
+      "contact_name": "07725 833257",
+      "email": "rollings1518@blueyonder.co.uk",
+      "phone": "07725 833257",
+      "notes": ""
+    },
+    "TUNBRIDGE WELLS FORESTERS": {
+      "team_name": "TUNBRIDGE WELLS FORESTERS",
+      "contact_name": "07872 808390",
+      "email": "jonathan.ryder999@outlook.com",
+      "phone": "07872 808390",
+      "notes": ""
+    },
+    "UCKFIELD GRASSHOPPERS JUNIORS": {
+      "team_name": "UCKFIELD GRASSHOPPERS JUNIORS",
+      "contact_name": "07870 400607",
+      "email": "andy.stevens23@btinternet.com",
+      "phone": "07870 400607",
+      "notes": ""
+    },
+    "WEST HOVE DYNAMOS": {
+      "team_name": "WEST HOVE DYNAMOS",
+      "contact_name": "07891 627249",
+      "email": "westhovedynamos@hotmail.co.uk",
+      "phone": "07891 627249",
+      "notes": ""
+    },
+    "WHITEHAWK": {
+      "team_name": "WHITEHAWK",
+      "contact_name": "07961 619032",
+      "email": "mfog18@outlook.com",
+      "phone": "07961 619032",
+      "notes": ""
+    },
+    "WILLINGDON ATHLETIC YOUTH": {
+      "team_name": "WILLINGDON ATHLETIC YOUTH",
+      "contact_name": "07375 312321",
+      "email": "fixtureswillingdon@outlook.com",
+      "phone": "07375 312321",
+      "notes": ""
+    },
+    "WITHDEAN YOUTH": {
+      "team_name": "WITHDEAN YOUTH",
+      "contact_name": "07967 119857",
+      "email": "msylfixtures.withdeanyouthfc@gmail.com",
+      "phone": "07967 119857",
+      "notes": ""
+    },
+    "WOODINGDEAN WANDERERS": {
+      "team_name": "WOODINGDEAN WANDERERS",
+      "contact_name": "07961 619032",
+      "email": "woodingdeanwanderers.fixtures@gmail.com",
+      "phone": "07961 619032",
+      "notes": ""
+    },
+    "WORTHING": {
+      "team_name": "WORTHING",
+      "contact_name": "07971 156696",
+      "email": "vic.sudds@worthingfc.com",
+      "phone": "07971 156696",
+      "notes": ""
+    },
+    "WORTHING UNITED": {
+      "team_name": "WORTHING UNITED",
+      "contact_name": "7585338283",
+      "email": "michaelhuntcoach@hotmail.com",
+      "phone": "7585338283",
+      "notes": ""
+    }
   }
 }

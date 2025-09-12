@@ -65,7 +65,7 @@ def generate_email(fixture_data, user_manager=None):
         pitch_info = get_pitch_specific_info(fixture_data['pitch'])
         preferences = {
             'default_referee_note': 'Referees have been requested for all fixtures but are as yet unconfirmed',
-            'default_colours': 'Withdean Youth FC play in Red and Black Shirts, Black Shorts and Red and Black Hooped Socks',
+            'default_colours': 'Withdean Youth FC play in Blue and Black Shirts, Black Shorts and Blue and Black Hooped Socks',
             'email_signature': 'Many thanks\n\nWithdean Youth FC',
             'default_day': 'Sunday'
         }
@@ -79,7 +79,7 @@ def generate_email(fixture_data, user_manager=None):
 
 KO Time & Pitch Location: {fixture_data['pitch']} (see attached map for relevant pitch location)
 
-Home Colours: {preferences.get('default_colours', 'Withdean Youth FC play in Red and Black Shirts, Black Shorts and Red and Black Hooped Socks')}
+Home Colours: {preferences.get('default_colours', 'Withdean Youth FC play in Blue and Black Shirts, Black Shorts and Blue and Black Hooped Socks')}
 
 Referees: {preferences.get('default_referee_note', 'Referees have been requested for all fixtures but are as yet unconfirmed')}"""
 
@@ -139,7 +139,7 @@ Date: {kickoff_display}
 
 KO Time & Pitch Location: {fixture_data['pitch']} (see attached map for relevant pitch location)
 
-Home Colours: Withdean Youth FC play in Red and Black Shirts, Black Shorts and Red and Black Hooped Socks
+Home Colours: Withdean Youth FC play in Blue and Black Shirts, Black Shorts and Blue and Black Hooped Socks
 
 Referees: Referees have been requested for all fixtures but are as yet unconfirmed
 

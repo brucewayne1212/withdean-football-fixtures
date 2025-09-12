@@ -86,17 +86,49 @@
                 <h5 class="mb-0">
                     <i class="fas fa-users"></i> Your Managed Teams ({{ managed_teams|length }})
                 </h5>
-                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#selectTeamsModal">
-                    <i class="fas fa-edit"></i> Select Teams
-                </button>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#selectTeamsModal">
+                        <i class="fas fa-edit"></i> Select Teams
+                    </button>
+                    <a href="{{ url_for('bulk_coach_upload') }}" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-upload"></i> Bulk Upload Coaches
+                    </a>
+                </div>
             </div>
             <div class="card-body">
                 {% if managed_teams %}
                 <div class="row">
                     {% for team in managed_teams %}
-                    <div class="col-md-3 mb-2">
-                        <div class="badge bg-danger fs-6 w-100 text-start">
-                            <i class="fas fa-futbol"></i> {{ team }}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card border-danger">
+                            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas fa-futbol"></i> {{ team }}
+                                </div>
+                                <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#teamCoachModal"
+                                        data-team="{{ team }}" title="Manage Coaches">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                            <div class="card-body p-2">
+                                {% set team_coaches = user_manager.get_team_coaches(team) %}
+                                {% if team_coaches %}
+                                    {% for coach in team_coaches %}
+                                    <div class="small mb-1">
+                                        <strong>{{ coach.role or 'Coach' }}:</strong> {{ coach.coach_name }}
+                                        {% if coach.phone %}
+                                        <br><i class="fas fa-phone text-muted"></i> <small class="text-muted">{{ coach.phone }}</small>
+                                        {% endif %}
+                                        {% if coach.email %}
+                                        <br><i class="fas fa-envelope text-muted"></i> <small class="text-muted">{{ coach.email }}</small>
+                                        {% endif %}
+                                    </div>
+                                    {% if not loop.last %}<hr class="my-1">{% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <small class="text-muted"><i class="fas fa-plus"></i> Click edit to add coaches</small>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                     {% endfor %}
@@ -214,6 +246,17 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <div class="mb-3 border-top pt-3">
+                        <label class="form-label">Email Template</label>
+                        <div class="d-flex align-items-center">
+                            <span class="text-muted me-3">Customize your email template with merge fields</span>
+                            <a href="{{ url_for('manage_email_template') }}" class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-edit"></i> Edit Template
+                            </a>
+                        </div>
+                    </div>
+                    
                     <button type="submit" class="btn btn-danger">
                         <i class="fas fa-save"></i> Save Preferences
                     </button>
@@ -294,6 +337,75 @@
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i> 
                     No team contacts have been added yet. Click "Add Contact" to get started.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Coach/Manager Section for Internal Teams -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-users"></i> Team Coaches/Managers
+                    <small class="text-muted">(Internal Teams)</small>
+                </h5>
+                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#addCoachModal">
+                    <i class="fas fa-plus"></i> Add Coach/Manager
+                </button>
+            </div>
+            <div class="card-body">
+                {% if team_coaches %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Team</th>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team_name, coach in team_coaches.items() %}
+                            <tr>
+                                <td><strong>{{ team_name }}</strong></td>
+                                <td>{{ coach.coach_name or '-' }}</td>
+                                <td><span class="badge bg-primary">{{ coach.role or 'Coach' }}</span></td>
+                                <td>
+                                    {% if coach.email %}
+                                        <a href="mailto:{{ coach.email }}">{{ coach.email }}</a>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>{{ coach.phone or '-' }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="editCoach('{{ team_name }}')" 
+                                            title="Edit coach">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                            onclick="deleteCoach('{{ team_name }}')" 
+                                            title="Delete coach">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> 
+                    No coaches/managers have been added yet. Click "Add Coach/Manager" to get started.
                 </div>
                 {% endif %}
             </div>
@@ -438,6 +550,141 @@
         </div>
     </div>
 </div>
+
+<!-- Add/Edit Coach Modal -->
+<div class="modal fade" id="addCoachModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="coachModalTitle">Add Coach/Manager</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="coachForm" method="POST" action="/settings/coaches">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="coach_team_name" class="form-label">Team Name</label>
+                        <select class="form-control" id="coach_team_name" name="team_name" required>
+                            <option value="">Select a team...</option>
+                            {% for team in managed_teams %}
+                            <option value="{{ team }}">{{ team }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="coach_name" class="form-label">Coach/Manager Name</label>
+                        <input type="text" class="form-control" id="coach_name" name="coach_name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="coach_role" class="form-label">Role</label>
+                        <select class="form-control" id="coach_role" name="role">
+                            <option value="Coach">Coach</option>
+                            <option value="Manager">Manager</option>
+                            <option value="Assistant Coach">Assistant Coach</option>
+                            <option value="Head Coach">Head Coach</option>
+                            <option value="Team Manager">Team Manager</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="coach_email" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="coach_email" name="email">
+                    </div>
+                    <div class="mb-3">
+                        <label for="coach_phone" class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="coach_phone" name="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="coach_notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="coach_notes" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-save"></i> Save Coach/Manager
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Team Coach Management Modal -->
+<div class="modal fade" id="teamCoachModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="teamCoachModalTitle">Manage Team Coaches</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <h6 class="text-primary" id="currentTeamName"></h6>
+                </div>
+                
+                <!-- Current Coaches List -->
+                <div id="currentCoaches">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <!-- Add New Coach Form -->
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-plus"></i> Add New Coach</h6>
+                    </div>
+                    <div class="card-body">
+                        <form id="teamCoachForm">
+                            <input type="hidden" id="team_coach_team_name" name="team_name">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="team_coach_name" class="form-label">Coach Name *</label>
+                                        <input type="text" class="form-control" id="team_coach_name" name="coach_name" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="team_coach_role" class="form-label">Role</label>
+                                        <select class="form-control" id="team_coach_role" name="role">
+                                            <option value="Coach">Coach</option>
+                                            <option value="Manager">Manager</option>
+                                            <option value="Assistant Coach">Assistant Coach</option>
+                                            <option value="Head Coach">Head Coach</option>
+                                            <option value="Team Manager">Team Manager</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="team_coach_email" class="form-label">Email</label>
+                                        <input type="email" class="form-control" id="team_coach_email" name="email">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="team_coach_phone" class="form-label">Phone</label>
+                                        <input type="tel" class="form-control" id="team_coach_phone" name="phone">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="team_coach_notes" class="form-label">Notes</label>
+                                <textarea class="form-control" id="team_coach_notes" name="notes" rows="2"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-plus"></i> Add Coach
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -570,6 +817,51 @@ function showToast(message) {
     }, 3000);
 }
 
+// Coach/Manager management functions
+function editCoach(teamName) {
+    fetch(`/settings/coaches/${encodeURIComponent(teamName)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (Object.keys(data).length > 0) {
+                document.getElementById('coachModalTitle').textContent = 'Edit Coach/Manager';
+                document.getElementById('coach_team_name').value = teamName;
+                document.getElementById('coach_name').value = data.coach_name || '';
+                document.getElementById('coach_role').value = data.role || 'Coach';
+                document.getElementById('coach_email').value = data.email || '';
+                document.getElementById('coach_phone').value = data.phone || '';
+                document.getElementById('coach_notes').value = data.notes || '';
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('addCoachModal'));
+            modal.show();
+        })
+        .catch(error => {
+            alert('Error loading coach information');
+        });
+}
+
+function deleteCoach(teamName) {
+    if (confirm(`Are you sure you want to delete the coach/manager for ${teamName}?`)) {
+        fetch(`/settings/coaches/${encodeURIComponent(teamName)}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showToast(`Coach/Manager for ${teamName} deleted successfully!`);
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                alert('Error deleting coach/manager');
+            }
+        })
+        .catch(error => {
+            alert('Error deleting coach/manager');
+        });
+    }
+}
+
 // Reset modal when adding new pitch
 document.addEventListener('DOMContentLoaded', function() {
     const addPitchModal = document.getElementById('addPitchModal');
@@ -584,6 +876,129 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('contactModalTitle').textContent = 'Add Team Contact';
         document.getElementById('contactForm').reset();
     });
+    
+    // Reset coach modal when closing
+    const addCoachModal = document.getElementById('addCoachModal');
+    addCoachModal.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('coachModalTitle').textContent = 'Add Coach/Manager';
+        document.getElementById('coachForm').reset();
+    });
+    
+    // Team coach modal functionality
+    const teamCoachModal = document.getElementById('teamCoachModal');
+    teamCoachModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const teamName = button.getAttribute('data-team');
+        
+        // Set team name
+        document.getElementById('currentTeamName').textContent = teamName;
+        document.getElementById('team_coach_team_name').value = teamName;
+        
+        // Load current coaches for this team
+        loadTeamCoaches(teamName);
+    });
+    
+    // Team coach form submission
+    document.getElementById('teamCoachForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        fetch('/settings/coaches', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Clear form
+                this.reset();
+                // Reload coaches for this team
+                const teamName = document.getElementById('team_coach_team_name').value;
+                loadTeamCoaches(teamName);
+                // Refresh the main page team cards
+                location.reload();
+            } else {
+                alert('Error adding coach: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            alert('Error adding coach');
+            console.error('Error:', error);
+        });
+    });
+});
+
+function loadTeamCoaches(teamName) {
+    // Fetch coaches for the team
+    fetch(`/settings/coaches/team/${encodeURIComponent(teamName)}`)
+        .then(response => response.json())
+        .then(coaches => {
+            const currentCoachesDiv = document.getElementById('currentCoaches');
+            
+            if (coaches && coaches.length > 0) {
+                let html = '<div class="card"><div class="card-header"><h6 class="mb-0">Current Coaches</h6></div><div class="card-body">';
+                
+                coaches.forEach((coach, index) => {
+                    html += `
+                        <div class="row align-items-center mb-2 ${index > 0 ? 'border-top pt-2' : ''}">
+                            <div class="col">
+                                <strong>${coach.coach_name}</strong>
+                                <small class="text-muted d-block">${coach.role || 'Coach'}</small>
+                                ${coach.email ? `<small class="text-muted d-block"><i class="fas fa-envelope"></i> ${coach.email}</small>` : ''}
+                                ${coach.phone ? `<small class="text-muted d-block"><i class="fas fa-phone"></i> ${coach.phone}</small>` : ''}
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteTeamCoach('${teamName}', '${coach.coach_name}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div></div>';
+                currentCoachesDiv.innerHTML = html;
+            } else {
+                currentCoachesDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> No coaches added yet for this team.</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading coaches:', error);
+            document.getElementById('currentCoaches').innerHTML = '<div class="alert alert-danger">Error loading coaches</div>';
+        });
+}
+
+function deleteTeamCoach(teamName, coachName) {
+    if (confirm(`Are you sure you want to remove ${coachName} from ${teamName}?`)) {
+        const formData = new FormData();
+        formData.append('team_name', teamName);
+        formData.append('coach_name', coachName);
+        
+        fetch('/settings/coaches/delete', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Reload coaches for this team
+                loadTeamCoaches(teamName);
+                // Refresh the main page team cards
+                location.reload();
+            } else {
+                alert('Error deleting coach: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            alert('Error deleting coach');
+            console.error('Error:', error);
+        });
+    }
+}
 });
 </script>
 {% endblock %}

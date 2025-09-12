@@ -1,7 +1,8 @@
 /* Custom styles for Withdean Youth FC Fixture Manager */
 
 :root {
-    --withdean-red: #dc3545;
+    --withdean-primary: #0f0574;
+    --withdean-primary-hover: #0b0462;
     --withdean-black: #212529;
 }
 
@@ -29,21 +30,21 @@ body {
 }
 
 .btn-danger {
-    background-color: var(--withdean-red);
-    border-color: var(--withdean-red);
+    background-color: var(--withdean-primary);
+    border-color: var(--withdean-primary);
 }
 
 .btn-danger:hover {
-    background-color: #c82333;
-    border-color: #bd2130;
+    background-color: var(--withdean-primary-hover);
+    border-color: var(--withdean-primary-hover);
 }
 
 .text-danger {
-    color: var(--withdean-red) !important;
+    color: var(--withdean-primary) !important;
 }
 
 .bg-danger {
-    background-color: var(--withdean-red) !important;
+    background-color: var(--withdean-primary) !important;
 }
 
 /* Loading overlay */
@@ -97,8 +98,8 @@ body {
 
 /* File upload area */
 .form-control:focus {
-    border-color: var(--withdean-red);
-    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    border-color: var(--withdean-primary);
+    box-shadow: 0 0 0 0.2rem rgba(15, 5, 116, 0.25);
 }
 
 /* Summary cards */
@@ -151,13 +152,13 @@ footer {
 
 /* Utility classes */
 .text-withdean {
-    color: var(--withdean-red) !important;
+    color: var(--withdean-primary) !important;
 }
 
 .bg-withdean {
-    background-color: var(--withdean-red) !important;
+    background-color: var(--withdean-primary) !important;
 }
 
 .border-withdean {
-    border-color: var(--withdean-red) !important;
+    border-color: var(--withdean-primary) !important;
 }

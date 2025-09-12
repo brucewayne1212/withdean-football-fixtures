@@ -163,9 +163,17 @@
                     </div>
                     {% endif %}
                     {% if contact.phone %}
-                    <p class="mb-1 small">
-                        <strong>Phone:</strong> {{ contact.phone }}
-                    </p>
+                    <div class="mb-1 small">
+                        <strong>Phone:</strong>
+                        <div class="d-flex align-items-center">
+                            <code class="flex-grow-1 me-2" style="font-size: 0.8em;">{{ contact.phone }}</code>
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="copyToClipboard('{{ contact.phone }}', 'Phone copied!')" 
+                                    title="Copy phone">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
                     {% endif %}
                     {% if contact.notes %}
                     <p class="mb-0 small text-muted">
@@ -178,6 +186,67 @@
                 <div class="alert alert-info small mb-0">
                     <i class="fas fa-info-circle"></i> 
                     <strong>Tip:</strong> Click the copy button next to email addresses to quickly copy them for pasting into your email client.
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Team Coaches/Managers for Internal Teams -->
+        {% if team_coaches %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-users"></i> Your Team Coaches/Managers
+                </h6>
+            </div>
+            <div class="card-body">
+                {% for team_name, coach in team_coaches.items() %}
+                <div class="mb-3 p-2 border rounded bg-success bg-opacity-10">
+                    <h6 class="text-success mb-2">{{ team_name }} 
+                        <span class="badge bg-success ms-2">{{ coach.role or 'Coach' }}</span>
+                    </h6>
+                    {% if coach.coach_name %}
+                    <p class="mb-1 small">
+                        <strong>Name:</strong> {{ coach.coach_name }}
+                    </p>
+                    {% endif %}
+                    {% if coach.email %}
+                    <div class="mb-1 small">
+                        <strong>Email:</strong>
+                        <div class="d-flex align-items-center">
+                            <code class="flex-grow-1 me-2" style="font-size: 0.8em;">{{ coach.email }}</code>
+                            <button class="btn btn-sm btn-outline-success" 
+                                    onclick="copyToClipboard('{{ coach.email }}', 'Coach email copied!')" 
+                                    title="Copy email">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if coach.phone %}
+                    <div class="mb-1 small">
+                        <strong>Phone:</strong>
+                        <div class="d-flex align-items-center">
+                            <code class="flex-grow-1 me-2" style="font-size: 0.8em;">{{ coach.phone }}</code>
+                            <button class="btn btn-sm btn-outline-success" 
+                                    onclick="copyToClipboard('{{ coach.phone }}', 'Phone copied!')" 
+                                    title="Copy phone">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if coach.notes %}
+                    <p class="mb-0 small">
+                        <strong>Notes:</strong> {{ coach.notes }}
+                    </p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                
+                <div class="alert alert-success small mb-0">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Your Team Staff:</strong> Contact details for your internal coaches and managers.
                 </div>
             </div>
         </div>

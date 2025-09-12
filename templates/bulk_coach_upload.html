@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Coach Upload - Withdean Youth FC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-users text-danger"></i> 
+            Bulk Coach Upload
+        </h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('settings') }}">Settings</a></li>
+                <li class="breadcrumb-item active">Bulk Coach Upload</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-upload"></i> Upload Coach Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="upload_method" class="form-label">Upload Method</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="upload_method" id="file_upload" value="file" checked>
+                            <label class="form-check-label" for="file_upload">
+                                Upload File (CSV, TXT, etc.)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="upload_method" id="text_input" value="text">
+                            <label class="form-check-label" for="text_input">
+                                Paste Text Directly
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="file_upload_section" class="mb-3">
+                        <label for="coach_file" class="form-label">Coach Data File</label>
+                        <input type="file" class="form-control" id="coach_file" name="coach_file" accept=".csv,.txt,.tsv">
+                        <div class="form-text">
+                            Upload a CSV, TXT, or TSV file containing coach information.
+                        </div>
+                    </div>
+
+                    <div id="text_input_section" class="mb-3" style="display: none;">
+                        <label for="coach_text" class="form-label">Coach Information</label>
+                        <textarea class="form-control" id="coach_text" name="coach_text" rows="10" 
+                                  placeholder="Paste coach information here..."></textarea>
+                        <div class="form-text">
+                            Paste coach information with names, emails, phone numbers, and roles.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="default_team" class="form-label">Default Team (Optional)</label>
+                        <select class="form-select" id="default_team" name="default_team">
+                            <option value="">Select a default team...</option>
+                            {% for team in available_teams %}
+                            <option value="{{ team }}">{{ team }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            If specified, all coaches will be assigned to this team unless otherwise indicated in the data.
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-upload"></i> Parse Coach Data
+                        </button>
+                        <a href="{{ url_for('settings') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Help Card -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-question-circle"></i> Upload Help
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6 class="small">Supported Formats</h6>
+                <ul class="small mb-3">
+                    <li><strong>CSV/TSV files:</strong> Structured data with columns</li>
+                    <li><strong>Text files:</strong> Any format with contact information</li>
+                    <li><strong>Direct text:</strong> Copy and paste from emails, documents</li>
+                </ul>
+
+                <h6 class="small">What We Look For</h6>
+                <ul class="small mb-3">
+                    <li>Names and email addresses</li>
+                    <li>Phone numbers and mobile numbers</li>
+                    <li>Role indicators (Coach, Manager, Assistant, etc.)</li>
+                    <li>Team associations</li>
+                </ul>
+
+                <h6 class="small">Role Detection</h6>
+                <p class="small mb-3">
+                    The system automatically detects coaching roles from text like:
+                    "Head Coach", "Assistant Manager", "Coach", "Team Manager", etc.
+                </p>
+
+                <div class="alert alert-info small">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Tip:</strong> You'll be able to review and edit all detected coaches before they're added to your system.
+                </div>
+            </div>
+        </div>
+
+        <!-- Example Data Card -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-file-alt"></i> Example Data
+                </h6>
+            </div>
+            <div class="card-body">
+                <h6 class="small">CSV Format Example</h6>
+                <pre class="small bg-light p-2 mb-3">Name,Email,Phone,Role,Team
+John Smith,john@email.com,07123456789,Head Coach,U14 Blue
+Jane Doe,jane@email.com,07987654321,Assistant Coach,U14 Blue</pre>
+
+                <h6 class="small">Text Format Example</h6>
+                <pre class="small bg-light p-2">U14 Blue Team Staff:
+John Smith (Head Coach)
+Email: john@email.com
+Mobile: 07123456789
+
+Jane Doe - Assistant Coach
+jane@email.com
+Phone: 07987654321</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Toggle between file upload and text input
+document.querySelectorAll('input[name="upload_method"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const fileSection = document.getElementById('file_upload_section');
+        const textSection = document.getElementById('text_input_section');
+        
+        if (this.value === 'file') {
+            fileSection.style.display = 'block';
+            textSection.style.display = 'none';
+            document.getElementById('coach_text').removeAttribute('required');
+            document.getElementById('coach_file').setAttribute('required', 'required');
+        } else {
+            fileSection.style.display = 'none';
+            textSection.style.display = 'block';
+            document.getElementById('coach_file').removeAttribute('required');
+            document.getElementById('coach_text').setAttribute('required', 'required');
+        }
+    });
+});
+</script>
+{% endblock %}
