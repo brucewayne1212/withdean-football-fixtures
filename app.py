@@ -12,8 +12,9 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-# CRITICAL: Allow OAuth2 over HTTP for local development - MUST be set before importing OAuth libraries
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+# CRITICAL: Allow OAuth2 over HTTP for local development only - MUST be set before importing OAuth libraries
+if os.environ.get('FLASK_ENV') == 'development' or 'localhost' in os.environ.get('SERVER_NAME', ''):
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
 
 # Authentication imports
@@ -36,6 +37,11 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'withdean-youth-fc-fixtures-2024-dev')
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Configure for HTTPS when deployed (Cloud Run sets X-Forwarded-Proto header)
+if os.environ.get('FLASK_ENV') != 'development':
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 # Google OAuth Configuration
 app.config['GOOGLE_OAUTH_CLIENT_ID'] = os.environ.get('GOOGLE_OAUTH_CLIENT_ID')
