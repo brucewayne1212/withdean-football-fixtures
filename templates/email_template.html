@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Email Template Management - Withdean Youth FC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-envelope-open-text text-danger"></i> 
+            Email Template Management
+        </h1>
+        
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            This feature is coming soon! You'll be able to customize your email templates here.
+        </div>
+        
+        <a href="{{ url_for('settings') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Settings
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -620,9 +620,26 @@ def settings():
             is_active=True
         ).first()
         
+        # Get team coaches for all teams
+        team_coaches_query = session.query(TeamCoach).filter_by(
+            organization_id=org.id
+        ).all()
+        
+        # Create a simple mock user_manager object for template compatibility
+        class UserManagerMock:
+            def __init__(self, coaches_data):
+                self.coaches_data = coaches_data
+            
+            def get_team_coaches(self, team_name):
+                return [coach for coach in self.coaches_data if coach.team.name == team_name]
+        
+        user_manager = UserManagerMock(team_coaches_query)
+        
         return render_template('settings.html',
+            user_info={'name': current_user.name, 'email': current_user.email},
             user_name=current_user.name,
             user_email=current_user.email,
+            user_manager=user_manager,
             managed_teams=[team.name for team in managed_teams],
             pitches={pitch.name: {
                 'address': pitch.address or '',
@@ -815,6 +832,39 @@ def parse_fixture():
     # For now, just flash a message - full implementation can be added later
     flash('Parse fixture functionality will be available soon with database integration.', 'info')
     return redirect(url_for('dashboard'))
+
+@app.route('/bulk_coach_upload', methods=['GET', 'POST'])
+@login_required
+def bulk_coach_upload():
+    """Bulk coach upload - placeholder for now"""
+    if request.method == 'GET':
+        return render_template('bulk_upload.html', upload_type='coaches', user_name=current_user.name)
+    
+    # For now, just flash a message - full implementation can be added later
+    flash('Bulk coach upload functionality will be available soon.', 'info')
+    return redirect(url_for('settings'))
+
+@app.route('/bulk_contact_upload', methods=['GET', 'POST'])
+@login_required
+def bulk_contact_upload():
+    """Bulk contact upload - placeholder for now"""
+    if request.method == 'GET':
+        return render_template('bulk_upload.html', upload_type='contacts', user_name=current_user.name)
+    
+    # For now, just flash a message - full implementation can be added later
+    flash('Bulk contact upload functionality will be available soon.', 'info')
+    return redirect(url_for('settings'))
+
+@app.route('/manage_email_template', methods=['GET', 'POST'])
+@login_required
+def manage_email_template():
+    """Manage email template - placeholder for now"""
+    if request.method == 'GET':
+        return render_template('email_template.html', user_name=current_user.name)
+    
+    # For now, just flash a message - full implementation can be added later
+    flash('Email template management functionality will be available soon.', 'info')
+    return redirect(url_for('settings'))
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
