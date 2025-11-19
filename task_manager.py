@@ -12,7 +12,7 @@ from enum import Enum
 
 class TaskType(Enum):
     HOME_EMAIL = "home_email"  # Send email to opposition
-    AWAY_FORWARD = "away_forward"  # Forward received email to our team
+    AWAY_EMAIL = "away_email"  # Send email to opposition with our team details
 
 class TaskStatus(Enum):
     PENDING = "pending"
@@ -157,7 +157,7 @@ class TaskManager:
             task_type = TaskType.HOME_EMAIL
             initial_status = TaskStatus.PENDING
         else:
-            task_type = TaskType.AWAY_FORWARD
+            task_type = TaskType.AWAY_EMAIL
             initial_status = TaskStatus.WAITING  # Waiting for opposition email
         
         task = FixtureTask(
@@ -245,7 +245,7 @@ class TaskManager:
             'in_progress': len(self.get_in_progress_tasks()),
             'completed': len(self.get_completed_tasks()),
             'home_games': len(self.get_tasks_by_type(TaskType.HOME_EMAIL)),
-            'away_games': len(self.get_tasks_by_type(TaskType.AWAY_FORWARD))
+            'away_games': len(self.get_tasks_by_type(TaskType.AWAY_EMAIL))
         }
         return summary
     

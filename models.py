@@ -91,12 +91,21 @@ class UserOrganization(Base):
 class Team(Base):
     """Team model"""
     __tablename__ = 'teams'
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     organization_id = Column(UUID(as_uuid=True), ForeignKey('organizations.id'), nullable=False)
     name = Column(String(255), nullable=False)
     age_group = Column(String(50))
     is_managed = Column(Boolean, default=False)
+    # Kit colours fields
+    home_shirt = Column(String(255))
+    home_shorts = Column(String(255))
+    home_socks = Column(String(255))
+    away_shirt = Column(String(255))
+    away_shorts = Column(String(255))
+    away_socks = Column(String(255))
+    # FA Full-Time fixtures URL
+    fa_fixtures_url = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
@@ -111,7 +120,8 @@ class Team(Base):
     team_coaches = relationship("TeamCoach", back_populates="team", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<Team(name='{self.name}', organization='{self.organization.name if self.organization else None}')>"
+        # Avoid accessing organization relationship to prevent DetachedInstanceError
+        return f"<Team(name='{self.name}', org_id='{self.organization_id}')>"
 
 class Pitch(Base):
     """Pitch/Venue model"""
@@ -121,11 +131,17 @@ class Pitch(Base):
     organization_id = Column(UUID(as_uuid=True), ForeignKey('organizations.id'), nullable=False)
     name = Column(String(255), nullable=False)
     address = Column(Text)
+    parking_address = Column(Text)  # Separate parking address
     parking_info = Column(Text)
     toilet_info = Column(Text)
     special_instructions = Column(Text)
     opening_notes = Column(Text)
     warm_up_notes = Column(Text)
+    map_image_url = Column(Text)  # URL to static map image for emails
+    google_maps_link = Column(Text)  # Link to Google Maps
+    custom_map_filename = Column(Text)  # Filename of uploaded custom map image
+    parking_map_image_url = Column(Text)  # URL to parking map image for emails
+    parking_google_maps_link = Column(Text)  # Link to parking location on Google Maps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
@@ -169,12 +185,17 @@ class Fixture(Base):
     contact_5 = Column(String(255))
     
     status = Column(String(50), default='pending')
+    is_cancelled = Column(Boolean, default=False)
+    cancellation_reason = Column(Text)
+    cancelled_at = Column(DateTime(timezone=True))
+    is_archived = Column(Boolean, default=False)
+    archived_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    
+
     __table_args__ = (
         CheckConstraint("home_away IN ('Home', 'Away')", name='check_home_away'),
-        CheckConstraint("status IN ('pending', 'waiting', 'in_progress', 'completed')", name='check_fixture_status'),
+        CheckConstraint("status IN ('pending', 'waiting', 'in_progress', 'completed', 'cancelled')", name='check_fixture_status'),
     )
     
     # Relationships
@@ -199,11 +220,13 @@ class Task(Base):
     status = Column(String(50), default='pending')
     notes = Column(Text)
     completed_at = Column(DateTime(timezone=True))
+    is_archived = Column(Boolean, default=False)
+    archived_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     __table_args__ = (
-        CheckConstraint("task_type IN ('home_email', 'away_forward')", name='check_task_type'),
+        CheckConstraint("task_type IN ('home_email', 'away_email')", name='check_task_type'),
         CheckConstraint("status IN ('pending', 'waiting', 'in_progress', 'completed')", name='check_task_status'),
     )
     
@@ -395,6 +418,11 @@ def get_or_create_organization(session, user_id: str, org_name: str, org_slug: s
 
 def get_or_create_team(session, organization_id: str, team_name: str, is_managed: bool = False) -> Team:
     """Get or create a team within an organization"""
+    # Validate team name - must not be None or empty
+    if not team_name or not team_name.strip():
+        raise ValueError(f"Team name cannot be empty or None. Got: {repr(team_name)}")
+    
+    team_name = team_name.strip()
     team = session.query(Team).filter_by(
         organization_id=organization_id,
         name=team_name

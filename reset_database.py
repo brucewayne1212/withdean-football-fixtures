@@ -8,7 +8,9 @@ import psycopg2
 import os
 
 # Database connection string
-DATABASE_URL = "postgresql://neondb_owner:npg_V1zDyIcxCOv9@ep-falling-shape-abr14uib-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require"
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is required. Please set it in your environment or .env file.")
 
 def reset_database():
     """Drop all tables and recreate schema"""

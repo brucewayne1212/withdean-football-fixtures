@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+
+{% block title %}Import Fixtures - Withdean Youth FC{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="mb-0">
+                <i class="fas fa-upload text-danger"></i> Import Fixtures
+            </h1>
+        </div>
+        <p class="text-muted">Choose a method to import fixtures into the system</p>
+    </div>
+</div>
+
+<!-- Import Method Tabs -->
+<ul class="nav nav-tabs mb-4" id="importTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button" role="tab">
+            <i class="fas fa-edit"></i> Manual Entry
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="csv-tab" data-bs-toggle="tab" data-bs-target="#csv" type="button" role="tab">
+            <i class="fas fa-file-csv"></i> CSV/Excel Upload
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="google-tab" data-bs-toggle="tab" data-bs-target="#google" type="button" role="tab">
+            <i class="fab fa-google"></i> Google Sheets
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="paste-tab" data-bs-toggle="tab" data-bs-target="#paste" type="button" role="tab">
+            <i class="fas fa-paste"></i> Paste FA Data
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="url-tab" data-bs-toggle="tab" data-bs-target="#url" type="button" role="tab">
+            <i class="fas fa-link"></i> FA URL Import
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="importTabContent">
+    
+    <!-- Manual Entry Tab -->
+    <div class="tab-pane fade show active" id="manual" role="tabpanel" aria-labelledby="manual-tab">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-edit"></i> Manually Add Fixture</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/import-fixtures" id="manualForm">
+                    <input type="hidden" name="import_method" value="manual">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="manual_team" class="form-label">Team *</label>
+                            <select class="form-control" id="manual_team" name="manual_team" required>
+                                <option value="">Select a team...</option>
+                                {% for team in managed_teams %}
+                                <option value="{{ team }}">{{ team }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="manual_opposition" class="form-label">Opposition *</label>
+                            <input type="text" class="form-control" id="manual_opposition" name="manual_opposition" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="manual_home_away" class="form-label">Home/Away *</label>
+                            <select class="form-control" id="manual_home_away" name="manual_home_away" required>
+                                <option value="">Select...</option>
+                                <option value="Home">Home</option>
+                                <option value="Away">Away</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="manual_date" class="form-label">Date *</label>
+                            <input type="date" class="form-control" id="manual_date" name="manual_date" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="manual_time" class="form-label">Kick-off Time</label>
+                            <input type="text" class="form-control" id="manual_time" name="manual_time" placeholder="e.g. 10:00 or TBC">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="manual_pitch" class="form-label">Pitch</label>
+                        <select class="form-control" id="manual_pitch" name="manual_pitch">
+                            <option value="">Select a pitch...</option>
+                            {% for pitch_name in pitches.keys() %}
+                            <option value="{{ pitch_name }}">{{ pitch_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Add Fixture
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- CSV/Excel Upload Tab -->
+    <div class="tab-pane fade" id="csv" role="tabpanel" aria-labelledby="csv-tab">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-file-csv"></i> Upload CSV or Excel File</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/import-fixtures" enctype="multipart/form-data" id="csvForm">
+                    <input type="hidden" name="import_method" value="csv">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Select File *</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".csv,.xlsx,.xls" required>
+                        <small class="form-text text-muted">
+                            Supported formats: CSV, Excel (.xlsx, .xls)
+                        </small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>File Format:</strong> Your CSV/Excel file should include columns for team, opposition, date, time, and home/away status.
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Upload and Import
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Google Sheets Tab -->
+    <div class="tab-pane fade" id="google" role="tabpanel" aria-labelledby="google-tab">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fab fa-google"></i> Import from Google Sheets</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/import-fixtures" id="googleForm">
+                    <input type="hidden" name="import_method" value="google">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    
+                    <div class="mb-3">
+                        <label for="google_sheets_url" class="form-label">Google Sheets URL *</label>
+                        <input type="url" class="form-control" id="google_sheets_url" name="google_sheets_url" 
+                               placeholder="https://docs.google.com/spreadsheets/d/..." required>
+                        <small class="form-text text-muted">
+                            Paste the full URL of your Google Sheets document (make sure it's publicly viewable or shared)
+                        </small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> The sheet must be publicly accessible or shared with the service account.
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-cloud-download-alt"></i> Import from Google Sheets
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Paste FA Data Tab -->
+    <div class="tab-pane fade" id="paste" role="tabpanel" aria-labelledby="paste-tab">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-paste"></i> Paste FA Website Data</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/import-fixtures" id="pasteForm">
+                    <input type="hidden" name="import_method" value="paste">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    
+                    <div class="mb-3">
+                        <label for="fa_fixture_text" class="form-label">Paste FA Fixture Data *</label>
+                        <textarea class="form-control" id="fa_fixture_text" name="fa_fixture_text" rows="10" 
+                                  placeholder="Paste fixture data from the FA website here..."></textarea>
+                        <small class="form-text text-muted">
+                            Copy and paste fixture data from the FA Full-Time website
+                        </small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-magic"></i> Parse and Import
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- FA URL Import Tab -->
+    <div class="tab-pane fade" id="url" role="tabpanel" aria-labelledby="url-tab">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-link"></i> Import from FA URL</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/import-fixtures" id="urlForm">
+                    <input type="hidden" name="import_method" value="url">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    
+                    <div class="mb-3">
+                        <label for="fa_url" class="form-label">FA Full-Time Fixtures URL *</label>
+                        <input type="url" class="form-control" id="fa_url" name="fa_url" 
+                               placeholder="https://fulltime.thefa.com/fixtures.html?..." required>
+                        <small class="form-text text-muted">
+                            Paste the URL from the FA Full-Time fixtures page. The system will automatically detect if it's for a single team or multiple teams.
+                        </small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="url_team" class="form-label">Team (Optional)</label>
+                        <select class="form-control" id="url_team" name="url_team">
+                            <option value="">Auto-detect from URL</option>
+                            {% for team in managed_teams %}
+                            <option value="{{ team }}">{{ team }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">
+                            If you know which team this URL is for, select it. Otherwise, the system will auto-detect.
+                        </small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>CAPTCHA Handling:</strong> When you click "Import from URL", a browser window will open. 
+                        <ul class="mb-0 small">
+                            <li>If a CAPTCHA appears, solve it in the browser window</li>
+                            <li>The import will automatically continue once CAPTCHA is solved</li>
+                            <li>You can also use the <strong>"Paste FA Data"</strong> tab as an alternative</li>
+                        </ul>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>How it works:</strong>
+                        <ul class="mb-0 small">
+                            <li>Single team URL: Automatically saves to that team's settings and imports fixtures</li>
+                            <li>Club-wide URL: Matches fixtures to your managed teams automatically</li>
+                        </ul>
+                    </div>
+                    
+                    <div id="urlImportStatus" class="mt-3"></div>
+                    
+                    <button type="submit" class="btn btn-primary" id="urlImportBtn">
+                        <i class="fas fa-sync"></i> Import from URL
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Check URL parameter to open specific tab
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const method = urlParams.get('method');
+    if (method) {
+        const tabMap = {
+            'manual': 'manual-tab',
+            'csv': 'csv-tab',
+            'google': 'google-tab',
+            'paste': 'paste-tab',
+            'url': 'url-tab'
+        };
+        const tabId = tabMap[method];
+        if (tabId) {
+            const tab = document.getElementById(tabId);
+            if (tab) {
+                const tabTrigger = new bootstrap.Tab(tab);
+                tabTrigger.show();
+            }
+        }
+    }
+});
+
+// Handle form submissions with loading states
+document.querySelectorAll('#importTabContent form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalHTML = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        
+        // For URL form, handle with AJAX to show progress
+        if (form.id === 'urlForm') {
+            e.preventDefault();
+            handleUrlImport(form);
+        }
+    });
+});
+
+function handleUrlImport(form) {
+    const formData = new FormData(form);
+    const statusDiv = document.getElementById('urlImportStatus');
+    const importBtn = document.getElementById('urlImportBtn');
+    
+    statusDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Scraping fixtures from FA website... This may take a moment.</div>';
+    
+    fetch('/import-fixtures', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        }
+        return response.text().then(text => {
+            throw new Error(text || 'Import failed');
+        });
+    })
+    .then(data => {
+        if (data.success) {
+            let summaryHtml = '<div class="alert alert-success">' +
+                '<h6><i class="fas fa-check-circle"></i> Import Complete!</h6>' +
+                '<ul class="mb-0 small">' +
+                '<li><strong>Fixtures found:</strong> ' + (data.total_fixtures || 0) + '</li>' +
+                '<li><strong>Fixtures imported:</strong> ' + (data.fixtures_imported || 0) + '</li>';
+            
+            if (data.teams_matched && data.teams_matched.length > 0) {
+                summaryHtml += '<li><strong>Teams matched:</strong> ' + data.teams_matched.join(', ') + '</li>';
+            }
+            if (data.url_saved) {
+                summaryHtml += '<li><strong>URL saved to:</strong> ' + data.url_saved + '</li>';
+            }
+            
+            summaryHtml += '</ul></div>';
+            statusDiv.innerHTML = summaryHtml;
+            
+            // Clear form
+            form.reset();
+        } else {
+            statusDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ' + (data.error || 'Import failed') + '</div>';
+        }
+    })
+    .catch(error => {
+        statusDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ' + error.message + '</div>';
+        console.error('Error:', error);
+    })
+    .finally(() => {
+        importBtn.disabled = false;
+        importBtn.innerHTML = '<i class="fas fa-sync"></i> Import from URL';
+    });
+}
+</script>
+{% endblock %}
+

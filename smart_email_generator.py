@@ -19,10 +19,16 @@ class SmartEmailGenerator:
         
         # Get user preferences
         preferences = self._get_preferences()
-        
+
+        # Handle team-specific kit colours
+        if fixture_data.get('team'):
+            team_kit = self._get_team_kit_colours(fixture_data['team'])
+            if team_kit and any(team_kit.values()):
+                preferences['default_colours'] = self._format_kit_colours(team_kit, fixture_data['team'])
+
         # Build the email
         email_content = self._build_email_content(processed_data, preferences)
-        
+
         return email_content.strip()
     
     def _process_fixture_data(self, fixture_data: Dict) -> Dict:
@@ -121,13 +127,22 @@ class SmartEmailGenerator:
         return str(kickoff_time)
     
     def _get_pitch_information(self, fixture_data: Dict) -> Dict:
-        """Get pitch information from user settings"""
+        """Get pitch information from user settings or directly from fixture data"""
         pitch_name = fixture_data.get('pitch', 'TBC')
-        
+
         if self.user_manager:
             return self.user_manager.get_pitch_config(pitch_name)
         else:
-            return {'name': pitch_name}
+            # Use venue data passed directly in fixture_data
+            return {
+                'name': pitch_name,
+                'address': fixture_data.get('venue_address', ''),
+                'parking': fixture_data.get('venue_parking', ''),
+                'toilets': fixture_data.get('venue_toilets', ''),
+                'opening_notes': fixture_data.get('venue_arrival_setup', ''),
+                'warm_up_notes': fixture_data.get('venue_warm_up', ''),
+                'special_instructions': fixture_data.get('venue_special_instructions', '')
+            }
     
     def _process_opposition(self, opposition: str) -> str:
         """Clean up opposition name"""
@@ -157,6 +172,49 @@ class SmartEmailGenerator:
         else:
             return 'Standard format'
     
+    def _get_team_kit_colours(self, team_name: str) -> Optional[Dict]:
+        """Get team-specific kit colours from database"""
+        if self.user_manager and hasattr(self.user_manager, 'get_team_kit_colours'):
+            try:
+                return self.user_manager.get_team_kit_colours(team_name)
+            except Exception:
+                pass
+        return None
+
+    def _format_kit_colours(self, kit_data: Dict, team_name: str = '') -> str:
+        """Format kit colours into a readable string"""
+        team_display = team_name if team_name else 'Withdean Youth FC'
+        parts = []
+
+        # Home kit
+        home_parts = []
+        if kit_data.get('home_shirt'):
+            home_parts.append(kit_data['home_shirt'])
+        if kit_data.get('home_shorts'):
+            home_parts.append(kit_data['home_shorts'])
+        if kit_data.get('home_socks'):
+            home_parts.append(kit_data['home_socks'])
+
+        if home_parts:
+            parts.append(f"Home: {', '.join(home_parts)}")
+
+        # Away kit
+        away_parts = []
+        if kit_data.get('away_shirt'):
+            away_parts.append(kit_data['away_shirt'])
+        if kit_data.get('away_shorts'):
+            away_parts.append(kit_data['away_shorts'])
+        if kit_data.get('away_socks'):
+            away_parts.append(kit_data['away_socks'])
+
+        if away_parts:
+            parts.append(f"Away: {', '.join(away_parts)}")
+
+        if parts:
+            return f"{team_display} play in {', '.join(parts)}"
+        else:
+            return 'Withdean Youth FC play in Blue and Black Shirts, Black Shorts and Blue and Black Hooped Socks'
+
     def _get_preferences(self) -> Dict:
         """Get user preferences or return defaults"""
         if self.user_manager:
@@ -175,6 +233,56 @@ class SmartEmailGenerator:
         # Get the custom template from user settings
         template = self.user_manager.get_email_template() if self.user_manager else self._get_fallback_template()
         
+        # Build map section with priority: custom uploaded maps > Google Drive > Google Maps static
+        map_section = ''
+        custom_map_filename = processed_data['pitch_info'].get('custom_map_filename', '')
+        map_image_url = processed_data['pitch_info'].get('map_image_url', '')
+
+        if custom_map_filename:
+            # Use custom uploaded map with highest priority
+            custom_map_url = f"/static/uploads/maps/{custom_map_filename}"
+            map_section = f'''
+<div style="margin: 20px 0;">
+    <h4>ESTATE WALKING MAP</h4>
+    <p>Use this map to find your way around our estate:</p>
+    <div style="text-align: center; margin: 15px 0;">
+        <img src="{custom_map_url}" alt="Estate Walking Map" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 5px;">
+    </div>
+</div>'''
+            # Update the map_image_url for merge field use
+            map_image_url = custom_map_url
+        elif map_image_url:
+            if 'drive.google.com' in map_image_url:
+                # It's a Google Drive map
+                map_section = f'''
+<div style="margin: 20px 0;">
+    <h4>ESTATE WALKING MAP</h4>
+    <p>Use this map to find your way around our estate:</p>
+    <div style="text-align: center; margin: 15px 0;">
+        <img src="{map_image_url}" alt="Estate Walking Map" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 5px;">
+    </div>
+</div>'''
+            else:
+                # It's a Google Maps static image
+                map_section = f'''
+<div style="margin: 20px 0;">
+    <h4>LOCATION MAP</h4>
+    <div style="text-align: center; margin: 15px 0;">
+        <img src="{map_image_url}" alt="Location Map" style="max-width: 100%; height: auto; border: 1px solid #ccc; border-radius: 5px;">
+    </div>
+</div>'''
+
+        # Build further instructions section
+        instructions = processed_data.get('instructions', '')
+        if instructions and instructions.strip():
+            instructions_section = f'''
+<h3>FURTHER INSTRUCTIONS FOR WITHDEAN MANAGEMENT</h3>
+
+<p>{instructions}</p>
+'''
+        else:
+            instructions_section = ''
+
         # Create merge field values
         merge_values = {
             'date_display': processed_data['date_display'],
@@ -186,11 +294,18 @@ class SmartEmailGenerator:
             'pitch_opening_notes': processed_data['pitch_info'].get('opening_notes', ''),
             'pitch_warm_up_notes': processed_data['pitch_info'].get('warm_up_notes', ''),
             'pitch_special_instructions': processed_data['pitch_info'].get('special_instructions', ''),
+            'pitch_map_image': map_image_url,
+            'pitch_google_maps_link': processed_data['pitch_info'].get('google_maps_link', ''),
+            'pitch_map_section': map_section,
             'home_colours': preferences.get('default_colours', 'Withdean Youth FC play in Blue and Black Shirts, Black Shorts and Blue and Black Hooped Socks'),
             'match_format': processed_data['match_format'],
             'referee_note': preferences.get('default_referee_note', 'Referees have been requested for all fixtures but are as yet unconfirmed'),
-            'manager_name': processed_data.get('home_manager', ''),
-            'manager_contact': processed_data.get('manager_mobile', ''),
+            'further_instructions': processed_data.get('instructions', ''),
+            'further_instructions_section': instructions_section,
+            'manager_name': processed_data.get('manager_name', ''),
+            'manager_email': processed_data.get('manager_email', ''),
+            'manager_phone': processed_data.get('manager_phone', ''),
+            'manager_contact': processed_data.get('manager_contact', ''),  # Keep for backward compatibility
             'email_signature': preferences.get('email_signature', 'Many thanks\n\nWithdean Youth FC'),
             'team_name': processed_data.get('team', ''),
             'opposition_name': processed_data['opposition_display']
@@ -245,20 +360,30 @@ class SmartEmailGenerator:
 
 <p><strong>Special Instructions:</strong> {{pitch_special_instructions}}</p>
 
+<p><strong>Google Maps Link:</strong> <a href="{{pitch_google_maps_link}}">{{pitch_google_maps_link}}</a></p>
+
+{{pitch_map_section}}
+
+{{further_instructions_section}}
+
 <h3>CONTACT INFORMATION</h3>
 
 <p><strong>Manager:</strong> {{manager_name}}</p>
-<p><strong>Manager Contact:</strong> {{manager_contact}}</p>
+<p><strong>Email:</strong> {{manager_email}}</p>
+<p><strong>Phone:</strong> {{manager_phone}}</p>
 
 <p>{{email_signature}}</p>"""
 
     def generate_subject_line(self, fixture_data: Dict) -> str:
         """Generate subject line using processed data"""
         team = fixture_data.get('team', 'Team')
+        # Add Withdean Youth prefix if not already present
+        if team and 'Withdean Youth' not in team:
+            team = f"Withdean Youth {team}"
         opposition = self._process_opposition(fixture_data.get('opposition'))
         date_part = self._process_date(fixture_data.get('kickoff_time')).split()[1:3]  # Get day and month
         date_str = " ".join(date_part) if len(date_part) >= 2 else ""
-        
+
         if date_str:
             return f"{team} vs {opposition} - {date_str} - Fixture Details"
         else:

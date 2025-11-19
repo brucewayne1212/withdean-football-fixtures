@@ -3,17 +3,30 @@
 {% block title %}Dashboard - Withdean Youth FC{% endblock %}
 
 {% block content %}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <div class="row">
     <div class="col-12">
-        <h1 class="mb-4">
-            <i class="fas fa-tachometer-alt text-danger"></i> 
-            Your Fixture Management Dashboard
-        </h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-tachometer-alt text-danger"></i>
+                Your Fixture Management Dashboard
+                <span class="badge bg-secondary align-middle" title="UI updated">UI v2</span>
+            </h1>
+            {% if weekly_sheet_url %}
+            <button id="refreshFixturesBtn" class="btn btn-danger btn-lg">
+                <i class="fas fa-sync-alt"></i> Refresh This Week's Fixtures
+            </button>
+            {% else %}
+            <button id="loadFixturesBtn" class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#googleSheetModal">
+                <i class="fas fa-file-import"></i> Load Google Sheets Fixtures
+            </button>
+            {% endif %}
+        </div>
         <div class="alert alert-primary">
-            <i class="fas fa-user-check"></i> 
-            Showing <strong>{{ my_teams_count }} your managed teams</strong> only. 
-            {{ total_tasks - summary.total }} other club fixtures are hidden. 
-            <a href="{{ url_for('view_tasks', show_all='true') }}" class="alert-link">View all club fixtures</a>
+            <i class="fas fa-user-check"></i>
+            Showing <strong>{{ my_teams_count }} your managed teams</strong> only.
+            {{ total_tasks - summary.total }} other club fixtures are hidden.
+            <a href="{{ url_for('tasks.view_tasks', show_all='true') }}" class="alert-link">View all club fixtures</a>
         </div>
     </div>
 </div>
@@ -21,7 +34,7 @@
 <!-- Summary Cards -->
 <div class="row mb-4">
     <div class="col-md-3">
-        <a href="{{ url_for('view_tasks', status='pending') }}" class="text-decoration-none">
+        <a href="{{ url_for('tasks.view_tasks', status='pending') }}" class="text-decoration-none">
             <div class="card bg-warning text-white shadow-hover">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -40,7 +53,7 @@
     </div>
     
     <div class="col-md-3">
-        <a href="{{ url_for('view_tasks', status='waiting') }}" class="text-decoration-none">
+        <a href="{{ url_for('tasks.view_tasks', status='waiting') }}" class="text-decoration-none">
             <div class="card bg-info text-white shadow-hover">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -59,7 +72,7 @@
     </div>
     
     <div class="col-md-3">
-        <a href="{{ url_for('view_tasks', status='in_progress') }}" class="text-decoration-none">
+        <a href="{{ url_for('tasks.view_tasks', status='in_progress') }}" class="text-decoration-none">
             <div class="card bg-primary text-white shadow-hover">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -78,7 +91,7 @@
     </div>
     
     <div class="col-md-3">
-        <a href="{{ url_for('view_tasks', status='completed') }}" class="text-decoration-none">
+        <a href="{{ url_for('tasks.view_tasks', status='completed') }}" class="text-decoration-none">
             <div class="card bg-success text-white shadow-hover">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
@@ -107,18 +120,18 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-4">
-                        <a href="{{ url_for('upload_file') }}" class="btn btn-danger btn-lg w-100 mb-3">
+                        <a href="{{ url_for('imports.upload_file') }}" class="btn btn-danger btn-lg w-100 mb-3">
                             <i class="fas fa-upload"></i> Import New Fixtures
                         </a>
                     </div>
                     <div class="col-md-4">
-                        <a href="{{ url_for('view_tasks', type='home_email', status='pending') }}" class="btn btn-warning btn-lg w-100 mb-3">
+                        <a href="{{ url_for('tasks.view_tasks', type='home_email', status='pending') }}" class="btn btn-warning btn-lg w-100 mb-3">
                             <i class="fas fa-envelope"></i> Generate Home Emails
                         </a>
                     </div>
                     <div class="col-md-4">
-                        <a href="{{ url_for('view_tasks', type='away_forward', status='waiting') }}" class="btn btn-info btn-lg w-100 mb-3">
-                            <i class="fas fa-forward"></i> Check Away Games
+                        <a href="{{ url_for('tasks.view_tasks', type='away_email', status='waiting') }}" class="btn btn-info btn-lg w-100 mb-3">
+                            <i class="fas fa-envelope"></i> Send Away Emails
                         </a>
                     </div>
                 </div>
@@ -126,6 +139,569 @@
         </div>
     </div>
 </div>
+
+<!-- Team Status Overview -->
+{% if team_status_data %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-alt text-danger"></i> Upcoming Fixtures
+                        </h5>
+                        <small class="text-muted">Next Sunday ({{ team_status_data[0].next_sunday.strftime('%d %B') if team_status_data else '' }}) and upcoming matches</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="btn-group btn-group-sm me-2" role="group">
+                        <button type="button" class="btn btn-outline-secondary active" id="cardViewBtn" onclick="switchView('card')">
+                            <i class="fas fa-th-large"></i> Cards
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="listViewBtn" onclick="switchView('list')">
+                            <i class="fas fa-list"></i> List
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="calendarViewBtn" onclick="switchView('calendar')">
+                            <i class="fas fa-calendar"></i> Calendar
+                        </button>
+                        </div>
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Status filters">
+                            <button type="button" class="btn btn-outline-dark active" data-filter="all"><i class="fas fa-filter"></i> All</button>
+                            <button type="button" class="btn btn-outline-warning" data-filter="action_needed"><i class="fas fa-exclamation-triangle"></i></button>
+                            <button type="button" class="btn btn-outline-info" data-filter="in_progress"><i class="fas fa-spinner"></i></button>
+                            <button type="button" class="btn btn-outline-success" data-filter="complete"><i class="fas fa-check"></i></button>
+                            <button type="button" class="btn btn-outline-secondary" data-filter="no_fixture"><i class="fas fa-minus-circle"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if team_status_data|length > 0 %}
+
+                <!-- Card View -->
+                <div id="cardView" class="view-container">
+                    <div class="row">
+                    {% for team_data in team_status_data %}
+                    <div class="col-md-6 col-lg-4 mb-3"
+                         data-comm-status="{{ team_data.comm_status }}">
+                        <div class="card team-fixture-card border-left-{% if team_data.comm_status == 'action_needed' %}warning{% elif team_data.comm_status == 'in_progress' %}info{% elif team_data.comm_status == 'complete' %}success{% else %}secondary{% endif %}">
+                            <div class="card-body">
+                                <!-- Team Header -->
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="card-title mb-0">{{ team_data.team.name }}</h6>
+                                    <span class="badge
+                                        {% if team_data.comm_status == 'action_needed' %}bg-warning text-dark
+                                        {% elif team_data.comm_status == 'in_progress' %}bg-info
+                                        {% elif team_data.comm_status == 'complete' %}bg-success
+                                        {% elif team_data.comm_status == 'pending' %}bg-secondary
+                                        {% else %}bg-light text-dark{% endif %}">
+                                        {% if team_data.comm_status == 'action_needed' %}Action Needed
+                                        {% elif team_data.comm_status == 'in_progress' %}In Progress
+                                        {% elif team_data.comm_status == 'complete' %}All Done
+                                        {% elif team_data.comm_status == 'pending' %}Pending
+                                        {% else %}No Fixture{% endif %}
+                                    </span>
+                                </div>
+
+                                <!-- Next Sunday Fixture -->
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="text-primary mb-0">
+                                            <i class="fas fa-calendar-day"></i> Next Sunday
+                                        </h6>
+                                        <small class="text-muted">{{ team_data.next_sunday.strftime('%d %b') }}</small>
+                                    </div>
+
+                                    {% if team_data.has_next_sunday_fixture %}
+                                        {% set fixture = team_data.fixture_calendar[team_data.next_sunday] %}
+                                        <div class="fixture-info p-2 {% if fixture.is_cancelled %}bg-danger-subtle border border-danger{% else %}bg-light{% endif %} rounded clickable-fixture"
+                                             onclick="{% if fixture.tasks %}window.location.href='{{ url_for('tasks.generate_email_route', task_id=fixture.tasks[0].id) }}'{% else %}window.location.href='{{ url_for('tasks.view_tasks', team=team_data.team.name) }}'{% endif %}"
+                                             style="cursor: pointer;">
+                                            {% if fixture.is_cancelled %}
+                                            <div class="alert alert-danger alert-sm mb-2">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-ban me-2"></i>
+                                                    <div>
+                                                        <strong>CANCELLED</strong>
+                                                        {% if fixture.cancellation_reason %}
+                                                        <div class="small">{{ fixture.cancellation_reason }}</div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div {% if fixture.is_cancelled %}class="text-muted text-decoration-line-through"{% endif %}>
+                                                    <strong class="text-{% if fixture.is_cancelled %}muted{% elif fixture.home_away == 'Home' %}success{% else %}primary{% endif %}">
+                                                        <i class="fas fa-{% if fixture.home_away == 'Home' %}home{% else %}plane{% endif %}"></i>
+                                                        {% if fixture.home_away == 'Home' %}vs{% else %}@{% endif %} {{ fixture.opposition_name or 'TBC' }}
+                                                    </strong>
+                                                    {% if fixture.kickoff_datetime %}
+                                                    <div class="small text-muted">
+                                                        <i class="fas fa-clock"></i> {{ fixture.kickoff_time_text or 'TBC' }}
+                                                        {% if fixture.pitch %}
+                                                        • {{ fixture.pitch.name }}
+                                                        {% endif %}
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="{{ url_for('tasks.view_task', task_id=fixture.tasks[0].id) if fixture.tasks else '#' }}"
+                                                       class="btn btn-sm btn-outline-primary" title="View fixture" onclick="event.stopPropagation();">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <button class="btn btn-sm btn-outline-secondary"
+                                                            onclick="editFixture('{{ fixture.id }}'); event.stopPropagation();" title="Edit fixture">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    {% if fixture.is_cancelled %}
+                                                    <button class="btn btn-sm btn-outline-success"
+                                                            onclick="uncancelFixture('{{ fixture.tasks[0].id if fixture.tasks else fixture.id }}'); event.stopPropagation();" title="Restore fixture">
+                                                        <i class="fas fa-undo"></i>
+                                                    </button>
+                                                    {% else %}
+                                                    <button class="btn btn-sm btn-outline-danger"
+                                                            onclick="cancelFixture('{{ fixture.tasks[0].id if fixture.tasks else fixture.id }}'); event.stopPropagation();" title="Cancel fixture">
+                                                        <i class="fas fa-ban"></i>
+                                                    </button>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <div class="no-fixture p-2 bg-light rounded text-center">
+                                            <div class="text-muted mb-2">
+                                                <i class="fas fa-calendar-times fa-2x"></i>
+                                            </div>
+                                            <p class="text-muted mb-2">No match this Sunday</p>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('imports.parse_fixture') }}"
+                                                   class="btn btn-sm btn-outline-success">
+                                                    <i class="fas fa-plus"></i> Add Match
+                                                </a>
+                                                <button class="btn btn-sm btn-outline-secondary"
+                                                        onclick="markNoMatch('{{ team_data.team.id }}', '{{ team_data.next_sunday }}')"
+                                                        title="Confirm no match this week">
+                                                    <i class="fas fa-check"></i> No Match
+                                                </button>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Team Status Snapshot -->
+                                <div class="mt-3 pt-2 border-top">
+                                    <small class="text-muted d-block mb-2"><strong>Team Status:</strong></small>
+                                    <div class="d-flex flex-wrap gap-1 align-items-center mb-2">
+                                        <span class="badge bg-warning text-dark" title="Home email to send">
+                                            <i class="fas fa-envelope"></i>
+                                            {{ team_data.home_pending|default(0) }}
+                                        </span>
+                                        <span class="badge bg-info text-dark" title="Away info waiting">
+                                            <i class="fas fa-hourglass-half"></i>
+                                            {{ team_data.away_waiting|default(0) }}
+                                        </span>
+                                        <span class="badge bg-primary" title="In progress">
+                                            <i class="fas fa-spinner"></i>
+                                            {{ team_data.total_in_progress|default(0) }}
+                                        </span>
+                                        <span class="badge bg-success" title="Completed">
+                                            <i class="fas fa-check"></i>
+                                            {{ team_data.total_completed|default(0) }}
+                                        </span>
+                                    </div>
+                                    
+                                    <!-- Progress Bar -->
+                                    <div class="mb-2">
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1" style="height: 8px;">
+                                                <div class="progress-bar bg-success" role="progressbar"
+                                                     style="width: {{ (team_data.completion_percentage|default(0))|int }}%"
+                                                     aria-valuenow="{{ (team_data.completion_percentage|default(0))|int }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                            <span class="ms-2 small text-muted">{{ (team_data.completion_percentage|default(0))|int }}%</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Next Action Button -->
+                                    {% if team_data.primary_task %}
+                                    <a href="{{ url_for('tasks.generate_email_route', task_id=team_data.primary_task.id) }}"
+                                       class="btn btn-sm btn-warning w-100 mb-2">
+                                        <i class="fas fa-bolt"></i>
+                                        {% if team_data.primary_task.task_type.value == 'home_email' %}Send Home Email{% else %}Manage Away Comms{% endif %}
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('tasks.view_tasks', team=team_data.team.name) }}" class="btn btn-sm btn-outline-secondary w-100 mb-2">
+                                        <i class="fas fa-list"></i>
+                                        View All Tasks
+                                    </a>
+                                    {% endif %}
+
+                                    <!-- Quick Actions -->
+                                    <div class="btn-group btn-group-sm w-100" role="group">
+                                        {% if team_data.primary_task %}
+                                        <a href="{{ url_for('tasks.generate_email_route', task_id=team_data.primary_task.id) }}"
+                                           class="btn btn-success" title="Generate email"><i class="fas fa-envelope"></i></a>
+                                        {% endif %}
+                                        <a href="{{ url_for('tasks.away_match_response_page', team_name=team_data.team.name|urlencode) }}"
+                                           class="btn btn-warning" title="Away match response"><i class="fas fa-reply"></i></a>
+                                        <a href="{{ url_for('tasks.view_tasks', team=team_data.team.name, status='waiting') }}"
+                                           class="btn btn-info" title="Awaiting info"><i class="fas fa-hourglass-half"></i></a>
+                                        <a href="{{ url_for('tasks.view_tasks', team=team_data.team.name) }}"
+                                           class="btn btn-outline-primary" title="All tasks"><i class="fas fa-eye"></i></a>
+                                    </div>
+                                </div>
+
+                                <!-- Upcoming Fixtures (mini preview) -->
+                                {% if team_data.upcoming_fixtures|length > 1 %}
+                                <div class="upcoming-preview">
+                                    <h6 class="text-muted mb-2">
+                                        <i class="fas fa-forward"></i> Coming Up
+                                    </h6>
+                                    {% for fixture in team_data.upcoming_fixtures[1:3] %}
+                                    <div class="small mb-1">
+                                        <strong>{{ fixture.kickoff_time_text if fixture.kickoff_time_text else fixture.kickoff_datetime.strftime('%d %b') if fixture.kickoff_datetime else 'TBC' }}</strong>
+                                        - {% if fixture.home_away == 'Home' %}vs{% else %}@{% endif %} {{ fixture.opposition_name or 'TBC' }}
+                                    </div>
+                                    {% endfor %}
+                                    {% if team_data.upcoming_fixtures|length > 3 %}
+                                    <div class="small text-muted">...and {{ team_data.upcoming_fixtures|length - 3 }} more</div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    </div>
+                    <!-- Icon Legend -->
+                    <div class="mt-2 text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-envelope text-warning"></i> Home email pending •
+                            <i class="fas fa-hourglass-half text-info"></i> Away info waiting •
+                            <i class="fas fa-spinner text-primary"></i> In progress •
+                            <i class="fas fa-check text-success"></i> Completed
+                        </small>
+                    </div>
+                </div>
+
+                <!-- List View -->
+                <div id="listView" class="view-container" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Team</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center">Snapshot</th>
+                                    <th>Next Fixture</th>
+                                    <th class="text-center">Date & Time</th>
+                                    <th>Venue</th>
+                                    <th class="text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for team_data in team_status_data %}
+                                <tr class="team-row clickable-row"
+                                    data-team="{{ team_data.team.name }}"
+                                    onclick="{% if team_data.primary_task %}window.location.href='{{ url_for('tasks.generate_email_route', task_id=team_data.primary_task.id) }}'{% else %}window.location.href='{{ url_for('tasks.view_tasks', team=team_data.team.name) }}'{% endif %}"
+                                    style="cursor: pointer;">
+
+                                    <!-- Team Name -->
+                                    <td>
+                                        <strong>{{ team_data.team.name }}</strong>
+                                    </td>
+
+                                    <!-- Status -->
+                                    <td class="text-center">
+                                        <span class="badge
+                                            {% if team_data.comm_status == 'action_needed' %}bg-warning text-dark
+                                            {% elif team_data.comm_status == 'in_progress' %}bg-info
+                                            {% elif team_data.comm_status == 'complete' %}bg-success
+                                            {% elif team_data.comm_status == 'pending' %}bg-secondary
+                                            {% else %}bg-light text-dark{% endif %}">
+                                            {% if team_data.comm_status == 'action_needed' %}Action Needed
+                                            {% elif team_data.comm_status == 'in_progress' %}In Progress
+                                            {% elif team_data.comm_status == 'complete' %}All Done
+                                            {% elif team_data.comm_status == 'pending' %}Pending
+                                            {% else %}No Fixture{% endif %}
+                                        </span>
+                                    </td>
+
+                                    <!-- Snapshot Icons -->
+                                    <td class="text-center">
+                                        <div class="d-inline-flex gap-2 align-items-center">
+                                            <span class="badge bg-warning text-dark" title="Home email pending">
+                                                <i class="fas fa-envelope"></i> {{ team_data.home_pending }}
+                                            </span>
+                                            <span class="badge bg-info text-dark" title="Away info waiting">
+                                                <i class="fas fa-hourglass-half"></i> {{ team_data.away_waiting }}
+                                            </span>
+                                            <span class="badge bg-primary" title="In progress">
+                                                <i class="fas fa-spinner"></i> {{ team_data.total_in_progress }}
+                                            </span>
+                                            <span class="badge bg-success" title="Completed">
+                                                <i class="fas fa-check"></i> {{ team_data.total_completed }}
+                                            </span>
+                                        </div>
+                                    </td>
+
+                                    <!-- Next Fixture -->
+                                    <td>
+                                        {% if team_data.next_fixture %}
+                                            <div class="d-flex align-items-center fixture-link"
+                                                 style="cursor: pointer;"
+                                                 data-primary-task="{% if team_data.primary_task %}{{ team_data.primary_task.id }}{% endif %}"
+                                                 data-fixture-task="{% if team_data.next_fixture.tasks %}{{ team_data.next_fixture.tasks[0].id }}{% endif %}"
+                                                 data-team-name="{{ team_data.team.name }}"
+                                                 data-opposition="{{ team_data.next_fixture.opposition_name }}"
+                                                 title="Click for detailed email management">
+                                                {% if team_data.next_fixture.home_away == 'Home' %}
+                                                    <i class="fas fa-home text-success me-2"></i>
+                                                    <span><strong>{{ team_data.team.name }}</strong> vs {{ team_data.next_fixture.opposition_name }}</span>
+                                                {% else %}
+                                                    <i class="fas fa-plane text-info me-2"></i>
+                                                    <span>{{ team_data.next_fixture.opposition_name }} vs <strong>{{ team_data.team.name }}</strong></span>
+                                                {% endif %}
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">No upcoming fixture</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Date & Time -->
+                                    <td class="text-center">
+                                        {% if team_data.next_fixture %}
+                                            {% if team_data.next_fixture.kickoff_datetime %}
+                                                <div class="small">
+                                                    <div><strong>{{ team_data.next_fixture.kickoff_datetime.strftime('%a %d %b') }}</strong></div>
+                                                    <div class="text-muted">{{ team_data.next_fixture.kickoff_time_text or 'TBC' }}</div>
+                                                </div>
+                                            {% else %}
+                                                <div class="small">
+                                                    <div><strong>TBC</strong></div>
+                                                    <div class="text-muted">TBC</div>
+                                                </div>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Venue -->
+                                    <td>
+                                        {% if team_data.next_fixture %}
+                                            {% set venue = team_data.next_fixture.venue if team_data.next_fixture.venue else team_data.next_fixture.location if team_data.next_fixture.location else None %}
+                                            {% if venue %}
+                                                <span class="text-muted small">{{ venue }}</span>
+                                            {% else %}
+                                                <span class="text-muted">TBC</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- Actions -->
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            {% if team_data.primary_task %}
+                                            <a href="{{ url_for('tasks.generate_email_route', task_id=team_data.primary_task.id) }}"
+                                               class="btn btn-sm btn-success" onclick="event.stopPropagation();"
+                                               title="Generate email for {{ team_data.next_fixture.opposition_name if team_data.next_fixture else 'fixture' }}">
+                                                <i class="fas fa-envelope"></i>
+                                            </a>
+                                            {% endif %}
+                                            <a href="{{ url_for('tasks.view_tasks', team=team_data.team.name) }}"
+                                               class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();"
+                                               title="View all tasks">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('imports.parse_fixture') }}"
+                                               class="btn btn-sm btn-outline-success" onclick="event.stopPropagation();"
+                                               title="Add new fixture">
+                                                <i class="fas fa-plus"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="badge-legend text-center">
+                        <small class="text-muted">
+                            Legend: <span class="badge bg-warning text-dark">p</span> pending,
+                            <span class="badge bg-info">w</span> waiting,
+                            <span class="badge bg-primary">a</span> active,
+                            <span class="badge bg-success">✓</span> done
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Calendar View -->
+                <div id="calendarView" class="view-container" style="display: none;">
+                    <div class="calendar-container">
+                        <!-- Calendar Header with weeks -->
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            Upcoming 4 Sundays - {{ team_status_data[0].next_sunday.strftime('%B %Y') if team_status_data else '' }}
+                                        </h6>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered mb-0 calendar-table">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th style="width: 15%;">Team</th>
+                                                        {% for week_num in range(4) %}
+                                                        {% set sunday_date = team_status_data[0].upcoming_sundays[week_num] if team_status_data and team_status_data[0].upcoming_sundays|length > week_num else None %}
+                                                        <th class="text-center" style="width: 21.25%;">
+                                                            <div class="fw-bold">{{ sunday_date.strftime('%d %b') if sunday_date else '' }}</div>
+                                                            <small class="text-muted">Week {{ week_num + 1 }}</small>
+                                                        </th>
+                                                        {% endfor %}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for team_data in team_status_data %}
+                                                    <tr>
+                                                        <!-- Team Name Column -->
+                                                        <td class="align-middle">
+                                                            <strong>{{ team_data.team.name }}</strong>
+                                                            <div class="small text-muted">{{ team_data.team.age_group or '' }}</div>
+                                                        </td>
+
+                                                        <!-- Fixture Columns for each week -->
+                                                        {% for week_num in range(4) %}
+                                                        {% set week_date = team_data.upcoming_sundays[week_num] if team_data.upcoming_sundays|length > week_num else None %}
+
+                                                        <td class="text-center calendar-cell" data-team="{{ team_data.team.id }}" data-date="{{ week_date.isoformat() if week_date else '' }}">
+                                                            {% set fixture = team_data.fixture_calendar.get(week_date) if week_date else None %}
+                                                            {% if fixture %}
+                                                                <!-- Has Fixture -->
+                                                                <div class="fixture-cell p-2 {% if fixture.is_cancelled %}bg-danger text-white{% elif fixture.home_away == 'Home' %}bg-success{% else %}bg-primary{% endif %} text-white rounded position-relative"
+                                                                     onclick="{% if fixture.tasks %}window.location.href='{{ url_for('tasks.generate_email_route', task_id=fixture.tasks[0].id) }}'{% else %}window.location.href='{{ url_for('tasks.view_tasks', team=team_data.team.name) }}'{% endif %}"
+                                                                     style="cursor: pointer;">
+                                                                    {% if fixture.is_cancelled %}
+                                                                    <div class="position-absolute top-0 start-0 p-1">
+                                                                        <i class="fas fa-ban" title="Cancelled"></i>
+                                                                    </div>
+                                                                    {% endif %}
+                                                                    <div class="fixture-summary {% if fixture.is_cancelled %}text-decoration-line-through{% endif %}">
+                                                                        <div class="fw-bold small">
+                                                                            <i class="fas fa-{% if fixture.home_away == 'Home' %}home{% else %}plane{% endif %}"></i>
+                                                                            {% if fixture.home_away == 'Home' %}vs{% else %}@{% endif %}
+                                                                        </div>
+                                                                        <div class="opponent-name" title="{{ fixture.opposition_name or 'TBC' }}{% if fixture.is_cancelled %} - CANCELLED{% if fixture.cancellation_reason %}: {{ fixture.cancellation_reason }}{% endif %}{% endif %}">
+                                                                            {% if fixture.opposition_name %}{{ fixture.opposition_name[:12] }}{% if fixture.opposition_name|length > 12 %}...{% endif %}{% else %}TBC{% endif %}
+                                                                        </div>
+                                                            {% if fixture.kickoff_time_text %}
+                                                            <div class="small">
+                                                                {{ fixture.kickoff_time_text }}
+                                                            </div>
+                                                            {% endif %}
+                                                                        {% if fixture.is_cancelled %}
+                                                                        <div class="small mt-1">
+                                                                            <strong>CANCELLED</strong>
+                                                                        </div>
+                                                                        {% endif %}
+                                                                    </div>
+
+                                                                    <!-- Quick Action Buttons -->
+                                                                    <div class="fixture-actions mt-2">
+                                                                        <div class="btn-group btn-group-sm" role="group">
+                                                                            <button class="btn btn-light btn-sm"
+                                                                                    onclick="viewFixture('{{ fixture.tasks[0].id if fixture.tasks else '' }}', '{{ team_data.team.name|escapejs }}'); event.stopPropagation();"
+                                                                                    title="View fixture details">
+                                                                                <i class="fas fa-eye text-dark"></i>
+                                                                            </button>
+                                                                            <button class="btn btn-warning btn-sm"
+                                                                                    onclick="editFixture('{{ fixture.tasks[0].id if fixture.tasks else '' }}', '{{ team_data.team.name|escapejs }}'); event.stopPropagation();"
+                                                                                    title="Edit fixture">
+                                                                                <i class="fas fa-edit text-dark"></i>
+                                                                            </button>
+                                                                            {% if fixture.is_cancelled %}
+                                                                            <button class="btn btn-success btn-sm"
+                                                                                    onclick="uncancelFixture('{{ fixture.tasks[0].id if fixture.tasks else fixture.id }}'); event.stopPropagation();"
+                                                                                    title="Restore fixture">
+                                                                                <i class="fas fa-undo text-white"></i>
+                                                                            </button>
+                                                                            {% else %}
+                                                                            <button class="btn btn-outline-light btn-sm"
+                                                                                    onclick="cancelFixture('{{ fixture.tasks[0].id if fixture.tasks else fixture.id }}'); event.stopPropagation();"
+                                                                                    title="Cancel fixture">
+                                                                                <i class="fas fa-ban text-white"></i>
+                                                                            </button>
+                                                                            {% endif %}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            {% else %}
+                                                                <!-- No Fixture -->
+                                                                <div class="no-fixture-cell p-2 bg-light border rounded">
+                                                                    <div class="text-muted mb-2">
+                                                                        <i class="fas fa-calendar-times"></i>
+                                                                    </div>
+                                                                    <div class="small text-muted mb-2">No match</div>
+                                                                    <div class="btn-group btn-group-sm" role="group">
+                                                                        {% if week_date %}
+                                                                        <button class="btn btn-outline-success btn-sm"
+                                                                                onclick="addFixture('{{ team_data.team.id }}', '{{ week_date.isoformat() }}')"
+                                                                                title="Add fixture for this date">
+                                                                            <i class="fas fa-plus"></i>
+                                                                        </button>
+                                                                        <button class="btn btn-outline-secondary btn-sm"
+                                                                                onclick="markNoMatch('{{ team_data.team.id }}', '{{ week_date.isoformat() }}')"
+                                                                                title="Confirm no match">
+                                                                            <i class="fas fa-check"></i>
+                                                                        </button>
+                                                                        {% endif %}
+                                                                    </div>
+                                                                </div>
+                                                            {% endif %}
+                                                        </td>
+                                                        {% endfor %}
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Calendar Legend -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="calendar-legend text-center">
+                                    <small class="text-muted">
+                                        <i class="fas fa-home text-success"></i> Home matches •
+                                        <i class="fas fa-plane text-primary"></i> Away matches •
+                                        <i class="fas fa-calendar-times text-muted"></i> No fixtures scheduled
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-users fa-3x mb-3"></i>
+                    <p>No managed teams found. <a href="{{ url_for('settings.settings_view') }}">Set up your teams</a> to see status here.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Recent Tasks -->
 <div class="row">
@@ -144,12 +720,12 @@
                         <strong>{{ task.team }}</strong><br>
                         <small class="text-muted">vs {% if task.opposition and task.opposition|string|lower not in ['nan', 'friendly - manager to sort', 'manager to sort', 'tbc'] %}{{ task.opposition }}{% else %}TBC{% endif %}</small>
                     </div>
-                    <a href="{{ url_for('view_task', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ url_for('tasks.view_task', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-eye"></i>
                     </a>
                 </div>
                 {% endfor %}
-                <a href="{{ url_for('view_tasks', status='pending') }}" class="btn btn-sm btn-warning w-100 mt-2">
+                <a href="{{ url_for('tasks.view_tasks', status='pending') }}" class="btn btn-sm btn-warning w-100 mt-2">
                     View All Pending
                 </a>
             </div>
@@ -172,12 +748,12 @@
                         <strong>{{ task.team }}</strong><br>
                         <small class="text-muted">vs {% if task.opposition and task.opposition|string|lower not in ['nan', 'friendly - manager to sort', 'manager to sort', 'tbc'] %}{{ task.opposition }}{% else %}TBC{% endif %}</small>
                     </div>
-                    <a href="{{ url_for('view_task', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ url_for('tasks.view_task', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-eye"></i>
                     </a>
                 </div>
                 {% endfor %}
-                <a href="{{ url_for('view_tasks', status='waiting') }}" class="btn btn-sm btn-info w-100 mt-2">
+                <a href="{{ url_for('tasks.view_tasks', status='waiting') }}" class="btn btn-sm btn-info w-100 mt-2">
                     View All Waiting
                 </a>
             </div>
@@ -200,12 +776,12 @@
                         <strong>{{ task.team }}</strong><br>
                         <small class="text-muted">vs {% if task.opposition and task.opposition|string|lower not in ['nan', 'friendly - manager to sort', 'manager to sort', 'tbc'] %}{{ task.opposition }}{% else %}TBC{% endif %}</small>
                     </div>
-                    <a href="{{ url_for('view_task', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ url_for('tasks.view_task', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">
                         <i class="fas fa-eye"></i>
                     </a>
                 </div>
                 {% endfor %}
-                <a href="{{ url_for('view_tasks', status='completed') }}" class="btn btn-sm btn-success w-100 mt-2">
+                <a href="{{ url_for('tasks.view_tasks', status='completed') }}" class="btn btn-sm btn-success w-100 mt-2">
                     View All Completed
                 </a>
             </div>
@@ -226,7 +802,7 @@
             </div>
             <div class="card-body">
                 <p>You have {{ summary.completed }} completed tasks. Consider cleaning up old ones to keep the system tidy.</p>
-                <form method="POST" action="{{ url_for('cleanup_old_tasks') }}" class="d-inline">
+                <form method="POST" action="{{ url_for('tasks.cleanup_old_tasks') }}" class="d-inline">
                     <div class="input-group" style="max-width: 300px;">
                         <input type="number" class="form-control" name="days" value="30" min="7" max="365">
                         <span class="input-group-text">days old</span>
@@ -240,4 +816,608 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Google Sheet URL Modal -->
+<div class="modal fade" id="googleSheetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-import text-success"></i> Load Google Sheets Fixtures
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="googleSheetForm">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>How to get your Google Sheet URL:</strong>
+                        <ol class="mb-0 mt-2">
+                            <li>Open your Google Sheet with fixtures</li>
+                            <li>Click "Share" and set to "Anyone with the link can view"</li>
+                            <li>Copy the URL from your browser's address bar</li>
+                            <li>Paste it below</li>
+                        </ol>
+                    </div>
+                    <div class="mb-3">
+                        <label for="weekly_sheet_url_input" class="form-label">
+                            Google Sheet URL <span class="text-danger">*</span>
+                        </label>
+                        <input type="url" class="form-control" id="weekly_sheet_url_input"
+                               name="weekly_sheet_url" required
+                               placeholder="https://docs.google.com/spreadsheets/d/...">
+                        <div class="form-text">
+                            Make sure the sheet is publicly accessible
+                        </div>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="loadNowCheckbox" checked>
+                        <label class="form-check-label" for="loadNowCheckbox">
+                            Load fixtures immediately after saving
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Save & Continue
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block styles %}
+<style>
+/* Team Status Card Styling */
+.border-left-warning { border-left: 4px solid #ffc107; }
+.border-left-info { border-left: 4px solid #17a2b8; }
+.border-left-success { border-left: 4px solid #28a745; }
+.border-left-secondary { border-left: 4px solid #6c757d; }
+
+.team-status-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.team-status-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.progress {
+    background-color: #e9ecef;
+}
+
+.badge {
+    font-size: 0.65em;
+    margin: 1px;
+}
+
+.small {
+    font-size: 0.75rem;
+}
+
+/* Status-specific styling */
+.card.border-left-warning {
+    border-left-color: #ffc107 !important;
+}
+
+.card.border-left-info {
+    border-left-color: #17a2b8 !important;
+}
+
+.card.border-left-success {
+    border-left-color: #28a745 !important;
+}
+
+.card.border-left-secondary {
+    border-left-color: #6c757d !important;
+}
+
+/* Responsive badge stacking */
+@media (max-width: 768px) {
+    .badge {
+        display: block;
+        margin: 2px 0;
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* List View Styling */
+.clickable-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.clickable-row:hover {
+    background-color: #f8f9fa;
+}
+
+.table-responsive {
+    border-radius: 0.375rem;
+}
+
+.team-row td {
+    vertical-align: middle;
+    border-top: 1px solid #dee2e6;
+}
+
+.view-container {
+    transition: opacity 0.3s ease;
+}
+
+/* Progress bar in table */
+.progress.flex-grow-1 {
+    min-width: 60px;
+}
+
+/* Action buttons */
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* Badge abbreviations legend */
+.badge-legend {
+    font-size: 0.7rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+}
+
+/* Calendar View Styling */
+.calendar-table {
+    min-width: 800px;
+}
+
+.calendar-table th {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 0.75rem 0.5rem;
+    font-weight: 600;
+}
+
+.calendar-table td {
+    border: 1px solid #dee2e6;
+    padding: 0.5rem;
+    vertical-align: top;
+    height: 120px;
+    position: relative;
+}
+
+.calendar-cell {
+    min-height: 100px;
+}
+
+.fixture-cell {
+    border-radius: 0.375rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.fixture-cell:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.no-fixture-cell {
+    border: 2px dashed #dee2e6;
+    border-radius: 0.375rem;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.no-fixture-cell:hover {
+    border-color: #28a745;
+    background-color: #f8fff9;
+}
+
+.fixture-summary {
+    text-align: center;
+}
+
+.opponent-name {
+    font-weight: bold;
+    margin: 0.25rem 0;
+}
+
+.fixture-actions {
+    display: none;
+    transition: opacity 0.2s ease;
+}
+
+.fixture-cell:hover .fixture-actions {
+    display: block;
+    opacity: 1;
+}
+
+.calendar-legend {
+    padding: 1rem 0;
+    border-top: 1px solid #dee2e6;
+    margin-top: 1rem;
+}
+
+/* Responsive calendar */
+@media (max-width: 768px) {
+    .calendar-table {
+        font-size: 0.8rem;
+    }
+
+    .calendar-table td {
+        height: 80px;
+        padding: 0.25rem;
+    }
+
+    .opponent-name {
+        font-size: 0.7rem;
+    }
+
+    .btn-group-sm .btn {
+        padding: 0.125rem 0.25rem;
+        font-size: 0.7rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Google Sheet Form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const googleSheetForm = document.getElementById('googleSheetForm');
+
+    if (googleSheetForm) {
+        googleSheetForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const urlInput = document.getElementById('weekly_sheet_url_input');
+            const loadNow = document.getElementById('loadNowCheckbox').checked;
+            const submitBtn = googleSheetForm.querySelector('button[type="submit"]');
+            const originalBtnHTML = submitBtn.innerHTML;
+
+            // Disable submit button
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            // Save the URL
+            const formData = new FormData();
+            formData.append('weekly_sheet_url', urlInput.value);
+
+            fetch('/settings/weekly-sheet', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Close the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('googleSheetModal'));
+                    modal.hide();
+
+                    if (loadNow) {
+                        // Show loading indicator
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading fixtures...';
+
+                        // Load fixtures immediately
+                        fetch('/api/refresh-weekly-fixtures', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.error) {
+                                alert('URL saved, but error loading fixtures: ' + data.error);
+                            } else {
+                                let message = `Successfully loaded fixtures!\n\n`;
+                                message += `Added: ${data.added}\n`;
+                                message += `Updated: ${data.updated}\n`;
+                                message += `Total: ${data.total}`;
+
+                                if (data.warnings && data.warnings.length > 0) {
+                                    message += '\n\nWarnings:\n' + data.warnings.join('\n');
+                                }
+
+                                alert(message);
+                            }
+                            // Reload the page
+                            location.reload();
+                        })
+                        .catch(error => {
+                            alert('URL saved, but error loading fixtures: ' + error.message);
+                            location.reload();
+                        });
+                    } else {
+                        // Just reload the page
+                        alert('Google Sheet URL saved successfully!');
+                        location.reload();
+                    }
+                } else {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalBtnHTML;
+                    alert('Error saving URL. Please try again.');
+                }
+            })
+            .catch(error => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHTML;
+                alert('Error: ' + error.message);
+            });
+        });
+    }
+});
+
+// Refresh weekly fixtures functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const refreshBtn = document.getElementById('refreshFixturesBtn');
+
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            // Disable button and show loading state
+            refreshBtn.disabled = true;
+            const originalHTML = refreshBtn.innerHTML;
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+
+            // Call the API endpoint
+            fetch('/api/refresh-weekly-fixtures', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = originalHTML;
+
+                if (data.error) {
+                    let errorMsg = 'Error refreshing fixtures: ' + data.error;
+                    if (data.details && data.details.length > 0) {
+                        errorMsg += '\n\nDetails:\n' + data.details.join('\n');
+                    }
+                    alert(errorMsg);
+                } else {
+                    let message = `Successfully refreshed fixtures!\n\n`;
+                    message += `Added: ${data.added}\n`;
+                    message += `Updated: ${data.updated}\n`;
+                    message += `Total: ${data.total}`;
+
+                    if (data.warnings && data.warnings.length > 0) {
+                        message += '\n\nWarnings:\n' + data.warnings.join('\n');
+                    }
+
+                    alert(message);
+
+                    // Reload the page to show updated fixtures
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                refreshBtn.disabled = false;
+                refreshBtn.innerHTML = originalHTML;
+                alert('Error refreshing fixtures: ' + error.message);
+            });
+        });
+    }
+});
+
+// View switching functionality
+function switchView(viewType) {
+    const cardView = document.getElementById('cardView');
+    const listView = document.getElementById('listView');
+    const calendarView = document.getElementById('calendarView');
+    const cardBtn = document.getElementById('cardViewBtn');
+    const listBtn = document.getElementById('listViewBtn');
+    const calendarBtn = document.getElementById('calendarViewBtn');
+
+    // Hide all views
+    if (cardView) cardView.style.display = 'none';
+    if (listView) listView.style.display = 'none';
+    if (calendarView) calendarView.style.display = 'none';
+
+    // Remove active state from all buttons
+    cardBtn.classList.remove('active');
+    listBtn.classList.remove('active');
+    calendarBtn.classList.remove('active');
+
+    if (viewType === 'card') {
+        // Show card view
+        cardView.style.display = 'block';
+        cardBtn.classList.add('active');
+        localStorage.setItem('teamStatusView', 'card');
+    } else if (viewType === 'list') {
+        // Show list view
+        listView.style.display = 'block';
+        listBtn.classList.add('active');
+        localStorage.setItem('teamStatusView', 'list');
+    } else if (viewType === 'calendar') {
+        // Show calendar view
+        calendarView.style.display = 'block';
+        calendarBtn.classList.add('active');
+        localStorage.setItem('teamStatusView', 'calendar');
+    }
+}
+
+// Initialize view on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Force default to Card view (override any previous saved preference)
+    localStorage.setItem('teamStatusView', 'card');
+    switchView('card');
+
+        // Status filter buttons
+        const filterButtons = document.querySelectorAll('[data-filter]');
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Update active state
+                filterButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                const filter = this.getAttribute('data-filter');
+                const cards = document.querySelectorAll('#cardView .col-md-6.col-lg-4.mb-3');
+                cards.forEach(card => {
+                    const status = card.getAttribute('data-comm-status');
+                    if (filter === 'all' || status === filter) {
+                        card.style.display = '';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+});
+
+// Add tooltip functionality for badge abbreviations
+document.addEventListener('DOMContentLoaded', function() {
+    // Add tooltips to badges if Bootstrap tooltips are available
+    if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
+});
+
+// Calendar and fixture action functions
+function viewFixture(taskId, teamName) {
+    if (taskId && taskId !== 'None') {
+        window.location.href = `/view_task/${taskId}`;
+    } else if (teamName) {
+        window.location.href = `/view_tasks?team=${encodeURIComponent(teamName)}`;
+    } else {
+        window.location.href = '/view_tasks';
+    }
+}
+
+function editFixture(taskId, teamName) {
+    if (taskId && taskId !== 'None') {
+        window.location.href = `/edit_fixture/${taskId}`;
+    } else if (teamName) {
+        window.location.href = `/view_tasks?team=${encodeURIComponent(teamName)}&status=pending`;
+    } else {
+        window.location.href = '/view_tasks';
+    }
+}
+
+function cancelFixture(fixtureId) {
+    // Show modal or prompt for cancellation reason
+    const reason = prompt("Please provide a reason for cancelling this fixture (e.g., 'pitch too wet', 'injured players'):");
+
+    if (reason === null) {
+        // User cancelled the prompt
+        return;
+    }
+
+    // Make AJAX request to cancel fixture
+    fetch('/cancel_fixture', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            fixture_id: fixtureId,
+            reason: reason
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message and reload page
+            alert('Fixture cancelled successfully');
+            location.reload();
+        } else {
+            alert('Error cancelling fixture: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while cancelling the fixture');
+    });
+}
+
+function uncancelFixture(fixtureId) {
+    // Confirm uncancellation
+    if (!confirm('Are you sure you want to restore this cancelled fixture?')) {
+        return;
+    }
+
+    // Make AJAX request to uncancel fixture
+    fetch('/uncancel_fixture', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            fixture_id: fixtureId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message and reload page
+            alert('Fixture restored successfully');
+            location.reload();
+        } else {
+            alert('Error restoring fixture: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while restoring the fixture');
+    });
+}
+
+function addFixture(teamId, date) {
+    // Redirect to parse fixture page with team and date pre-selected
+    const params = new URLSearchParams({
+        team_id: teamId,
+        date: date
+    });
+    window.location.href = `/parse_fixture?${params.toString()}`;
+}
+
+// Fixture link handler for list view Next Fixture column
+document.addEventListener('DOMContentLoaded', function() {
+    const fixtureLinks = document.querySelectorAll('.fixture-link');
+
+    fixtureLinks.forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent row click
+
+            const primaryTaskId = this.getAttribute('data-primary-task');
+            const fixtureTaskId = this.getAttribute('data-fixture-task');
+
+            if (primaryTaskId) {
+                // Go to email generation for primary task
+                window.location.href = '/generate_email/' + primaryTaskId;
+            } else if (fixtureTaskId) {
+                // Go to email generation for fixture task
+                window.location.href = '/generate_email/' + fixtureTaskId;
+            } else {
+                // Fall back to team tasks view
+                const teamName = this.getAttribute('data-team-name');
+                window.location.href = '/tasks?team=' + encodeURIComponent(teamName);
+            }
+        });
+    });
+});
+
+function markNoMatch(teamId, date) {
+    // Show confirmation dialog
+    if (confirm(`Confirm there is no match for this team on ${new Date(date).toLocaleDateString()}?`)) {
+        // Here you could make an AJAX call to mark this as "no match"
+        // For now, just show a success message
+        alert('No match confirmed for this date.');
+
+        // Optionally reload the page to reflect changes
+        // window.location.reload();
+    }
+}
+</script>
 {% endblock %}

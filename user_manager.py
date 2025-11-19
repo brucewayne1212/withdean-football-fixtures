@@ -441,7 +441,8 @@ The Following Footwear is Allowed
 <h3>CONTACT INFORMATION</h3>
 
 <p><strong>Manager:</strong> {{manager_name}}</p>
-<p><strong>Manager Contact:</strong> {{manager_contact}}</p>
+<p><strong>Email:</strong> {{manager_email}}</p>
+<p><strong>Phone:</strong> {{manager_phone}}</p>
 
 <p>{{email_signature}}</p>"""
     

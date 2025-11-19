@@ -12,30 +12,142 @@
     </div>
 </div>
 
-{% if not parsed_data %}
-<!-- Paste Form -->
+{% if show_team_selection %}
+<!-- Team Selection Form -->
 <div class="row">
-    <div class="col-md-8">
+    <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="fas fa-clipboard"></i> Paste FA Fixture Information
+                    <i class="fas fa-users"></i> Select Your Team
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>The fixture was parsed but your team couldn't be automatically identified. Please select which team is yours:</p>
+
+                <form method="POST">
+                    <input type="hidden" name="pasted_text" value="{{ pasted_text }}">
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Your Team</label>
+                                <select class="form-select" name="manual_team" required>
+                                    <option value="">Select your team...</option>
+                                    {% if managed_teams %}
+                                        {% for team in managed_teams %}
+                                        <option value="{{ team.name }}"
+                                                {% if parsed_data and parsed_data.team == team.name %}selected{% endif %}>
+                                            {{ team.name }}
+                                        </option>
+                                        {% endfor %}
+                                    {% endif %}
+                                    {% if parsed_data and parsed_data.team and parsed_data.team not in (managed_teams|map(attribute='name')|list) %}
+                                    <option value="{{ parsed_data.team }}" selected>{{ parsed_data.team }} (from parsed data)</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Opposition</label>
+                                <input type="text" class="form-control" name="manual_opposition" id="opposition_autocomplete"
+                                       list="team_list"
+                                       value="{% if parsed_data and parsed_data.team %}{{ parsed_data.opposition }}{% elif parsed_data and parsed_data.opposition %}{{ parsed_data.opposition }}{% endif %}"
+                                       placeholder="Type to search or enter new team name..." required>
+                                <div class="form-text">
+                                    <i class="fas fa-search"></i> Start typing to search existing teams or enter a new team name
+                                </div>
+                                <!-- Hidden datalist for autocomplete -->
+                                <datalist id="team_list">
+                                    {% if all_teams %}
+                                        {% for team in all_teams %}
+                                        <option value="{{ team.name }}">
+                                        {% endfor %}
+                                    {% endif %}
+                                </datalist>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Home/Away</label>
+                                <select class="form-select" name="manual_home_away" required>
+                                    <option value="Home" {% if parsed_data.home_away == 'Home' %}selected{% endif %}>Home</option>
+                                    <option value="Away" {% if parsed_data.home_away == 'Away' %}selected{% endif %}>Away</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Kickoff Time (optional)</label>
+                        <input type="text" class="form-control" name="manual_kickoff"
+                               value="{{ parsed_data.kickoff_time or '' }}" placeholder="e.g. 14/09/2025 10:00">
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-plus"></i> Create Fixture
+                        </button>
+                        <a href="{{ url_for('parse_fixture') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Start Over
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% elif not parsed_data %}
+<!-- Paste Form -->
+<div class="row">
+    <div class="col-md-8">
+        {% if weekly_sheet_url %}
+        <!-- Show Load from Google Sheets button if URL is configured -->
+        <div class="card mb-3 border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fab fa-google"></i> Load from Weekly Google Sheet
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Your weekly fixture sheet is configured. Click below to automatically load fixtures.</p>
+                <div class="d-flex gap-2 align-items-center">
+                    <button type="button" id="loadGoogleSheetBtn" class="btn btn-success btn-lg">
+                        <i class="fas fa-file-import"></i> Load Fixtures from Google Sheet
+                    </button>
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i> Sheet: <code class="small">{{ weekly_sheet_url[:50] }}...</code>
+                        <a href="{{ url_for('settings') }}" class="ms-2">Change URL</a>
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-clipboard"></i> Or Paste FA Fixture Information
                 </h5>
             </div>
             <div class="card-body">
                 <form method="POST">
                     <div class="mb-3">
                         <label for="pasted_text" class="form-label">Fixture Data from FA Website</label>
-                        <textarea class="form-control" id="pasted_text" name="pasted_text" rows="8" 
-                                  placeholder="Paste the fixture information from the FA website here..." required>{{ pasted_text or '' }}</textarea>
+                        <textarea class="form-control" id="pasted_text" name="pasted_text" rows="8"
+                                  placeholder="Paste the fixture information from the FA website here...">{{ pasted_text or '' }}</textarea>
                         <div class="form-text">
-                            <i class="fas fa-magic text-primary"></i> 
-                            <strong>Smart Paste:</strong> Copy and paste from anywhere - the system automatically cleans HTML formatting and extracts plain text.
-                            Works with FA websites, emails, and other rich text sources.
+                            <i class="fas fa-paste text-primary"></i>
+                            <strong>Normal Paste:</strong> CMD-V (or Ctrl-V) will paste exactly what you copied.
+                            Enable "Smart Paste" below if you need to clean HTML formatting from FA websites.
                         </div>
                         <div class="mt-2">
                             <div class="form-check form-switch d-inline-block me-3">
-                                <input class="form-check-input" type="checkbox" id="smartPasteToggle" checked>
+                                <input class="form-check-input" type="checkbox" id="smartPasteToggle">
                                 <label class="form-check-label small" for="smartPasteToggle">
                                     Smart Paste (Auto-clean HTML)
                                 </label>
@@ -49,9 +161,12 @@
                             <button type="button" class="btn btn-sm btn-outline-info" onclick="showDebugInfo()">
                                 <i class="fas fa-bug"></i> Debug
                             </button>
+                            <button type="button" class="btn btn-sm btn-outline-warning" onclick="togglePasteMode()">
+                                <i class="fas fa-toggle-off"></i> <span id="pasteModeText">Plain Mode</span>
+                            </button>
                         </div>
                     </div>
-                    
+
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-danger">
                             <i class="fas fa-magic"></i> Parse Data
@@ -63,8 +178,64 @@
                 </form>
             </div>
         </div>
+
+        <!-- Manual Fixture Creation -->
+        <div class="card mt-3">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus-circle"></i> Create Fixture Manually
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-3">
+                    Skip parsing and create a fixture directly with your own details.
+                </p>
+                <form method="POST">
+                    <input type="hidden" name="manual_creation" value="true">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label small">Your Team *</label>
+                            <select class="form-select form-select-sm" name="manual_team" required>
+                                <option value="">Select team...</option>
+                                {% if managed_teams %}
+                                    {% for team in managed_teams %}
+                                    <option value="{{ team.name }}">{{ team.name }}</option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label small">Opposition *</label>
+                            <input type="text" class="form-control form-control-sm" name="manual_opposition"
+                                   list="team_list" placeholder="Opposition team..." required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label small">Home/Away *</label>
+                            <select class="form-select form-select-sm" name="manual_home_away" required>
+                                <option value="">Select...</option>
+                                <option value="Home">Home</option>
+                                <option value="Away">Away</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label small">Kickoff Time</label>
+                            <input type="text" class="form-control form-control-sm" name="manual_kickoff"
+                                   placeholder="e.g. 14/09/2025 10:00">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="fas fa-plus"></i> Create Fixture
+                    </button>
+                </form>
+            </div>
+        </div>
     </div>
-    
+
     <div class="col-md-4">
         <div class="card">
             <div class="card-header">
@@ -109,7 +280,7 @@
                 {% if managed_teams %}
                 <div class="small">
                     {% for team in managed_teams[:5] %}
-                    <span class="badge bg-danger me-1 mb-1">{{ team }}</span>
+                    <span class="badge bg-danger me-1 mb-1">{{ team.name }}</span>
                     {% endfor %}
                     {% if managed_teams|length > 5 %}
                     <span class="text-muted">...and {{ managed_teams|length - 5 }} more</span>
@@ -326,6 +497,56 @@
 
 {% block scripts %}
 <script>
+// Load Google Sheets button handler
+document.addEventListener('DOMContentLoaded', function() {
+    const loadGoogleSheetBtn = document.getElementById('loadGoogleSheetBtn');
+
+    if (loadGoogleSheetBtn) {
+        loadGoogleSheetBtn.addEventListener('click', function() {
+            // Disable button and show loading state
+            loadGoogleSheetBtn.disabled = true;
+            const originalHTML = loadGoogleSheetBtn.innerHTML;
+            loadGoogleSheetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+
+            // Call the API endpoint
+            fetch('/api/refresh-weekly-fixtures', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadGoogleSheetBtn.disabled = false;
+                loadGoogleSheetBtn.innerHTML = originalHTML;
+
+                if (data.error) {
+                    alert('Error loading fixtures: ' + data.error);
+                } else {
+                    let message = `Successfully loaded fixtures!\n\n`;
+                    message += `Added: ${data.added}\n`;
+                    message += `Updated: ${data.updated}\n`;
+                    message += `Total: ${data.total}`;
+
+                    if (data.warnings && data.warnings.length > 0) {
+                        message += '\n\nWarnings:\n' + data.warnings.join('\n');
+                    }
+
+                    alert(message);
+
+                    // Redirect to dashboard
+                    window.location.href = '/';
+                }
+            })
+            .catch(error => {
+                loadGoogleSheetBtn.disabled = false;
+                loadGoogleSheetBtn.innerHTML = originalHTML;
+                alert('Error loading fixtures: ' + error.message);
+            });
+        });
+    }
+});
+
 // Smart paste functionality to handle rich text and HTML
 document.addEventListener('DOMContentLoaded', function() {
     const textarea = document.getElementById('pasted_text');
@@ -346,6 +567,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const clipboardData = e.clipboardData || window.clipboardData;
         let pastedData = '';
         let wasHtml = false;
+
+        // Debug: Log available clipboard types and sizes
+        console.log('Available clipboard types:', clipboardData.types);
+        if (clipboardData.types.includes('text/html')) {
+            const htmlData = clipboardData.getData('text/html');
+            console.log('HTML data length:', htmlData.length);
+        }
+        if (clipboardData.types.includes('text/plain')) {
+            const plainData = clipboardData.getData('text/plain');
+            console.log('Plain text data length:', plainData.length);
+        }
         
         // Always try HTML first if it exists, as it contains more structured data
         if (clipboardData.types.includes('text/html')) {
@@ -363,7 +595,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // If HTML extraction didn't work well, fall back to plain text
-            if (!pastedData || pastedData.length < 10) {
+            // But don't reject based on length - even short fixture data is valid
+            if (!pastedData) {
                 pastedData = clipboardData.getData('text/plain') || clipboardData.getData('text') || '';
                 wasHtml = false;
             }
@@ -378,7 +611,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Clean and insert the text
+        console.log('Raw pasted data length:', pastedData.length);
         const cleanedText = cleanPastedText(pastedData);
+        console.log('Cleaned text length:', cleanedText.length);
+        console.log('First 200 chars of cleaned text:', cleanedText.substring(0, 200));
         insertTextAtCursor(textarea, cleanedText);
         
         // Show feedback
@@ -575,6 +811,25 @@ KEY INDICATORS:
     alert(debugInfo);
 }
 
+function togglePasteMode() {
+    const smartToggle = document.getElementById('smartPasteToggle');
+    const modeText = document.getElementById('pasteModeText');
+    const button = modeText.parentElement;
+    const icon = button.querySelector('i');
+
+    if (smartToggle.checked) {
+        smartToggle.checked = false;
+        modeText.textContent = 'Plain Mode';
+        icon.className = 'fas fa-toggle-off';
+        showPasteNotification('Switched to Plain Text mode - CMD-V pastes exactly what you copied');
+    } else {
+        smartToggle.checked = true;
+        modeText.textContent = 'Smart Mode';
+        icon.className = 'fas fa-toggle-on';
+        showPasteNotification('Switched to Smart mode - HTML will be cleaned automatically');
+    }
+}
+
 function showPasteNotification(message) {
     // Create a temporary notification
     const notification = document.createElement('div');
@@ -584,9 +839,9 @@ function showPasteNotification(message) {
         <i class="fas fa-check-circle"></i> ${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     // Auto-remove after 3 seconds
     setTimeout(() => {
         if (notification.parentNode) {

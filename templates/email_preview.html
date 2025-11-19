@@ -98,159 +98,140 @@
     </div>
     
     <div class="col-md-4">
+        <!-- Editable Match Information -->
         <div class="card">
             <div class="card-header">
-                <h6 class="mb-0">Task Details</h6>
-            </div>
-            <div class="card-body">
-                <table class="table table-sm">
-                    <tr>
-                        <th>Team:</th>
-                        <td>{{ task.team }}</td>
-                    </tr>
-                    <tr>
-                        <th>Opposition:</th>
-                        <td>{{ task.opposition if task.opposition and task.opposition != 'nan' else 'TBC' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Type:</th>
-                        <td>
-                            <span class="badge bg-warning">
-                                <i class="fas fa-home"></i> Home Game
-                            </span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Pitch:</th>
-                        <td>{{ task.pitch if task.pitch and task.pitch != 'nan' else 'TBC' }}</td>
-                    </tr>
-                    <tr>
-                        <th>Time:</th>
-                        <td>{{ task.kickoff_time if task.kickoff_time and task.kickoff_time != 'nan' else 'TBC' }}</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-        
-        <!-- Team Contacts -->
-        {% if team_contacts %}
-        <div class="card mt-3">
-            <div class="card-header">
                 <h6 class="mb-0">
-                    <i class="fas fa-address-book"></i> Team Contacts
+                    <i class="fas fa-edit"></i> Match Information
+                    <button type="button" class="btn btn-sm btn-outline-primary float-end" onclick="updateEmail()">
+                        <i class="fas fa-sync"></i> Update Email
+                    </button>
                 </h6>
             </div>
             <div class="card-body">
-                {% for team_name, contact in team_contacts.items() %}
-                <div class="mb-3 p-2 border rounded bg-light">
-                    <h6 class="text-primary mb-2">{{ team_name }}</h6>
-                    {% if contact.contact_name %}
-                    <p class="mb-1 small">
-                        <strong>Contact:</strong> {{ contact.contact_name }}
-                    </p>
-                    {% endif %}
-                    {% if contact.email %}
-                    <div class="mb-1 small">
-                        <strong>Email:</strong>
-                        <div class="d-flex align-items-center">
-                            <code class="flex-grow-1 me-2" style="font-size: 0.8em;">{{ contact.email }}</code>
-                            <button class="btn btn-sm btn-outline-primary" 
-                                    onclick="copyToClipboard('{{ contact.email }}', 'Email copied!')" 
-                                    title="Copy email">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
+                <form id="matchInfoForm">
+                    <div class="mb-3">
+                        <label for="team" class="form-label small">Team:</label>
+                        <input type="text" class="form-control form-control-sm" id="team" name="team"
+                               value="{{ task.team }}" readonly>
                     </div>
-                    {% endif %}
-                    {% if contact.phone %}
-                    <div class="mb-1 small">
-                        <strong>Phone:</strong>
-                        <div class="d-flex align-items-center">
-                            <code class="flex-grow-1 me-2" style="font-size: 0.8em;">{{ contact.phone }}</code>
-                            <button class="btn btn-sm btn-outline-primary" 
-                                    onclick="copyToClipboard('{{ contact.phone }}', 'Phone copied!')" 
-                                    title="Copy phone">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
+
+                    <div class="mb-3">
+                        <label for="opposition" class="form-label small">Opposition:</label>
+                        <input type="text" class="form-control form-control-sm" id="opposition" name="opposition"
+                               value="{{ opposition_name if opposition_name else '' }}"
+                               placeholder="Enter opposition team">
                     </div>
-                    {% endif %}
-                    {% if contact.notes %}
-                    <p class="mb-0 small text-muted">
-                        <strong>Notes:</strong> {{ contact.notes }}
-                    </p>
-                    {% endif %}
-                </div>
-                {% endfor %}
-                
-                <div class="alert alert-info small mb-0">
-                    <i class="fas fa-info-circle"></i> 
-                    <strong>Tip:</strong> Click the copy button next to email addresses to quickly copy them for pasting into your email client.
-                </div>
+
+                    <div class="mb-3">
+                        <label for="kickoff_time" class="form-label small">Kickoff Date & Time:</label>
+                        <input type="text" class="form-control form-control-sm" id="kickoff_time" name="kickoff_time"
+                               value="{{ task.kickoff_time if task.kickoff_time and task.kickoff_time != 'nan' else '' }}"
+                               placeholder="e.g., Sunday 15 October 2023 2:30pm">
+                        <div class="form-text">Include both date and time</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="pitch" class="form-label small">Venue/Pitch:</label>
+                        <select class="form-select form-select-sm" id="pitch" name="pitch">
+                            <option value="">Select venue...</option>
+                            {% if available_pitches %}
+                                {% for pitch in available_pitches %}
+                                <option value="{{ pitch.name }}"
+                                        {% if task.pitch == pitch.name %}selected{% endif %}
+                                        data-address="{{ pitch.address }}"
+                                        data-parking="{{ pitch.parking_info }}"
+                                        data-toilets="{{ pitch.toilet_info }}"
+                                        data-opening="{{ pitch.opening_notes }}"
+                                        data-warmup="{{ pitch.warm_up_notes }}"
+                                        data-special="{{ pitch.special_instructions }}">
+                                    {{ pitch.name }}
+                                </option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="match_format" class="form-label small">Match Format:</label>
+                        <input type="text" class="form-control form-control-sm" id="match_format" name="match_format"
+                               value="{{ task.fixture_length if task.fixture_length and task.fixture_length != 'nan' else '' }}"
+                               placeholder="e.g., 9v9 - 60 minutes - 30 each way">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="additional_instructions" class="form-label small">Additional Instructions:</label>
+                        <textarea class="form-control form-control-sm" id="additional_instructions" name="additional_instructions"
+                                  rows="2" placeholder="Any special instructions for this fixture">{{ task.instructions if task.instructions and task.instructions != 'nan' else '' }}</textarea>
+                    </div>
+
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Tip:</strong> Make changes above and click "Update Email" to regenerate the email with your updates.
+                    </div>
+                </form>
             </div>
         </div>
-        {% endif %}
-        
-        <!-- Team Coaches/Managers for Internal Teams -->
-        {% if team_coaches %}
+
+        <!-- Quick Copy Contacts -->
         <div class="card mt-3">
             <div class="card-header">
                 <h6 class="mb-0">
-                    <i class="fas fa-users"></i> Your Team Coaches/Managers
+                    <i class="fas fa-address-book"></i> Quick Copy Contacts
                 </h6>
             </div>
             <div class="card-body">
-                {% for team_name, coach in team_coaches.items() %}
-                <div class="mb-3 p-2 border rounded bg-success bg-opacity-10">
-                    <h6 class="text-success mb-2">{{ team_name }} 
-                        <span class="badge bg-success ms-2">{{ coach.role or 'Coach' }}</span>
-                    </h6>
-                    {% if coach.coach_name %}
-                    <p class="mb-1 small">
-                        <strong>Name:</strong> {{ coach.coach_name }}
-                    </p>
-                    {% endif %}
-                    {% if coach.email %}
-                    <div class="mb-1 small">
-                        <strong>Email:</strong>
-                        <div class="d-flex align-items-center">
-                            <code class="flex-grow-1 me-2" style="font-size: 0.8em;">{{ coach.email }}</code>
-                            <button class="btn btn-sm btn-outline-success" 
-                                    onclick="copyToClipboard('{{ coach.email }}', 'Coach email copied!')" 
-                                    title="Copy email">
-                                <i class="fas fa-copy"></i>
-                            </button>
+                <!-- Our Team Coaches -->
+                <h6 class="small text-primary mb-2">
+                    <i class="fas fa-users"></i> Our Team Coaches
+                </h6>
+                <div class="mb-3">
+                    {% if team_coaches and team_coaches|length > 0 %}
+                        {% for coach in team_coaches %}
+                        <div class="contact-item border rounded p-2 mb-2" style="cursor: pointer;"
+                             onclick="copyContactToClipboard('{{ coach.coach_name }} <{{ coach.email }}>')"
+                             title="Click to copy contact">
+                            <div class="small">
+                                <strong>{{ coach.coach_name }}</strong>
+                                {% if coach.role %}<span class="text-muted">({{ coach.role }})</span>{% endif %}
+                            </div>
+                            <div class="small text-muted">
+                                {% if coach.email %}{{ coach.email }}{% endif %}
+                                {% if coach.phone %}{% if coach.email %} • {% endif %}{{ coach.phone }}{% endif %}
+                            </div>
                         </div>
-                    </div>
-                    {% endif %}
-                    {% if coach.phone %}
-                    <div class="mb-1 small">
-                        <strong>Phone:</strong>
-                        <div class="d-flex align-items-center">
-                            <code class="flex-grow-1 me-2" style="font-size: 0.8em;">{{ coach.phone }}</code>
-                            <button class="btn btn-sm btn-outline-success" 
-                                    onclick="copyToClipboard('{{ coach.phone }}', 'Phone copied!')" 
-                                    title="Copy phone">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                    </div>
-                    {% endif %}
-                    {% if coach.notes %}
-                    <p class="mb-0 small">
-                        <strong>Notes:</strong> {{ coach.notes }}
-                    </p>
+                        {% endfor %}
+                    {% else %}
+                        <p class="small text-muted">No coaches for {{ task.team }}. <a href="{{ url_for('settings') }}">Add coaches in settings</a>.</p>
                     {% endif %}
                 </div>
-                {% endfor %}
-                
-                <div class="alert alert-success small mb-0">
-                    <i class="fas fa-info-circle"></i> 
-                    <strong>Your Team Staff:</strong> Contact details for your internal coaches and managers.
+
+                <!-- Opposition Contact -->
+                <h6 class="small text-warning mb-2">
+                    <i class="fas fa-handshake"></i> Opposition Contact
+                </h6>
+                <div class="mb-3">
+                    {% if opposition_name and opposition_contact %}
+                        <div class="contact-item border rounded p-2 mb-2" style="cursor: pointer;"
+                             onclick="copyContactToClipboard('{{ opposition_contact.contact_name }} <{{ opposition_contact.email }}>')"
+                             title="Click to copy contact">
+                            <div class="small">
+                                <strong>{{ opposition_name }}</strong>
+                            </div>
+                            <div class="small text-muted">
+                                {% if opposition_contact.contact_name %}{{ opposition_contact.contact_name }}{% endif %}
+                                {% if opposition_contact.email %}{% if opposition_contact.contact_name %} • {% endif %}{{ opposition_contact.email }}{% endif %}
+                                {% if opposition_contact.phone %}{% if opposition_contact.contact_name or opposition_contact.email %} • {% endif %}{{ opposition_contact.phone }}{% endif %}
+                            </div>
+                        </div>
+                    {% elif opposition_name %}
+                        <p class="small text-muted">No contact details for {{ opposition_name }}. <a href="{{ url_for('settings') }}#contacts" target="_blank">Add contacts</a> | <a href="{{ url_for('settings') }}">Settings</a>.</p>
+                    {% else %}
+                        <p class="small text-muted">No opposition team selected.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
-        {% endif %}
         
         <div class="card mt-3">
             <div class="card-header">
@@ -284,7 +265,199 @@
 {% endblock %}
 
 {% block scripts %}
+<style>
+.contact-item {
+    transition: background-color 0.2s ease;
+}
+.contact-item:hover {
+    background-color: #f8f9fa;
+    border-color: #007bff !important;
+}
+.contact-item:active {
+    background-color: #e9ecef;
+}
+</style>
+
 <script>
+// Update email with new form data
+function updateEmail() {
+    const formData = new FormData(document.getElementById('matchInfoForm'));
+    const data = Object.fromEntries(formData);
+
+    // Add task ID
+    data.task_id = '{{ task.id }}';
+
+    // Show loading state
+    const updateBtn = document.querySelector('button[onclick="updateEmail()"]');
+    const originalText = updateBtn.innerHTML;
+    updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+    updateBtn.disabled = true;
+
+    fetch(`/update_email_preview/{{ task.id }}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Update the email content
+            document.getElementById('emailPreview').innerHTML = data.email_content;
+            document.getElementById('emailSubject').textContent = data.subject;
+            document.getElementById('emailHTML').innerHTML = data.email_content;
+
+            showToast('Email updated successfully!');
+        } else {
+            throw new Error(data.error || 'Unknown error');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating email:', error);
+        showToast('Error updating email: ' + error.message, 'error');
+    })
+    .finally(() => {
+        // Restore button state
+        updateBtn.innerHTML = originalText;
+        updateBtn.disabled = false;
+    });
+}
+
+// Copy contact information to clipboard
+function copyContactToClipboard(contactInfo) {
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(contactInfo).then(() => {
+            showContactCopyFeedback();
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            fallbackCopyContact(contactInfo);
+        });
+    } else {
+        fallbackCopyContact(contactInfo);
+    }
+}
+
+function fallbackCopyContact(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        document.execCommand('copy');
+        showContactCopyFeedback();
+    } catch (err) {
+        console.error('Fallback copy failed: ', err);
+        alert('Failed to copy to clipboard. Please select and copy manually.');
+    }
+
+    document.body.removeChild(textArea);
+}
+
+function showContactCopyFeedback() {
+    // Create temporary feedback element
+    const feedback = document.createElement('div');
+    feedback.textContent = 'Contact copied to clipboard!';
+    feedback.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 5px;
+        z-index: 1000;
+        font-size: 14px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    `;
+
+    document.body.appendChild(feedback);
+
+    // Remove after 2 seconds
+    setTimeout(() => {
+        if (feedback.parentNode) {
+            feedback.parentNode.removeChild(feedback);
+        }
+    }, 2000);
+}
+
+// Update opposition contact display when opposition field changes
+document.addEventListener('DOMContentLoaded', function() {
+    const oppositionInput = document.getElementById('opposition');
+    if (oppositionInput) {
+        // Update on page load with current value
+        updateOppositionContact(oppositionInput.value);
+
+        // Listen for changes
+        oppositionInput.addEventListener('input', function() {
+            updateOppositionContact(this.value);
+        });
+    }
+});
+
+function updateOppositionContact(oppositionName) {
+    // Find the opposition contact section more reliably
+    const oppositionHeaders = document.querySelectorAll('h6');
+    let oppositionSection = null;
+    for (let header of oppositionHeaders) {
+        if (header.textContent.includes('Opposition Contact')) {
+            oppositionSection = header;
+            break;
+        }
+    }
+
+    if (!oppositionSection) return;
+
+    const contactDiv = oppositionSection.nextElementSibling;
+    if (!contactDiv) return;
+
+    if (!oppositionName || oppositionName.trim() === '') {
+        contactDiv.innerHTML = '<p class="small text-muted">No opposition team selected.</p>';
+        return;
+    }
+
+    // Check if we have contact data for this team
+    const teamContacts = {{ team_contacts|tojson }};
+    const contact = teamContacts[oppositionName];
+
+    if (contact) {
+        const contactName = contact.contact_name || '';
+        const email = contact.email || '';
+        const phone = contact.phone || '';
+
+        let contactInfo = contactName;
+        if (email) contactInfo += (contactName ? ' • ' : '') + email;
+        if (phone) contactInfo += ((contactName || email) ? ' • ' : '') + phone;
+
+        contactDiv.innerHTML = `
+            <div class="contact-item border rounded p-2 mb-2" style="cursor: pointer;"
+                 onclick="copyContactToClipboard('${contactName} <${email}>')"
+                 title="Click to copy contact">
+                <div class="small">
+                    <strong>${oppositionName}</strong>
+                </div>
+                <div class="small text-muted">
+                    ${contactInfo}
+                </div>
+            </div>
+        `;
+    } else {
+        contactDiv.innerHTML = `
+            <p class="small text-muted">No contact details for ${oppositionName}. <a href="/settings#contacts" target="_blank">Add contacts</a> | <a href="/settings">Settings</a>.</p>
+        `;
+    }
+}
+
 function copySubject() {
     const subject = document.getElementById('emailSubject').textContent;
     navigator.clipboard.writeText(subject).then(() => {
@@ -514,10 +687,11 @@ function copyToClipboard(text, message) {
     });
 }
 
-function showToast(message) {
+function showToast(message, type = 'success') {
     // Simple toast notification
+    const bgClass = type === 'error' ? 'bg-danger' : 'bg-success';
     const toast = document.createElement('div');
-    toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed top-0 end-0 m-3';
+    toast.className = `toast align-items-center text-white ${bgClass} border-0 position-fixed top-0 end-0 m-3`;
     toast.style.zIndex = '1050';
     toast.innerHTML = `
         <div class="d-flex">
@@ -526,10 +700,10 @@ function showToast(message) {
         </div>
     `;
     document.body.appendChild(toast);
-    
+
     const bsToast = new bootstrap.Toast(toast);
     bsToast.show();
-    
+
     setTimeout(() => {
         toast.remove();
     }, 3000);

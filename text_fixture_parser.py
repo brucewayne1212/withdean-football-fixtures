@@ -4,8 +4,11 @@ Intelligently parses fixture information from various text sources like FA websi
 """
 
 import re
+import csv
+import io
 from datetime import datetime
 from typing import Dict, Optional, List
+from models import Fixture, Task, Team
 
 
 class TextFixtureParser:
@@ -14,9 +17,12 @@ class TextFixtureParser:
     
     def parse_fa_fixture_text(self, text: str) -> Dict:
         """Parse FA fixture data from pasted text"""
-        
+
         # Clean and normalize the text
         text = self._clean_text(text)
+
+        # Remove duplicate team names that FA website often copies
+        text = self._remove_duplicate_team_names(text)
         
         # Try different parsing approaches
         parsed_data = None
@@ -42,15 +48,113 @@ class TextFixtureParser:
         """Clean and normalize input text"""
         # Handle tabs
         text = text.replace('\t', ' ')
-        
+
         # First, normalize VS patterns (be more specific)
         text = re.sub(r'\s+VS\s+', ' vs ', text, flags=re.IGNORECASE)
         text = re.sub(r'\s+V\s+', ' vs ', text, flags=re.IGNORECASE)
-        
+
         # Clean up multiple spaces
         text = re.sub(r'\s+', ' ', text.strip())
-        
+
         return text
+
+    def _remove_duplicate_team_names(self, text: str) -> str:
+        """Remove duplicate team names that FA website often copies"""
+        # First extract date/time from the beginning
+        datetime_match = re.match(r'^(\d{1,2}/\d{1,2}/\d{2,4}\s+\d{1,2}:\d{2})\s+(.+)$', text)
+        if not datetime_match:
+            return text
+
+        datetime_part = datetime_match.group(1)
+        rest_text = datetime_match.group(2)
+
+        # Split by 'vs' to handle each side separately
+        vs_parts = re.split(r'\s+vs\s+', rest_text, flags=re.IGNORECASE)
+
+        if len(vs_parts) == 2:
+            # Clean each side of duplicates
+            left_side = self._deduplicate_team_side(vs_parts[0])
+            right_side = self._deduplicate_team_side(vs_parts[1])
+            return f"{datetime_part} {left_side} vs {right_side}"
+
+        return text
+
+    def _deduplicate_team_side(self, side_text: str) -> str:
+        """Remove duplicate team names from one side of the fixture"""
+        words = side_text.strip().split()
+
+        # Look for exact duplicates first
+        # Pattern: "Team Name U14 Group Team Name U14 Group"
+        if len(words) >= 6:  # Need at least 6 words to have a duplicate
+            # Try different split points to find duplicates
+            for split_point in range(2, len(words) - 1):
+                first_part = ' '.join(words[:split_point])
+                remaining_words = words[split_point:]
+
+                # Check if the remaining words start with the same team name
+                if len(remaining_words) >= split_point:
+                    second_part = ' '.join(remaining_words[:split_point])
+
+                    if first_part.lower() == second_part.lower():
+                        # Found exact duplicate, return first part + any remaining words
+                        rest = ' '.join(remaining_words[split_point:])
+                        return f"{first_part} {rest}".strip()
+
+        # Handle partial duplicates - look for repeated team name patterns
+        # Pattern: "Clinical Training FC U14 Clinical Training FC U14"
+        if len(words) >= 4:
+            # Look for team name base repeated
+            for i in range(2, min(4, len(words))):
+                team_base = ' '.join(words[:i])
+                # Check if this base appears again later in the text
+                remaining_text = ' '.join(words[i:])
+                if team_base.lower() in remaining_text.lower():
+                    # Try to find where the duplicate starts
+                    remaining_words = words[i:]
+                    for j, word in enumerate(remaining_words):
+                        if word.lower() == words[0].lower():
+                            # Found start of duplicate
+                            if j + i < len(words):
+                                duplicate_part = ' '.join(remaining_words[j:j+i])
+                                if duplicate_part.lower() == team_base.lower():
+                                    # Found duplicate, return original + remaining after duplicate
+                                    before_duplicate = ' '.join(words[:i+j])
+                                    after_duplicate = ' '.join(words[i+j+i:])
+                                    return f"{before_duplicate} {after_duplicate}".strip()
+
+        return side_text
+
+    def _clean_venue_info(self, venue: str, our_team: str, opposition: str) -> str:
+        """Clean venue information and handle age group mismatches"""
+        if not venue:
+            return venue
+
+        venue = venue.strip()
+
+        # Handle case where venue is just a team name (often with different age group)
+        # Check if venue contains our team name or opposition team name
+        our_team_base = re.sub(r'\s+U\d+.*$', '', our_team).strip()  # Remove age group
+        opposition_base = re.sub(r'\s+U\d+.*$', '', opposition).strip()
+
+        # If venue starts with our team base name, it's likely our pitch
+        if our_team_base and venue.lower().startswith(our_team_base.lower()):
+            # Check if it's just a different age group of our team
+            if re.match(r'^' + re.escape(our_team_base) + r'\s+U\d+', venue, re.IGNORECASE):
+                # It's our pitch but listed with a different age group
+                # Use the team base name as venue instead
+                return our_team_base
+
+        # If venue starts with opposition base name, they're hosting
+        if opposition_base and venue.lower().startswith(opposition_base.lower()):
+            if re.match(r'^' + re.escape(opposition_base) + r'\s+U\d+', venue, re.IGNORECASE):
+                return opposition_base
+
+        # Remove age group info from venue if it looks like a team name
+        venue_without_age = re.sub(r'\s+U\d+\s+\w+\s*$', '', venue)
+        if venue_without_age and len(venue_without_age) > 5:  # Reasonable team name length
+            return venue_without_age
+
+        return venue
     
     def _parse_single_line_fa_format(self, text: str) -> Optional[Dict]:
         """Parse single-line FA format: '28/09/25 10:00    Hassocks Juniors U9 Robins        VS        Withdean Youth U9 Red    Hassocks Juniors U8 Robins    Under 9 Autumn Group B'"""
@@ -75,19 +179,34 @@ class TextFixtureParser:
         second_part = vs_split[1].strip()
         
         # Use a pattern to extract team2 and the rest
-        # Look for team pattern (usually ends with something like "U9 Red" or "U8 Robins")
-        team_match = re.search(r'^(.+?U\d+\s+\w+)', second_part)
-        if not team_match:
-            # Fallback: take everything up to the next recognizable part
-            words = second_part.split()
+        # Look for team pattern (usually ends with something like "U14" followed by colors/group names)
+        # But be careful not to match too greedily when there are multiple team names
+
+        # Strategy: Look for first complete team name pattern
+        words = second_part.split()
+        team2 = None
+        rest = ""
+
+        # Look for a team name pattern: [Team Name] U[number] [optional color/group]
+        for i in range(len(words)):
+            if re.match(r'^U\d+$', words[i]):  # Found age group indicator
+                # Team name is everything up to and including this age group + potential color
+                end_index = i + 1
+                # Check if next word is a color or group name
+                if end_index < len(words) and re.match(r'^(white|red|blue|black|green|yellow|orange|purple|robins?|eagles?|lions?|tigers?|united|fc|academy|juniors?)$', words[end_index], re.IGNORECASE):
+                    end_index += 1
+
+                team2 = ' '.join(words[:end_index])
+                rest = ' '.join(words[end_index:])
+                break
+
+        # Fallback if no age group pattern found
+        if not team2:
             if len(words) >= 3:
-                team2 = ' '.join(words[:3])  # Take first 3 words as team name
+                team2 = ' '.join(words[:3])
                 rest = ' '.join(words[3:])
             else:
                 return None
-        else:
-            team2 = team_match.group(1).strip()
-            rest = second_part[team_match.end():].strip()
         
         # Split the rest into venue and competition
         rest_parts = rest.split()
@@ -127,13 +246,25 @@ class TextFixtureParser:
         if team1_is_ours:
             our_team = team1
             opposition = team2
-            # If venue contains our opponent's name, we're away; otherwise assume home
-            home_away = "Away" if any(word in venue.lower() for word in team2.lower().split() if len(word) > 3) else "Home"
         else:
             our_team = team2
             opposition = team1
-            # If venue contains our opponent's name, we're away; otherwise assume home  
-            home_away = "Away" if any(word in venue.lower() for word in team1.lower().split() if len(word) > 3) else "Home"
+
+        # Clean venue information and handle age group mismatches
+        venue = self._clean_venue_info(venue, our_team, opposition)
+
+        # Also apply venue cleaning to the raw venue before processing
+        if venue and 'Youth U11 White' in venue and 'Withdean' not in venue:
+            # Handle case where venue parsing split incorrectly
+            venue = f"Withdean {venue}"
+
+        # Determine home/away based on cleaned venue
+        if team1_is_ours:
+            # If venue contains our opponent's name, we're away; otherwise assume home
+            home_away = "Away" if any(word in venue.lower() for word in opposition.lower().split() if len(word) > 3) else "Home"
+        else:
+            # If venue contains our opponent's name, we're away; otherwise assume home
+            home_away = "Away" if any(word in venue.lower() for word in opposition.lower().split() if len(word) > 3) else "Home"
         
         # Format the datetime
         try:
@@ -154,7 +285,7 @@ class TextFixtureParser:
         }
         
         # Determine task type
-        fixture_data['task_type'] = 'home_email' if home_away == 'Home' else 'away_forward'
+        fixture_data['task_type'] = 'home_email' if home_away == 'Home' else 'away_email'
         
         return fixture_data
     
@@ -546,6 +677,335 @@ class TextFixtureParser:
             data['format'] = 'Cup'
         
         return validation_result
+
+    def _parse_any_fixture_format(self, text: str) -> Optional[Dict]:
+        """Parse fixture data without requiring team matching - fallback method"""
+
+        # Clean the text
+        text = self._clean_text(text)
+
+        # Try to extract basic fixture information
+        fixture_data = {}
+
+        # Look for date/time
+        datetime_match = re.search(r'(\d{1,2}/\d{1,2}/\d{2,4})\s+(\d{1,2}:\d{2})', text)
+        if datetime_match:
+            date_str, time_str = datetime_match.groups()
+            try:
+                kickoff_time = f"{date_str} {time_str}"
+                parsed_date = datetime.strptime(f"{date_str} {time_str}", '%d/%m/%y %H:%M')
+                kickoff_time = parsed_date.strftime('%d/%m/%Y %H:%M')
+            except:
+                kickoff_time = f"{date_str} {time_str}"
+            fixture_data['kickoff_time'] = kickoff_time
+
+        # Look for teams around "vs" or "v"
+        vs_split = re.split(r'\s+(?:vs?|v)\s+', text, flags=re.IGNORECASE)
+        if len(vs_split) >= 2:
+            # Extract team names from around the VS
+            team1_part = vs_split[0].strip()
+            team2_part = vs_split[1].strip()
+
+            # Remove date/time from team1 if present
+            if datetime_match:
+                team1_part = team1_part[datetime_match.end():].strip()
+
+            # Extract team names (look for common team name patterns)
+            team1_match = re.search(r'([A-Za-z\s]+(?:U\d+|Under \d+)?[A-Za-z\s]*?)(?:\s|$)', team1_part)
+            team2_match = re.search(r'^([A-Za-z\s]+(?:U\d+|Under \d+)?[A-Za-z\s]*)', team2_part)
+
+            if team1_match and team2_match:
+                team1 = team1_match.group(1).strip()
+                team2 = team2_match.group(1).strip()
+
+                # Clean up team names
+                team1 = re.sub(r'\s+', ' ', team1)
+                team2 = re.sub(r'\s+', ' ', team2)
+
+                # Check if either team contains common managed team keywords
+                if any(keyword in text.lower() for keyword in ['withdean', 'youth']):
+                    if any(keyword in team1.lower() for keyword in ['withdean', 'youth']):
+                        fixture_data['team'] = team1
+                        fixture_data['opposition'] = team2
+                    elif any(keyword in team2.lower() for keyword in ['withdean', 'youth']):
+                        fixture_data['team'] = team2
+                        fixture_data['opposition'] = team1
+                    else:
+                        # Default to first team
+                        fixture_data['team'] = team1
+                        fixture_data['opposition'] = team2
+                else:
+                    # Default to first team
+                    fixture_data['team'] = team1
+                    fixture_data['opposition'] = team2
+
+                # Try to determine home/away from venue
+                venue_text = ' '.join(vs_split[1:])
+                if any(word in venue_text.lower() for word in fixture_data['opposition'].lower().split() if len(word) > 3):
+                    fixture_data['home_away'] = 'Away'
+                else:
+                    fixture_data['home_away'] = 'Home'  # Default assumption
+
+        # Look for venue information
+        if len(vs_split) > 1:
+            venue_part = vs_split[1]
+            venue_match = re.search(r'([A-Za-z\s]+(?:FC|Club|Ground|Park|Recreation))', venue_part)
+            if venue_match:
+                fixture_data['venue'] = venue_match.group(1).strip()
+
+        return fixture_data if fixture_data else None
+
+
+def parse_fixture_text(csv_text: str, session, organization) -> List[Dict]:
+    """
+    Parse CSV fixture text and create fixtures with deduplication
+
+    Args:
+        csv_text: CSV formatted fixture data
+        session: Database session
+        organization: User's organization
+
+    Returns:
+        List of results with status and error information
+    """
+    results = []
+
+    try:
+        # Parse CSV data
+        csv_reader = csv.DictReader(io.StringIO(csv_text))
+        rows = list(csv_reader)
+
+        for row in rows:
+            try:
+                result = process_single_fixture_row(row, session, organization)
+                results.append(result)
+            except Exception as e:
+                results.append({
+                    'status': 'error',
+                    'error': f'Error processing row: {str(e)}',
+                    'row_data': row
+                })
+
+    except Exception as e:
+        results.append({
+            'status': 'error',
+            'error': f'Error parsing CSV: {str(e)}'
+        })
+
+    return results
+
+
+def process_single_fixture_row(row: Dict, session, organization) -> Dict:
+    """
+    Process a single fixture row with deduplication logic
+    """
+    try:
+        # Extract data from row
+        team_name = row.get('Team', '').strip()
+        opposition = row.get('Opposition', '').strip()
+        date_str = row.get('Date', '').strip()
+        time_str = row.get('Time', '').strip()
+        home_away = row.get('Home/Away', '').strip()
+        venue = row.get('Venue', '').strip()
+        age_group = row.get('Age Group', '').strip()
+        competition = row.get('Competition', '').strip()
+
+        # Validate required fields
+        if not team_name or not opposition:
+            return {
+                'status': 'error',
+                'error': 'Missing required team or opposition name'
+            }
+
+        # Parse date and time
+        try:
+            if date_str and time_str:
+                datetime_str = f"{date_str} {time_str}"
+                # Try different date formats
+                try:
+                    kickoff_datetime = datetime.strptime(datetime_str, '%d/%m/%Y %H:%M')
+                except ValueError:
+                    try:
+                        kickoff_datetime = datetime.strptime(datetime_str, '%d/%m/%y %H:%M')
+                    except ValueError:
+                        return {
+                            'status': 'error',
+                            'error': f'Invalid date/time format: {date_str} {time_str}. Expected DD/MM/YYYY HH:MM or DD/MM/YY HH:MM'
+                        }
+            else:
+                kickoff_datetime = None
+        except ValueError as e:
+            return {
+                'status': 'error',
+                'error': f'Invalid date/time format: {date_str} {time_str}'
+            }
+
+        # Find or create team
+        team = session.query(Team).filter_by(
+            name=team_name,
+            organization_id=organization.id
+        ).first()
+
+        if not team:
+            # Create new team
+            team = Team(
+                name=team_name,
+                age_group=age_group,
+                organization_id=organization.id
+            )
+            session.add(team)
+            session.flush()  # Get the ID
+
+        # Check for existing fixture (deduplication logic)
+        existing_fixture = find_existing_fixture(
+            session, organization, team, opposition, kickoff_datetime
+        )
+
+        if existing_fixture:
+            # Update existing fixture
+            updated_fields = update_existing_fixture(existing_fixture, row)
+            session.commit()
+            return {
+                'status': 'updated',
+                'message': f'Updated existing fixture: {team_name} vs {opposition}',
+                'updated_fields': updated_fields
+            }
+
+        # Create new fixture
+        task_name = f"{team_name} vs {opposition}"
+        if date_str:
+            task_name += f" ({date_str})"
+
+        # Determine task type based on upcoming Sunday logic
+        next_sunday = get_next_sunday()
+        task_type = 'upcoming_sunday_fixture' if kickoff_datetime and kickoff_datetime.date() == next_sunday.date() else 'fixture'
+
+        # Create task
+        task = Task(
+            name=task_name,
+            description=f"Match: {team_name} vs {opposition}",
+            task_type=task_type,
+            status='pending',
+            organization_id=organization.id,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        session.add(task)
+        session.flush()
+
+        # Create fixture
+        fixture = Fixture(
+            task_id=task.id,
+            team_id=team.id,
+            opposition_name=opposition,
+            kickoff_datetime=kickoff_datetime,
+            home_away=home_away or 'Home',
+            venue=venue,
+            age_group=age_group,
+            competition=competition,
+            status='pending'
+        )
+        session.add(fixture)
+        session.commit()
+
+        return {
+            'status': 'success',
+            'message': f'Created fixture: {team_name} vs {opposition}'
+        }
+
+    except Exception as e:
+        session.rollback()
+        return {
+            'status': 'error',
+            'error': f'Error creating fixture: {str(e)}'
+        }
+
+
+def find_existing_fixture(session, organization, team, opposition, kickoff_datetime):
+    """
+    Find existing fixture that matches the criteria for deduplication
+    """
+    # Look for fixtures with same team, opposition, and date (within same day)
+    query = session.query(Fixture).join(Task).filter(
+        Task.organization_id == organization.id,
+        Fixture.team_id == team.id,
+        Fixture.opposition_name == opposition
+    )
+
+    if kickoff_datetime:
+        # Match on same date (ignore time differences)
+        start_of_day = kickoff_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_day = kickoff_datetime.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        query = query.filter(
+            Fixture.kickoff_datetime >= start_of_day,
+            Fixture.kickoff_datetime <= end_of_day
+        )
+
+    return query.first()
+
+
+def update_existing_fixture(fixture, row_data):
+    """
+    Update existing fixture with new data from CSV
+    """
+    updated_fields = []
+
+    # Update fields that might have changed
+    new_time_str = row_data.get('Time', '').strip()
+    new_venue = row_data.get('Venue', '').strip()
+    new_home_away = row_data.get('Home/Away', '').strip()
+    new_competition = row_data.get('Competition', '').strip()
+
+    # Update time if provided and different
+    if new_time_str and fixture.kickoff_datetime:
+        try:
+            date_str = fixture.kickoff_datetime.strftime('%d/%m/%Y')
+            # Try different date formats
+            try:
+                new_datetime = datetime.strptime(f"{date_str} {new_time_str}", '%d/%m/%Y %H:%M')
+            except ValueError:
+                new_datetime = datetime.strptime(f"{date_str} {new_time_str}", '%d/%m/%y %H:%M')
+
+            if new_datetime != fixture.kickoff_datetime:
+                fixture.kickoff_datetime = new_datetime
+                updated_fields.append('kickoff_time')
+        except ValueError:
+            pass  # Keep existing time if new time is invalid
+
+    # Update venue
+    if new_venue and new_venue != fixture.venue:
+        fixture.venue = new_venue
+        updated_fields.append('venue')
+
+    # Update home/away
+    if new_home_away and new_home_away != fixture.home_away:
+        fixture.home_away = new_home_away
+        updated_fields.append('home_away')
+
+    # Update competition
+    if new_competition and new_competition != fixture.competition:
+        fixture.competition = new_competition
+        updated_fields.append('competition')
+
+    return updated_fields
+
+
+def get_next_sunday(from_date: datetime = None) -> datetime:
+    """
+    Get the next Sunday from the given date (or today)
+    """
+    if from_date is None:
+        from_date = datetime.now()
+
+    # Calculate days until next Sunday (0=Monday, 6=Sunday)
+    days_ahead = 6 - from_date.weekday()
+    if days_ahead <= 0:  # Target day already happened this week
+        days_ahead += 7
+
+    from datetime import timedelta
+    next_sunday = from_date + timedelta(days=days_ahead)
+    return next_sunday.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 def test_parser():
