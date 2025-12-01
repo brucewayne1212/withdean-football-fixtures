@@ -4,47 +4,126 @@
     --withdean-primary: #0f0574;
     --withdean-primary-hover: #0b0462;
     --withdean-black: #212529;
+    --kanban-bg: #f4f5f7;
+    --kanban-col-width: 350px;
 }
 
 body {
     background-color: #f8f9fa;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .navbar-brand {
-    font-weight: bold;
+    font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
-.card {
-    border: none;
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    transition: box-shadow 0.15s ease-in-out;
+/* Kanban Board Styles */
+.kanban-container {
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    min-height: calc(100vh - 150px);
 }
 
-.card:hover {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+.kanban-column {
+    flex: 1;
+    min-width: 300px;
+    background: #ebecf0;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 140px);
 }
 
-.table th {
+.kanban-header {
+    padding: 1rem;
     font-weight: 600;
-    color: var(--withdean-black);
+    color: #5e6c84;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    background: inherit;
+    border-radius: 8px 8px 0 0;
+    z-index: 10;
 }
 
-.btn-danger {
+.kanban-body {
+    padding: 0 0.5rem 0.5rem;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.kanban-card {
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    border-left: 4px solid transparent;
+}
+
+.kanban-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.kanban-card.priority-high { border-left-color: #dc3545; }
+.kanban-card.priority-medium { border-left-color: #ffc107; }
+.kanban-card.priority-low { border-left-color: #28a745; }
+
+.card-meta {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Status Colors */
+.status-pending .kanban-header { border-top: 3px solid #ffc107; }
+.status-waiting .kanban-header { border-top: 3px solid #17a2b8; }
+.status-completed .kanban-header { border-top: 3px solid #28a745; }
+
+/* Overrides */
+.btn-primary {
     background-color: var(--withdean-primary);
     border-color: var(--withdean-primary);
 }
 
-.btn-danger:hover {
+.btn-primary:hover {
     background-color: var(--withdean-primary-hover);
     border-color: var(--withdean-primary-hover);
 }
 
-.text-danger {
+.text-primary {
     color: var(--withdean-primary) !important;
 }
 
-.bg-danger {
-    background-color: var(--withdean-primary) !important;
+/* Scrollbar styling */
+.kanban-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.kanban-body::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.05);
+}
+
+.kanban-body::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.2);
+    border-radius: 3px;
 }
 
 /* Loading overlay */
@@ -67,98 +146,4 @@ body {
     border-radius: 0.5rem;
     text-align: center;
     max-width: 400px;
-}
-
-/* Status badges */
-.badge {
-    font-size: 0.75em;
-}
-
-/* Task cards */
-.task-card {
-    border-left: 4px solid #dee2e6;
-    transition: border-color 0.15s ease-in-out;
-}
-
-.task-card.pending {
-    border-left-color: #ffc107;
-}
-
-.task-card.waiting {
-    border-left-color: #17a2b8;
-}
-
-.task-card.in-progress {
-    border-left-color: #007bff;
-}
-
-.task-card.completed {
-    border-left-color: #28a745;
-}
-
-/* File upload area */
-.form-control:focus {
-    border-color: var(--withdean-primary);
-    box-shadow: 0 0 0 0.2rem rgba(15, 5, 116, 0.25);
-}
-
-/* Summary cards */
-.card .fa-2x {
-    opacity: 0.8;
-}
-
-/* Responsive improvements */
-@media (max-width: 768px) {
-    .btn-group-sm .btn {
-        padding: 0.25rem 0.4rem;
-    }
-    
-    .table-responsive {
-        font-size: 0.9rem;
-    }
-    
-    .card-body {
-        padding: 1rem 0.75rem;
-    }
-}
-
-/* Email preview styling */
-#emailContent {
-    font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
-    line-height: 1.4;
-    max-height: 500px;
-    overflow-y: auto;
-}
-
-/* Toast notifications */
-.toast {
-    min-width: 250px;
-}
-
-/* Action buttons spacing */
-.btn-group .btn {
-    margin-right: 0;
-}
-
-.btn + .btn {
-    margin-left: 0.25rem;
-}
-
-/* Footer */
-footer {
-    margin-top: auto;
-}
-
-/* Utility classes */
-.text-withdean {
-    color: var(--withdean-primary) !important;
-}
-
-.bg-withdean {
-    background-color: var(--withdean-primary) !important;
-}
-
-.border-withdean {
-    border-color: var(--withdean-primary) !important;
 }

@@ -6,8 +6,9 @@
 <div class="row">
     <div class="col-12">
         <h1 class="mb-4">
-            <i class="fas fa-envelope text-danger"></i> 
-            Email Preview: {{ task.team }} vs {{ task.opposition if task.opposition and task.opposition != 'nan' else 'TBC' }}
+            <i class="fas fa-envelope text-danger"></i>
+            Email Preview: {{ task.team }} vs {{ task.opposition if task.opposition and task.opposition != 'nan' else
+            'TBC' }}
         </h1>
     </div>
 </div>
@@ -45,7 +46,7 @@
                         </button>
                     </div>
                 </div>
-                
+
                 <!-- Email Content Preview -->
                 <div class="mb-3">
                     <label class="form-label fw-bold">Email Preview:</label>
@@ -53,11 +54,12 @@
                         {{ email_content|safe }}
                     </div>
                     <div class="form-text">
-                        <i class="fas fa-info-circle text-info"></i> 
-                        This shows how the email will look. Use the copy buttons below to get the correct format for pasting.
+                        <i class="fas fa-info-circle text-info"></i>
+                        This shows how the email will look. Use the copy buttons below to get the correct format for
+                        pasting.
                     </div>
                 </div>
-                
+
                 <!-- Copy Options -->
                 <div class="mb-3">
                     <div class="row">
@@ -73,13 +75,13 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Hidden content for copying -->
                 <div id="emailHTML" style="display: none;">{{ email_content }}</div>
                 <div id="emailPlainText" style="display: none;"></div>
             </div>
         </div>
-        
+
         <!-- Mark as Completed -->
         <div class="card mt-3">
             <div class="card-body">
@@ -87,7 +89,8 @@
                 <form id="completeForm">
                     <div class="mb-3">
                         <label for="notes" class="form-label">Notes (optional):</label>
-                        <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="e.g., Email sent to Hollingbury Hawks at 2:30pm"></textarea>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"
+                            placeholder="e.g., Email sent to Hollingbury Hawks at 2:30pm"></textarea>
                     </div>
                     <button type="submit" class="btn btn-success">
                         <i class="fas fa-check"></i> Mark as Completed
@@ -96,7 +99,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-4">
         <!-- Editable Match Information -->
         <div class="card">
@@ -113,21 +116,21 @@
                     <div class="mb-3">
                         <label for="team" class="form-label small">Team:</label>
                         <input type="text" class="form-control form-control-sm" id="team" name="team"
-                               value="{{ task.team }}" readonly>
+                            value="{{ task.team }}" readonly>
                     </div>
 
                     <div class="mb-3">
                         <label for="opposition" class="form-label small">Opposition:</label>
                         <input type="text" class="form-control form-control-sm" id="opposition" name="opposition"
-                               value="{{ opposition_name if opposition_name else '' }}"
-                               placeholder="Enter opposition team">
+                            value="{{ opposition_name if opposition_name else '' }}"
+                            placeholder="Enter opposition team">
                     </div>
 
                     <div class="mb-3">
                         <label for="kickoff_time" class="form-label small">Kickoff Date & Time:</label>
                         <input type="text" class="form-control form-control-sm" id="kickoff_time" name="kickoff_time"
-                               value="{{ task.kickoff_time if task.kickoff_time and task.kickoff_time != 'nan' else '' }}"
-                               placeholder="e.g., Sunday 15 October 2023 2:30pm">
+                            value="{{ task.kickoff_time if task.kickoff_time and task.kickoff_time != 'nan' else '' }}"
+                            placeholder="e.g., Sunday 15 October 2023 2:30pm">
                         <div class="form-text">Include both date and time</div>
                     </div>
 
@@ -136,18 +139,14 @@
                         <select class="form-select form-select-sm" id="pitch" name="pitch">
                             <option value="">Select venue...</option>
                             {% if available_pitches %}
-                                {% for pitch in available_pitches %}
-                                <option value="{{ pitch.name }}"
-                                        {% if task.pitch == pitch.name %}selected{% endif %}
-                                        data-address="{{ pitch.address }}"
-                                        data-parking="{{ pitch.parking_info }}"
-                                        data-toilets="{{ pitch.toilet_info }}"
-                                        data-opening="{{ pitch.opening_notes }}"
-                                        data-warmup="{{ pitch.warm_up_notes }}"
-                                        data-special="{{ pitch.special_instructions }}">
-                                    {{ pitch.name }}
-                                </option>
-                                {% endfor %}
+                            {% for pitch in available_pitches %}
+                            <option value="{{ pitch.name }}" {% if task.pitch==pitch.name %}selected{% endif %}
+                                data-address="{{ pitch.address }}" data-parking="{{ pitch.parking_info }}"
+                                data-toilets="{{ pitch.toilet_info }}" data-opening="{{ pitch.opening_notes }}"
+                                data-warmup="{{ pitch.warm_up_notes }}" data-special="{{ pitch.special_instructions }}">
+                                {{ pitch.name }}
+                            </option>
+                            {% endfor %}
                             {% endif %}
                         </select>
                     </div>
@@ -155,19 +154,21 @@
                     <div class="mb-3">
                         <label for="match_format" class="form-label small">Match Format:</label>
                         <input type="text" class="form-control form-control-sm" id="match_format" name="match_format"
-                               value="{{ task.fixture_length if task.fixture_length and task.fixture_length != 'nan' else '' }}"
-                               placeholder="e.g., 9v9 - 60 minutes - 30 each way">
+                            value="{{ task.fixture_length if task.fixture_length and task.fixture_length != 'nan' else '' }}"
+                            placeholder="e.g., 9v9 - 60 minutes - 30 each way">
                     </div>
 
                     <div class="mb-3">
                         <label for="additional_instructions" class="form-label small">Additional Instructions:</label>
-                        <textarea class="form-control form-control-sm" id="additional_instructions" name="additional_instructions"
-                                  rows="2" placeholder="Any special instructions for this fixture">{{ task.instructions if task.instructions and task.instructions != 'nan' else '' }}</textarea>
+                        <textarea class="form-control form-control-sm" id="additional_instructions"
+                            name="additional_instructions" rows="2"
+                            placeholder="Any special instructions for this fixture">{{ task.instructions if task.instructions and task.instructions != 'nan' else '' }}</textarea>
                     </div>
 
                     <div class="alert alert-info small">
                         <i class="fas fa-info-circle"></i>
-                        <strong>Tip:</strong> Make changes above and click "Update Email" to regenerate the email with your updates.
+                        <strong>Tip:</strong> Make changes above and click "Update Email" to regenerate the email with
+                        your updates.
                     </div>
                 </form>
             </div>
@@ -187,22 +188,23 @@
                 </h6>
                 <div class="mb-3">
                     {% if team_coaches and team_coaches|length > 0 %}
-                        {% for coach in team_coaches %}
-                        <div class="contact-item border rounded p-2 mb-2" style="cursor: pointer;"
-                             onclick="copyContactToClipboard('{{ coach.coach_name }} <{{ coach.email }}>')"
-                             title="Click to copy contact">
-                            <div class="small">
-                                <strong>{{ coach.coach_name }}</strong>
-                                {% if coach.role %}<span class="text-muted">({{ coach.role }})</span>{% endif %}
-                            </div>
-                            <div class="small text-muted">
-                                {% if coach.email %}{{ coach.email }}{% endif %}
-                                {% if coach.phone %}{% if coach.email %} • {% endif %}{{ coach.phone }}{% endif %}
-                            </div>
+                    {% for coach in team_coaches %}
+                    <div class="contact-item border rounded p-2 mb-2" style="cursor: pointer;"
+                        onclick="copyContactToClipboard('{{ coach.coach_name }} <{{ coach.email }}>')"
+                        title="Click to copy contact">
+                        <div class="small">
+                            <strong>{{ coach.coach_name }}</strong>
+                            {% if coach.role %}<span class="text-muted">({{ coach.role }})</span>{% endif %}
                         </div>
-                        {% endfor %}
+                        <div class="small text-muted">
+                            {% if coach.email %}{{ coach.email }}{% endif %}
+                            {% if coach.phone %}{% if coach.email %} • {% endif %}{{ coach.phone }}{% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
                     {% else %}
-                        <p class="small text-muted">No coaches for {{ task.team }}. <a href="{{ url_for('settings') }}">Add coaches in settings</a>.</p>
+                    <p class="small text-muted">No coaches for {{ task.team }}. <a href="{{ url_for('settings') }}">Add
+                            coaches in settings</a>.</p>
                     {% endif %}
                 </div>
 
@@ -212,27 +214,31 @@
                 </h6>
                 <div class="mb-3">
                     {% if opposition_name and opposition_contact %}
-                        <div class="contact-item border rounded p-2 mb-2" style="cursor: pointer;"
-                             onclick="copyContactToClipboard('{{ opposition_contact.contact_name }} <{{ opposition_contact.email }}>')"
-                             title="Click to copy contact">
-                            <div class="small">
-                                <strong>{{ opposition_name }}</strong>
-                            </div>
-                            <div class="small text-muted">
-                                {% if opposition_contact.contact_name %}{{ opposition_contact.contact_name }}{% endif %}
-                                {% if opposition_contact.email %}{% if opposition_contact.contact_name %} • {% endif %}{{ opposition_contact.email }}{% endif %}
-                                {% if opposition_contact.phone %}{% if opposition_contact.contact_name or opposition_contact.email %} • {% endif %}{{ opposition_contact.phone }}{% endif %}
-                            </div>
+                    <div class="contact-item border rounded p-2 mb-2" style="cursor: pointer;"
+                        onclick="copyContactToClipboard('{{ opposition_contact.contact_name }} <{{ opposition_contact.email }}>')"
+                        title="Click to copy contact">
+                        <div class="small">
+                            <strong>{{ opposition_name }}</strong>
                         </div>
+                        <div class="small text-muted">
+                            {% if opposition_contact.contact_name %}{{ opposition_contact.contact_name }}{% endif %}
+                            {% if opposition_contact.email %}{% if opposition_contact.contact_name %} • {% endif %}{{
+                            opposition_contact.email }}{% endif %}
+                            {% if opposition_contact.phone %}{% if opposition_contact.contact_name or
+                            opposition_contact.email %} • {% endif %}{{ opposition_contact.phone }}{% endif %}
+                        </div>
+                    </div>
                     {% elif opposition_name %}
-                        <p class="small text-muted">No contact details for {{ opposition_name }}. <a href="{{ url_for('settings') }}#contacts" target="_blank">Add contacts</a> | <a href="{{ url_for('settings') }}">Settings</a>.</p>
+                    <p class="small text-muted">No contact details for {{ opposition_name }}. <a
+                            href="{{ url_for('settings') }}#contacts" target="_blank">Add contacts</a> | <a
+                            href="{{ url_for('settings') }}">Settings</a>.</p>
                     {% else %}
-                        <p class="small text-muted">No opposition team selected.</p>
+                    <p class="small text-muted">No opposition team selected.</p>
                     {% endif %}
                 </div>
             </div>
         </div>
-        
+
         <div class="card mt-3">
             <div class="card-header">
                 <h6 class="mb-0">
@@ -249,14 +255,15 @@
                     <li>Mark this task as completed</li>
                 </ol>
                 <div class="alert alert-info mt-2 small">
-                    <i class="fas fa-info-circle"></i> 
-                    <strong>Tip:</strong> "Copy as Formatted Text" provides clean, readable text that works well in any email client!
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Tip:</strong> "Copy as Formatted Text" provides clean, readable text that works well in any
+                    email client!
                 </div>
             </div>
         </div>
-        
+
         <div class="mt-3">
-            <a href="{{ url_for('view_tasks') }}" class="btn btn-secondary w-100">
+            <a href="{{ url_for('tasks.view_tasks') }}" class="btn btn-secondary w-100">
                 <i class="fas fa-arrow-left"></i> Back to Tasks
             </a>
         </div>
@@ -266,109 +273,111 @@
 
 {% block scripts %}
 <style>
-.contact-item {
-    transition: background-color 0.2s ease;
-}
-.contact-item:hover {
-    background-color: #f8f9fa;
-    border-color: #007bff !important;
-}
-.contact-item:active {
-    background-color: #e9ecef;
-}
+    .contact-item {
+        transition: background-color 0.2s ease;
+    }
+
+    .contact-item:hover {
+        background-color: #f8f9fa;
+        border-color: #007bff !important;
+    }
+
+    .contact-item:active {
+        background-color: #e9ecef;
+    }
 </style>
 
 <script>
-// Update email with new form data
-function updateEmail() {
-    const formData = new FormData(document.getElementById('matchInfoForm'));
-    const data = Object.fromEntries(formData);
+    // Update email with new form data
+    function updateEmail() {
+        const formData = new FormData(document.getElementById('matchInfoForm'));
+        const data = Object.fromEntries(formData);
 
-    // Add task ID
-    data.task_id = '{{ task.id }}';
+        // Add task ID
+        data.task_id = '{{ task.id }}';
 
-    // Show loading state
-    const updateBtn = document.querySelector('button[onclick="updateEmail()"]');
-    const originalText = updateBtn.innerHTML;
-    updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
-    updateBtn.disabled = true;
+        // Show loading state
+        const updateBtn = document.querySelector('button[onclick="updateEmail()"]');
+        const originalText = updateBtn.innerHTML;
+        updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+        updateBtn.disabled = true;
 
-    fetch(`/update_email_preview/{{ task.id }}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // Update the email content
-            document.getElementById('emailPreview').innerHTML = data.email_content;
-            document.getElementById('emailSubject').textContent = data.subject;
-            document.getElementById('emailHTML').innerHTML = data.email_content;
+        fetch(`/update_email_preview/{{ task.id }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Update the email content
+                    document.getElementById('emailPreview').innerHTML = data.email_content;
+                    document.getElementById('emailSubject').textContent = data.subject;
+                    document.getElementById('emailHTML').innerHTML = data.email_content;
 
-            showToast('Email updated successfully!');
+                    showToast('Email updated successfully!');
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating email:', error);
+                showToast('Error updating email: ' + error.message, 'error');
+            })
+            .finally(() => {
+                // Restore button state
+                updateBtn.innerHTML = originalText;
+                updateBtn.disabled = false;
+            });
+    }
+
+    // Copy contact information to clipboard
+    function copyContactToClipboard(contactInfo) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(contactInfo).then(() => {
+                showContactCopyFeedback();
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                fallbackCopyContact(contactInfo);
+            });
         } else {
-            throw new Error(data.error || 'Unknown error');
-        }
-    })
-    .catch(error => {
-        console.error('Error updating email:', error);
-        showToast('Error updating email: ' + error.message, 'error');
-    })
-    .finally(() => {
-        // Restore button state
-        updateBtn.innerHTML = originalText;
-        updateBtn.disabled = false;
-    });
-}
-
-// Copy contact information to clipboard
-function copyContactToClipboard(contactInfo) {
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(contactInfo).then(() => {
-            showContactCopyFeedback();
-        }).catch(err => {
-            console.error('Failed to copy text: ', err);
             fallbackCopyContact(contactInfo);
-        });
-    } else {
-        fallbackCopyContact(contactInfo);
-    }
-}
-
-function fallbackCopyContact(text) {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-
-    try {
-        document.execCommand('copy');
-        showContactCopyFeedback();
-    } catch (err) {
-        console.error('Fallback copy failed: ', err);
-        alert('Failed to copy to clipboard. Please select and copy manually.');
+        }
     }
 
-    document.body.removeChild(textArea);
-}
+    function fallbackCopyContact(text) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
 
-function showContactCopyFeedback() {
-    // Create temporary feedback element
-    const feedback = document.createElement('div');
-    feedback.textContent = 'Contact copied to clipboard!';
-    feedback.style.cssText = `
+        try {
+            document.execCommand('copy');
+            showContactCopyFeedback();
+        } catch (err) {
+            console.error('Fallback copy failed: ', err);
+            alert('Failed to copy to clipboard. Please select and copy manually.');
+        }
+
+        document.body.removeChild(textArea);
+    }
+
+    function showContactCopyFeedback() {
+        // Create temporary feedback element
+        const feedback = document.createElement('div');
+        feedback.textContent = 'Contact copied to clipboard!';
+        feedback.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
@@ -381,53 +390,54 @@ function showContactCopyFeedback() {
         box-shadow: 0 2px 5px rgba(0,0,0,0.2);
     `;
 
-    document.body.appendChild(feedback);
+        document.body.appendChild(feedback);
 
-    // Remove after 2 seconds
-    setTimeout(() => {
-        if (feedback.parentNode) {
-            feedback.parentNode.removeChild(feedback);
+        // Remove after 2 seconds
+        setTimeout(() => {
+            if (feedback.parentNode) {
+                feedback.parentNode.removeChild(feedback);
+            }
+        }, 2000);
+    }
+
+    // Update opposition contact display when opposition field changes
+    document.addEventListener('DOMContentLoaded', function () {
+        const oppositionInput = document.getElementById('opposition');
+        if (oppositionInput) {
+            // Update on page load with current value
+            updateOppositionContact(oppositionInput.value);
+
+            // Listen for changes
+            oppositionInput.addEventListener('input', function () {
+                updateOppositionContact(this.value);
+            });
         }
-    }, 2000);
-}
+    });
 
-// Update opposition contact display when opposition field changes
-document.addEventListener('DOMContentLoaded', function() {
-    const oppositionInput = document.getElementById('opposition');
-    if (oppositionInput) {
-        // Update on page load with current value
-        updateOppositionContact(oppositionInput.value);
-
-        // Listen for changes
-        oppositionInput.addEventListener('input', function() {
-            updateOppositionContact(this.value);
-        });
-    }
-});
-
-function updateOppositionContact(oppositionName) {
-    // Find the opposition contact section more reliably
-    const oppositionHeaders = document.querySelectorAll('h6');
-    let oppositionSection = null;
-    for (let header of oppositionHeaders) {
-        if (header.textContent.includes('Opposition Contact')) {
-            oppositionSection = header;
-            break;
+    function updateOppositionContact(oppositionName) {
+        // Find the opposition contact section more reliably
+        const oppositionHeaders = document.querySelectorAll('h6');
+        let oppositionSection = null;
+        for (let header of oppositionHeaders) {
+            if (header.textContent.includes('Opposition Contact')) {
+                oppositionSection = header;
+                break;
+            }
         }
-    }
 
-    if (!oppositionSection) return;
+        if (!oppositionSection) return;
 
-    const contactDiv = oppositionSection.nextElementSibling;
-    if (!contactDiv) return;
+        const contactDiv = oppositionSection.nextElementSibling;
+        if (!contactDiv) return;
 
-    if (!oppositionName || oppositionName.trim() === '') {
-        contactDiv.innerHTML = '<p class="small text-muted">No opposition team selected.</p>';
-        return;
-    }
+        if (!oppositionName || oppositionName.trim() === '') {
+            contactDiv.innerHTML = '<p class="small text-muted">No opposition team selected.</p>';
+            return;
+        }
 
-    // Check if we have contact data for this team
-    const teamContacts = {{ team_contacts|tojson }};
+        // Check if we have contact data for this team
+        const teamContacts = {{ team_contacts| tojson
+    }};
     const contact = teamContacts[oppositionName];
 
     if (contact) {
@@ -458,180 +468,180 @@ function updateOppositionContact(oppositionName) {
     }
 }
 
-function copySubject() {
-    const subject = document.getElementById('emailSubject').textContent;
-    navigator.clipboard.writeText(subject).then(() => {
-        showToast('Subject copied to clipboard!');
-    });
-}
-
-function copyAsPlainText() {
-    const htmlContent = document.getElementById('emailHTML').innerHTML;
-    const plainText = convertHtmlToPlainText(htmlContent);
-    
-    navigator.clipboard.writeText(plainText).then(() => {
-        showToast('Email content copied as plain text!');
-    }).catch(() => {
-        fallbackCopy(plainText, 'Plain text copied to clipboard!');
-    });
-}
-
-function copyAsFormattedText() {
-    // This creates a version that maintains visual formatting but removes HTML tags
-    const htmlContent = document.getElementById('emailHTML').innerHTML;
-    const formattedText = convertHtmlToFormattedText(htmlContent);
-    
-    try {
-        // Create both HTML and plain text versions for maximum compatibility
-        const cleanHtml = createCleanHtml(formattedText);
-        const htmlBlob = new Blob([cleanHtml], { type: 'text/html' });
-        const textBlob = new Blob([formattedText], { type: 'text/plain' });
-        
-        const clipboardItem = new ClipboardItem({
-            'text/html': htmlBlob,
-            'text/plain': textBlob
+    function copySubject() {
+        const subject = document.getElementById('emailSubject').textContent;
+        navigator.clipboard.writeText(subject).then(() => {
+            showToast('Subject copied to clipboard!');
         });
-        
-        navigator.clipboard.write([clipboardItem]).then(() => {
-            showToast('Email content copied as formatted text (best for most email clients)!');
-        }).catch(() => {
-            fallbackCopy(formattedText, 'Formatted text copied to clipboard!');
-        });
-    } catch (error) {
-        fallbackCopy(formattedText, 'Formatted text copied to clipboard!');
     }
-}
 
-function fallbackCopy(text, message) {
-    // Fallback for browsers that don't support ClipboardItem
-    navigator.clipboard.writeText(text).then(() => {
-        showToast(message);
-    }).catch(() => {
-        // Ultimate fallback - show in a modal for manual copying
-        showCopyModal(text);
-    });
-}
+    function copyAsPlainText() {
+        const htmlContent = document.getElementById('emailHTML').innerHTML;
+        const plainText = convertHtmlToPlainText(htmlContent);
 
-function convertHtmlToPlainText(html) {
-    // Create a temporary div to parse HTML
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    
-    // Convert common HTML elements to plain text equivalents
-    const strongElements = temp.querySelectorAll('strong');
-    strongElements.forEach(el => {
-        el.outerHTML = `**${el.textContent}**`;
-    });
-    
-    const h3Elements = temp.querySelectorAll('h3');
-    h3Elements.forEach(el => {
-        el.outerHTML = `\n\n${el.textContent.toUpperCase()}\n`;
-    });
-    
-    const pElements = temp.querySelectorAll('p');
-    pElements.forEach(el => {
-        el.outerHTML = el.textContent + '\n\n';
-    });
-    
-    // Handle line breaks
-    temp.innerHTML = temp.innerHTML.replace(/<br>/gi, '\n');
-    
-    return temp.textContent.replace(/\n{3,}/g, '\n\n').trim();
-}
-
-function convertHtmlToFormattedText(html) {
-    // Create a temporary div to parse HTML while preserving visual formatting
-    const temp = document.createElement('div');
-    temp.innerHTML = html;
-    
-    // Remove script and style elements
-    const scripts = temp.querySelectorAll('script, style');
-    scripts.forEach(el => el.remove());
-    
-    // Convert tables to formatted text
-    const tables = temp.querySelectorAll('table');
-    tables.forEach(table => {
-        let tableText = '\n';
-        const rows = table.querySelectorAll('tr');
-        
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('td, th');
-            if (cells.length >= 2) {
-                const key = cells[0].textContent.trim();
-                const value = cells[1].textContent.trim();
-                if (key && value && !key.includes('Detail') && !key.includes('Information')) {
-                    tableText += `${key}: ${value}\n`;
-                }
-            }
+        navigator.clipboard.writeText(plainText).then(() => {
+            showToast('Email content copied as plain text!');
+        }).catch(() => {
+            fallbackCopy(plainText, 'Plain text copied to clipboard!');
         });
-        
-        table.outerHTML = tableText;
-    });
-    
-    // Convert headings to formatted text
-    const headings = temp.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    headings.forEach(heading => {
-        const text = heading.textContent.trim();
-        heading.outerHTML = `\n${text.toUpperCase()}\n${'='.repeat(text.length)}\n`;
-    });
-    
-    // Handle paragraphs with key-value pairs
-    const paragraphs = temp.querySelectorAll('p');
-    paragraphs.forEach(p => {
-        const text = p.textContent.trim();
-        if (text.includes(':') && !text.includes('\n')) {
-            const [key, ...valueParts] = text.split(':');
-            const value = valueParts.join(':').trim();
-            if (key.trim() && value) {
-                p.outerHTML = `${key.trim()}: ${value}\n\n`;
+    }
+
+    function copyAsFormattedText() {
+        // This creates a version that maintains visual formatting but removes HTML tags
+        const htmlContent = document.getElementById('emailHTML').innerHTML;
+        const formattedText = convertHtmlToFormattedText(htmlContent);
+
+        try {
+            // Create both HTML and plain text versions for maximum compatibility
+            const cleanHtml = createCleanHtml(formattedText);
+            const htmlBlob = new Blob([cleanHtml], { type: 'text/html' });
+            const textBlob = new Blob([formattedText], { type: 'text/plain' });
+
+            const clipboardItem = new ClipboardItem({
+                'text/html': htmlBlob,
+                'text/plain': textBlob
+            });
+
+            navigator.clipboard.write([clipboardItem]).then(() => {
+                showToast('Email content copied as formatted text (best for most email clients)!');
+            }).catch(() => {
+                fallbackCopy(formattedText, 'Formatted text copied to clipboard!');
+            });
+        } catch (error) {
+            fallbackCopy(formattedText, 'Formatted text copied to clipboard!');
+        }
+    }
+
+    function fallbackCopy(text, message) {
+        // Fallback for browsers that don't support ClipboardItem
+        navigator.clipboard.writeText(text).then(() => {
+            showToast(message);
+        }).catch(() => {
+            // Ultimate fallback - show in a modal for manual copying
+            showCopyModal(text);
+        });
+    }
+
+    function convertHtmlToPlainText(html) {
+        // Create a temporary div to parse HTML
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+
+        // Convert common HTML elements to plain text equivalents
+        const strongElements = temp.querySelectorAll('strong');
+        strongElements.forEach(el => {
+            el.outerHTML = `**${el.textContent}**`;
+        });
+
+        const h3Elements = temp.querySelectorAll('h3');
+        h3Elements.forEach(el => {
+            el.outerHTML = `\n\n${el.textContent.toUpperCase()}\n`;
+        });
+
+        const pElements = temp.querySelectorAll('p');
+        pElements.forEach(el => {
+            el.outerHTML = el.textContent + '\n\n';
+        });
+
+        // Handle line breaks
+        temp.innerHTML = temp.innerHTML.replace(/<br>/gi, '\n');
+
+        return temp.textContent.replace(/\n{3,}/g, '\n\n').trim();
+    }
+
+    function convertHtmlToFormattedText(html) {
+        // Create a temporary div to parse HTML while preserving visual formatting
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+
+        // Remove script and style elements
+        const scripts = temp.querySelectorAll('script, style');
+        scripts.forEach(el => el.remove());
+
+        // Convert tables to formatted text
+        const tables = temp.querySelectorAll('table');
+        tables.forEach(table => {
+            let tableText = '\n';
+            const rows = table.querySelectorAll('tr');
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td, th');
+                if (cells.length >= 2) {
+                    const key = cells[0].textContent.trim();
+                    const value = cells[1].textContent.trim();
+                    if (key && value && !key.includes('Detail') && !key.includes('Information')) {
+                        tableText += `${key}: ${value}\n`;
+                    }
+                }
+            });
+
+            table.outerHTML = tableText;
+        });
+
+        // Convert headings to formatted text
+        const headings = temp.querySelectorAll('h1, h2, h3, h4, h5, h6');
+        headings.forEach(heading => {
+            const text = heading.textContent.trim();
+            heading.outerHTML = `\n${text.toUpperCase()}\n${'='.repeat(text.length)}\n`;
+        });
+
+        // Handle paragraphs with key-value pairs
+        const paragraphs = temp.querySelectorAll('p');
+        paragraphs.forEach(p => {
+            const text = p.textContent.trim();
+            if (text.includes(':') && !text.includes('\n')) {
+                const [key, ...valueParts] = text.split(':');
+                const value = valueParts.join(':').trim();
+                if (key.trim() && value) {
+                    p.outerHTML = `${key.trim()}: ${value}\n\n`;
+                } else {
+                    p.outerHTML = text + '\n\n';
+                }
             } else {
                 p.outerHTML = text + '\n\n';
             }
-        } else {
-            p.outerHTML = text + '\n\n';
-        }
-    });
-    
-    // Handle line breaks
-    temp.innerHTML = temp.innerHTML.replace(/<br\s*\/?>/gi, '\n');
-    
-    // Get final text and clean up
-    let text = temp.textContent || temp.innerText || '';
-    
-    // Clean up formatting
-    text = text
-        .replace(/\n{3,}/g, '\n\n')  // Max 2 consecutive newlines
-        .replace(/^\n+/, '')         // Remove leading newlines
-        .replace(/\n+$/, '')         // Remove trailing newlines
-        .trim();
-    
-    return text;
-}
+        });
 
-function createCleanHtml(formattedText) {
-    // Convert formatted text back to clean HTML for clipboard
-    let html = formattedText
-        // Convert section headers
-        .replace(/^([A-Z ]{3,})\n=+$/gm, '<h3>$1</h3>')
-        // Convert key: value pairs
-        .replace(/^([^:\n]+):\s*(.+)$/gm, '<p><strong>$1:</strong> $2</p>')
-        // Convert double newlines to paragraph breaks
-        .replace(/\n\n/g, '</p><p>')
-        // Wrap in paragraph tags
-        .replace(/^(.)/gm, '<p>$1')
-        .replace(/(.)\n$/gm, '$1</p>');
-    
-    // Clean up any malformed tags
-    html = html.replace(/<p><\/p>/g, '');
-    html = html.replace(/<p><h3>/g, '<h3>');
-    html = html.replace(/<\/h3><\/p>/g, '</h3>');
-    
-    return html;
-}
+        // Handle line breaks
+        temp.innerHTML = temp.innerHTML.replace(/<br\s*\/?>/gi, '\n');
 
-function showCopyModal(text) {
-    // Create a modal for manual copying when clipboard API fails
-    const modalHtml = `
+        // Get final text and clean up
+        let text = temp.textContent || temp.innerText || '';
+
+        // Clean up formatting
+        text = text
+            .replace(/\n{3,}/g, '\n\n')  // Max 2 consecutive newlines
+            .replace(/^\n+/, '')         // Remove leading newlines
+            .replace(/\n+$/, '')         // Remove trailing newlines
+            .trim();
+
+        return text;
+    }
+
+    function createCleanHtml(formattedText) {
+        // Convert formatted text back to clean HTML for clipboard
+        let html = formattedText
+            // Convert section headers
+            .replace(/^([A-Z ]{3,})\n=+$/gm, '<h3>$1</h3>')
+            // Convert key: value pairs
+            .replace(/^([^:\n]+):\s*(.+)$/gm, '<p><strong>$1:</strong> $2</p>')
+            // Convert double newlines to paragraph breaks
+            .replace(/\n\n/g, '</p><p>')
+            // Wrap in paragraph tags
+            .replace(/^(.)/gm, '<p>$1')
+            .replace(/(.)\n$/gm, '$1</p>');
+
+        // Clean up any malformed tags
+        html = html.replace(/<p><\/p>/g, '');
+        html = html.replace(/<p><h3>/g, '<h3>');
+        html = html.replace(/<\/h3><\/p>/g, '</h3>');
+
+        return html;
+    }
+
+    function showCopyModal(text) {
+        // Create a modal for manual copying when clipboard API fails
+        const modalHtml = `
         <div class="modal fade" id="copyModal" tabindex="-1">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -650,91 +660,91 @@ function showCopyModal(text) {
             </div>
         </div>
     `;
-    
-    // Add modal to page and show it
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    const modal = new bootstrap.Modal(document.getElementById('copyModal'));
-    modal.show();
-    
-    // Remove modal when closed
-    document.getElementById('copyModal').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-    });
-}
 
-function copyToClipboard(text, message) {
-    navigator.clipboard.writeText(text).then(() => {
-        showToast(message || 'Copied to clipboard!');
-    }).catch(() => {
-        // Fallback for browsers that don't support clipboard API
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        
-        try {
-            document.execCommand('copy');
+        // Add modal to page and show it
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('copyModal'));
+        modal.show();
+
+        // Remove modal when closed
+        document.getElementById('copyModal').addEventListener('hidden.bs.modal', function () {
+            this.remove();
+        });
+    }
+
+    function copyToClipboard(text, message) {
+        navigator.clipboard.writeText(text).then(() => {
             showToast(message || 'Copied to clipboard!');
-        } catch (err) {
-            alert('Copy to clipboard failed. Please copy manually: ' + text);
-        }
-        
-        textArea.remove();
-    });
-}
+        }).catch(() => {
+            // Fallback for browsers that don't support clipboard API
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
 
-function showToast(message, type = 'success') {
-    // Simple toast notification
-    const bgClass = type === 'error' ? 'bg-danger' : 'bg-success';
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-white ${bgClass} border-0 position-fixed top-0 end-0 m-3`;
-    toast.style.zIndex = '1050';
-    toast.innerHTML = `
+            try {
+                document.execCommand('copy');
+                showToast(message || 'Copied to clipboard!');
+            } catch (err) {
+                alert('Copy to clipboard failed. Please copy manually: ' + text);
+            }
+
+            textArea.remove();
+        });
+    }
+
+    function showToast(message, type = 'success') {
+        // Simple toast notification
+        const bgClass = type === 'error' ? 'bg-danger' : 'bg-success';
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white ${bgClass} border-0 position-fixed top-0 end-0 m-3`;
+        toast.style.zIndex = '1050';
+        toast.innerHTML = `
         <div class="d-flex">
             <div class="toast-body">${message}</div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto"></button>
         </div>
     `;
-    document.body.appendChild(toast);
+        document.body.appendChild(toast);
 
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
 
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
-}
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
 
-document.getElementById('completeForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    const notes = document.getElementById('notes').value;
-    
-    fetch(`/mark_completed/{{ task.id }}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({notes: notes})
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Task marked as completed!');
-            setTimeout(() => {
-                window.location.href = '/tasks';
-            }, 1500);
-        } else {
-            alert('Error marking task as completed');
-        }
-    })
-    .catch(error => {
-        alert('Error marking task as completed');
+    document.getElementById('completeForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const notes = document.getElementById('notes').value;
+
+        fetch(`/mark_completed/{{ task.id }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ notes: notes })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Task marked as completed!');
+                    setTimeout(() => {
+                        window.location.href = '/tasks';
+                    }, 1500);
+                } else {
+                    alert('Error marking task as completed');
+                }
+            })
+            .catch(error => {
+                alert('Error marking task as completed');
+            });
     });
-});
 </script>
 {% endblock %}

@@ -1,6 +1,6 @@
 // JavaScript for Withdean Youth FC Fixture Manager
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Auto-dismiss alerts after 5 seconds
     const alerts = document.querySelectorAll('.alert');
     alerts.forEach(alert => {
@@ -11,11 +11,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 5000);
         }
     });
-    
+
     // Add loading states to form submissions
     const forms = document.querySelectorAll('form');
     forms.forEach(form => {
-        form.addEventListener('submit', function() {
+        form.addEventListener('submit', function () {
             const submitBtn = form.querySelector('button[type="submit"]');
             if (submitBtn && !submitBtn.disabled) {
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
+
     // Auto-refresh dashboard data every 30 seconds
     if (window.location.pathname === '/') {
         setInterval(refreshDashboardData, 30000);
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Utility functions
 function showToast(message, type = 'success') {
     const toastContainer = getOrCreateToastContainer();
-    
+
     const toastElement = document.createElement('div');
     toastElement.className = `toast align-items-center text-white bg-${type} border-0`;
     toastElement.setAttribute('role', 'alert');
@@ -43,12 +43,12 @@ function showToast(message, type = 'success') {
             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
         </div>
     `;
-    
+
     toastContainer.appendChild(toastElement);
-    
+
     const toast = new bootstrap.Toast(toastElement);
     toast.show();
-    
+
     // Clean up after toast is hidden
     toastElement.addEventListener('hidden.bs.toast', () => {
         toastElement.remove();
@@ -133,7 +133,7 @@ function fallbackCopyToClipboard(text, successMessage) {
     document.body.appendChild(textArea);
     textArea.focus();
     textArea.select();
-    
+
     try {
         const successful = document.execCommand('copy');
         if (successful) {
@@ -144,7 +144,7 @@ function fallbackCopyToClipboard(text, successMessage) {
     } catch (err) {
         showToast('Copy to clipboard not supported', 'warning');
     }
-    
+
     document.body.removeChild(textArea);
 }
 
@@ -157,21 +157,21 @@ function markTaskCompleted(taskId, notes = '') {
         },
         body: JSON.stringify({ notes: notes })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Task marked as completed!');
-            return true;
-        } else {
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Task marked as completed!');
+                return true;
+            } else {
+                showToast('Error marking task as completed', 'danger');
+                return false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
             showToast('Error marking task as completed', 'danger');
             return false;
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Error marking task as completed', 'danger');
-        return false;
-    });
+        });
 }
 
 function markTaskInProgress(taskId) {
@@ -181,28 +181,28 @@ function markTaskInProgress(taskId) {
             'Content-Type': 'application/json',
         }
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Task marked as in progress!');
-            return true;
-        } else {
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Task marked as in progress!');
+                return true;
+            } else {
+                showToast('Error marking task as in progress', 'danger');
+                return false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
             showToast('Error marking task as in progress', 'danger');
             return false;
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showToast('Error marking task as in progress', 'danger');
-        return false;
-    });
+        });
 }
 
 // File upload enhancements
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const fileInput = document.getElementById('file');
     if (fileInput) {
-        fileInput.addEventListener('change', function(e) {
+        fileInput.addEventListener('change', function (e) {
             const file = e.target.files[0];
             if (file) {
                 const fileSize = file.size / 1024 / 1024; // Convert to MB
@@ -211,17 +211,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     e.target.value = '';
                     return;
                 }
-                
+
                 const fileName = file.name;
                 const allowedExtensions = ['csv', 'xlsx', 'xls'];
                 const fileExtension = fileName.split('.').pop().toLowerCase();
-                
+
                 if (!allowedExtensions.includes(fileExtension)) {
                     showToast('Please select a CSV or Excel file', 'warning');
                     e.target.value = '';
                     return;
                 }
-                
+
                 // Update label or add file info
                 const label = document.querySelector('label[for="file"]');
                 if (label) {
@@ -233,19 +233,19 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Keyboard shortcuts
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
     // Ctrl/Cmd + U for upload page
     if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
         e.preventDefault();
         window.location.href = '/upload';
     }
-    
+
     // Ctrl/Cmd + T for tasks page
     if ((e.ctrlKey || e.metaKey) && e.key === 't') {
         e.preventDefault();
         window.location.href = '/tasks';
     }
-    
+
     // Ctrl/Cmd + H for home/dashboard
     if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
         e.preventDefault();
@@ -254,9 +254,41 @@ document.addEventListener('keydown', function(e) {
 });
 
 // Add keyboard shortcut hints to footer
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const footer = document.querySelector('footer p');
     if (footer && window.innerWidth > 768) {
         footer.innerHTML += ' | <small class="text-muted">Shortcuts: Ctrl+H (Home), Ctrl+T (Tasks), Ctrl+U (Upload)</small>';
     }
 });
+
+// Function to update task status via form submission (handles redirects)
+function updateTaskStatus(taskId, status) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/update_task_status';
+
+    const taskIdInput = document.createElement('input');
+    taskIdInput.type = 'hidden';
+    taskIdInput.name = 'task_id';
+    taskIdInput.value = taskId;
+    form.appendChild(taskIdInput);
+
+    const statusInput = document.createElement('input');
+    statusInput.type = 'hidden';
+    statusInput.name = 'status';
+    statusInput.value = status;
+    form.appendChild(statusInput);
+
+    // Add CSRF token if available
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (csrfToken) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = csrfToken.content;
+        form.appendChild(csrfInput);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+}

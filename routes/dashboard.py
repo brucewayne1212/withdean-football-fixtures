@@ -122,10 +122,10 @@ def dashboard_view():
         for t in my_tasks:
             enrich_task(t)
 
-        pending_tasks = [t for t in my_tasks if t.status.value == 'pending'][:5]
-        waiting_tasks = [t for t in my_tasks if t.status.value == 'waiting'][:5]
-        in_progress_tasks = [t for t in my_tasks if t.status.value == 'in_progress'][:5]
-        completed_tasks = [t for t in my_tasks if t.status.value == 'completed'][:5]
+        pending_tasks = [t for t in my_tasks if t.status.value == 'pending']
+        waiting_tasks = [t for t in my_tasks if t.status.value == 'waiting']
+        in_progress_tasks = [t for t in my_tasks if t.status.value == 'in_progress']
+        completed_tasks = [t for t in my_tasks if t.status.value == 'completed']
 
         # 4. Optimize: Fetch relevant upcoming fixtures for managed teams in ONE query
         # Get fixtures for managed teams that are upcoming or undated

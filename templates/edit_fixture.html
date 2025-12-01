@@ -31,13 +31,13 @@
                             <div class="mb-3">
                                 <label for="opposition_name" class="form-label">Opposition</label>
                                 <input type="text" class="form-control" id="opposition_name" name="opposition_name"
-                                       value="{{ fixture.opposition_name or '' }}" required>
+                                    value="{{ fixture.opposition_name or '' }}" required>
                             </div>
 
                             <div class="mb-3">
                                 <label for="home_away" class="form-label">Home/Away</label>
-                                <input type="text" class="form-control" id="home_away"
-                                       value="{{ fixture.home_away }}" readonly>
+                                <input type="text" class="form-control" id="home_away" value="{{ fixture.home_away }}"
+                                    readonly>
                                 <small class="form-text text-muted">Home/Away cannot be changed</small>
                             </div>
                         </div>
@@ -48,8 +48,8 @@
                                 <select class="form-control" id="pitch_name" name="pitch_name">
                                     <option value="">Select a pitch...</option>
                                     {% for pitch in pitches %}
-                                    <option value="{{ pitch.name }}"
-                                            {% if fixture.pitch and fixture.pitch.name == pitch.name %}selected{% endif %}>
+                                    <option value="{{ pitch.name }}" {% if fixture.pitch and
+                                        fixture.pitch.name==pitch.name %}selected{% endif %}>
                                         {{ pitch.name }}
                                     </option>
                                     {% endfor %}
@@ -59,15 +59,16 @@
                             <div class="mb-3">
                                 <label for="kickoff_time" class="form-label">Kick-off Time</label>
                                 <input type="text" class="form-control" id="kickoff_time" name="kickoff_time"
-                                       value="{{ fixture.kickoff_time_text or '' }}"
-                                       placeholder="e.g. 10:30">
+                                    value="{{ fixture.kickoff_time_text or '' }}" placeholder="e.g. 10:30">
                             </div>
 
                             <div class="mb-3">
                                 <label for="fixture_date" class="form-label">Date</label>
                                 <input type="text" class="form-control" id="fixture_date"
-                                       value="{{ fixture.fixture_date.strftime('%d/%m/%Y') if fixture.fixture_date else 'TBC' }}" readonly>
-                                <small class="form-text text-muted">Date cannot be changed from uploaded fixtures</small>
+                                    value="{{ fixture.fixture_date.strftime('%d/%m/%Y') if fixture.fixture_date else 'TBC' }}"
+                                    readonly>
+                                <small class="form-text text-muted">Date cannot be changed from uploaded
+                                    fixtures</small>
                             </div>
                         </div>
                     </div>
@@ -77,8 +78,11 @@
                             <button type="submit" class="btn btn-success">
                                 <i class="fas fa-save"></i> Save Changes
                             </button>
-                            <a href="{{ url_for('view_task', task_id=task.id) }}" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> Cancel
+                            <a href="{{ url_for('dashboard.dashboard_view') }}" class="btn btn-secondary">
+                                <i class="fas fa-columns"></i> Back to Board
+                            </a>
+                            <a href="{{ url_for('tasks.view_tasks') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-list"></i> Back to All Tasks
                             </a>
                         </div>
                     </div>

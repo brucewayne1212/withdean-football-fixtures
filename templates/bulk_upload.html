@@ -23,7 +23,7 @@
 </div>
 {% endif %}
 
-{% if upload_type == 'coaches' %}
+{% if upload_type in ['coaches', 'contacts'] %}
 
 {% if show_confirmation %}
 <!-- Confirmation Step -->
@@ -33,9 +33,9 @@
             <i class="fas fa-check-circle"></i>
             <strong>Data Parsed Successfully!</strong><br>
             {% if auto_mapped %}
-                We automatically detected and mapped your columns.
+            We automatically detected and mapped your columns.
             {% else %}
-                Your column mappings have been applied.
+            Your column mappings have been applied.
             {% endif %}
             Please review the data below before saving.
         </div>
@@ -47,7 +47,8 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="fas fa-eye"></i> Preview: {{ preview_data.coaches|length }} Coaches
+                    <i class="fas fa-eye"></i> Preview: {{ (preview_data.coaches if upload_type == 'coaches' else
+                    preview_data.contacts)|length }} {{ upload_type|title }}
                 </h5>
             </div>
             <div class="card-body">
@@ -71,28 +72,39 @@
                         <thead>
                             <tr>
                                 <th>Team</th>
+                                {% if upload_type == 'coaches' %}
                                 <th>Coach Name</th>
+                                {% else %}
+                                <th>Contact Name</th>
+                                {% endif %}
                                 <th>Email</th>
                                 <th>Phone</th>
+                                {% if upload_type == 'coaches' %}
                                 <th>Role</th>
+                                {% endif %}
                                 <th>Notes</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for coach in preview_data.coaches[:10] %}
+                            {% set items = preview_data.coaches if upload_type == 'coaches' else preview_data.contacts
+                            %}
+                            {% for item in items[:10] %}
                             <tr>
-                                <td><strong>{{ coach.team_name }}</strong></td>
-                                <td>{{ coach.coach_name }}</td>
-                                <td>{{ coach.email or '-' }}</td>
-                                <td>{{ coach.phone or '-' }}</td>
-                                <td>{{ coach.role }}</td>
-                                <td>{{ coach.notes[:30] }}{% if coach.notes|length > 30 %}...{% endif %}</td>
+                                <td><strong>{{ item.team_name }}</strong></td>
+                                <td>{{ item.coach_name if upload_type == 'coaches' else item.contact_name }}</td>
+                                <td>{{ item.email or '-' }}</td>
+                                <td>{{ item.phone or '-' }}</td>
+                                {% if upload_type == 'coaches' %}
+                                <td>{{ item.role }}</td>
+                                {% endif %}
+                                <td>{{ item.notes[:30] }}{% if item.notes and item.notes|length > 30 %}...{% endif %}
+                                </td>
                             </tr>
                             {% endfor %}
-                            {% if preview_data.coaches|length > 10 %}
+                            {% if items|length > 10 %}
                             <tr>
-                                <td colspan="6" class="text-center text-muted">
-                                    ... and {{ preview_data.coaches|length - 10 }} more coaches
+                                <td colspan="{{ 6 if upload_type == 'coaches' else 5 }}" class="text-center text-muted">
+                                    ... and {{ items|length - 10 }} more {{ upload_type }}
                                 </td>
                             </tr>
                             {% endif %}
@@ -101,6 +113,7 @@
                 </div>
 
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <textarea name="csv_data" style="display: none;">{{ csv_data }}</textarea>
                     <input type="hidden" name="confirm_save" value="true">
                     {% if update_existing %}
@@ -131,7 +144,8 @@
                 </h6>
             </div>
             <div class="card-body">
-                <p><strong>Total coaches to save:</strong> {{ preview_data.coaches|length }}</p>
+                <p><strong>Total {{ upload_type }} to save:</strong> {{ (preview_data.coaches if upload_type ==
+                    'coaches' else preview_data.contacts)|length }}</p>
                 <p><strong>Teams affected:</strong> {{ preview_data.teams|length }}</p>
                 {% if preview_data.errors %}
                 <p><strong>Rows with errors:</strong> {{ preview_data.errors|length }}</p>
@@ -176,6 +190,7 @@
             </div>
             <div class="card-body">
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <textarea name="csv_data" style="display: none;">{{ csv_data }}</textarea>
                     <input type="hidden" name="mapping_step" value="true">
                     {% if update_existing %}
@@ -198,52 +213,65 @@
                                     <td><strong>{{ header }}</strong></td>
                                     <td class="small text-muted">
                                         {% for row in analysis.sample_rows[:2] %}
-                                            {% if row[header] %}
-                                                "{{ row[header][:50] }}{% if row[header]|length > 50 %}...{% endif %}"<br>
-                                            {% endif %}
+                                        {% if row[header] %}
+                                        "{{ row[header][:50] }}{% if row[header]|length > 50 %}...{% endif %}"<br>
+                                        {% endif %}
                                         {% endfor %}
                                     </td>
                                     <td>
-                                        <select class="form-select" name="mapping_{{ header }}" onchange="validateMapping()">
+                                        <select class="form-select" name="mapping_{{ header }}"
+                                            onchange="validateMapping()">
                                             <option value="">-- Ignore this column --</option>
-                                            <option value="team_name"
-                                                {% if analysis.suggested_mapping.get(header) == 'team_name' %}selected{% endif %}>
+                                            <option value="team_name" {% if
+                                                analysis.suggested_mapping.get(header)=='team_name' %}selected{% endif
+                                                %}>
                                                 Team Name (Required)
                                             </option>
-                                            <option value="coach_name"
-                                                {% if analysis.suggested_mapping.get(header) == 'coach_name' %}selected{% endif %}>
+                                            {% if upload_type == 'coaches' %}
+                                            <option value="coach_name" {% if
+                                                analysis.suggested_mapping.get(header)=='coach_name' %}selected{% endif
+                                                %}>
                                                 Coach Name (Required)
                                             </option>
-                                            <option value="email"
-                                                {% if analysis.suggested_mapping.get(header) == 'email' %}selected{% endif %}>
+                                            {% else %}
+                                            <option value="contact_name" {% if
+                                                analysis.suggested_mapping.get(header)=='contact_name' %}selected{%
+                                                endif %}>
+                                                Contact Name (Required)
+                                            </option>
+                                            {% endif %}
+                                            <option value="email" {% if analysis.suggested_mapping.get(header)=='email'
+                                                %}selected{% endif %}>
                                                 Email
                                             </option>
-                                            <option value="phone"
-                                                {% if analysis.suggested_mapping.get(header) == 'phone' %}selected{% endif %}>
+                                            <option value="phone" {% if analysis.suggested_mapping.get(header)=='phone'
+                                                %}selected{% endif %}>
                                                 Phone
                                             </option>
-                                            <option value="role"
-                                                {% if analysis.suggested_mapping.get(header) == 'role' %}selected{% endif %}>
+                                            {% if upload_type == 'coaches' %}
+                                            <option value="role" {% if analysis.suggested_mapping.get(header)=='role'
+                                                %}selected{% endif %}>
                                                 Role
                                             </option>
-                                            <option value="notes"
-                                                {% if analysis.suggested_mapping.get(header) == 'notes' %}selected{% endif %}>
+                                            {% endif %}
+                                            <option value="notes" {% if analysis.suggested_mapping.get(header)=='notes'
+                                                %}selected{% endif %}>
                                                 Notes
                                             </option>
                                         </select>
                                     </td>
                                     <td>
                                         {% if analysis.confidence_scores.get(header) %}
-                                            {% set confidence = analysis.confidence_scores[header] %}
-                                            {% if confidence >= 90 %}
-                                                <span class="badge bg-success">{{ confidence }}% - Excellent</span>
-                                            {% elif confidence >= 70 %}
-                                                <span class="badge bg-warning">{{ confidence }}% - Good</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">{{ confidence }}% - Low</span>
-                                            {% endif %}
+                                        {% set confidence = analysis.confidence_scores[header] %}
+                                        {% if confidence >= 90 %}
+                                        <span class="badge bg-success">{{ confidence }}% - Excellent</span>
+                                        {% elif confidence >= 70 %}
+                                        <span class="badge bg-warning">{{ confidence }}% - Good</span>
                                         {% else %}
-                                            <span class="text-muted">No match</span>
+                                        <span class="badge bg-secondary">{{ confidence }}% - Low</span>
+                                        {% endif %}
+                                        {% else %}
+                                        <span class="text-muted">No match</span>
                                         {% endif %}
                                     </td>
                                 </tr>
@@ -254,14 +282,16 @@
 
                     <div class="alert alert-info mt-3" id="mapping-validation">
                         <i class="fas fa-info-circle"></i>
-                        <span id="validation-message">Please ensure Team Name and Coach Name are mapped to proceed.</span>
+                        <span id="validation-message">Please ensure Team Name and Coach Name are mapped to
+                            proceed.</span>
                     </div>
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-danger" id="proceed-btn" disabled>
                             <i class="fas fa-upload"></i> Proceed with Mapping
                         </button>
-                        <a href="{{ url_for('imports.bulk_coach_upload') }}" class="btn btn-secondary">
+                        <a href="{{ url_for('imports.bulk_coach_upload' if upload_type == 'coaches' else 'imports.bulk_contact_upload') }}"
+                            class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Start Over
                         </a>
                     </div>
@@ -281,7 +311,7 @@
                 <p class="small"><strong>Detected {{ analysis.headers|length }} columns:</strong></p>
                 <div class="small">
                     {% for header in analysis.headers %}
-                        <span class="badge bg-light text-dark me-1 mb-1">{{ header }}</span>
+                    <span class="badge bg-light text-dark me-1 mb-1">{{ header }}</span>
                     {% endfor %}
                 </div>
 
@@ -289,7 +319,7 @@
                 <p class="small mt-3"><strong>First row preview:</strong></p>
                 <div class="small font-monospace bg-light p-2 rounded">
                     {% for key, value in analysis.sample_rows[0].items() %}
-                        <strong>{{ key }}:</strong> {{ value[:30] }}{% if value|length > 30 %}...{% endif %}<br>
+                    <strong>{{ key }}:</strong> {{ value[:30] }}{% if value|length > 30 %}...{% endif %}<br>
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -310,12 +340,14 @@
             </div>
             <div class="card-body">
                 <form method="POST" enctype="multipart/form-data" onsubmit="return validateForm()">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="mb-3">
-                        <label for="coach_file" class="form-label">CSV File</label>
-                        <input type="file" class="form-control" id="coach_file" name="coach_file"
-                               accept=".csv,.txt">
+                        <label for="contact_file" class="form-label">CSV or Excel File</label>
+                        <input type="file" class="form-control" id="contact_file" name="contact_file"
+                            accept=".csv,.txt,.xlsx,.xls">
                         <div class="form-text">
-                            Upload a CSV file with coach information. See format requirements on the right.
+                            Upload a CSV or Excel file with {{ upload_type }} information. See format requirements on
+                            the right.
                         </div>
                     </div>
 
@@ -323,7 +355,7 @@
                         <div class="form-check">
                             <input type="checkbox" class="form-check-input" id="update_existing" name="update_existing">
                             <label class="form-check-label" for="update_existing">
-                                Update existing coaches if they already exist (match by team + name)
+                                Update existing {{ upload_type }} if they already exist (match by team + name)
                             </label>
                         </div>
                     </div>
@@ -331,7 +363,7 @@
                     <div class="mb-3">
                         <label for="preview_text" class="form-label">Preview Data (Optional)</label>
                         <textarea class="form-control" id="preview_text" name="preview_text" rows="6"
-                                  placeholder="Or paste CSV data directly here..."></textarea>
+                            placeholder="Or paste CSV data directly here..."></textarea>
                         <div class="form-text">
                             You can paste CSV data directly instead of uploading a file.
                         </div>
@@ -339,7 +371,7 @@
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-danger">
-                            <i class="fas fa-upload"></i> Upload Coaches
+                            <i class="fas fa-upload"></i> Upload {{ upload_type|title }}
                         </button>
                         <button type="button" class="btn btn-outline-secondary" onclick="validatePreview()">
                             <i class="fas fa-check"></i> Validate Preview
@@ -364,14 +396,20 @@
                 <p class="small"><strong>Required Columns:</strong></p>
                 <ul class="small">
                     <li><code>team_name</code> - Must match existing team</li>
+                    {% if upload_type == 'coaches' %}
                     <li><code>coach_name</code> - Full name of coach</li>
+                    {% else %}
+                    <li><code>contact_name</code> - Full name of contact</li>
+                    {% endif %}
                 </ul>
 
                 <p class="small mt-3"><strong>Optional Columns:</strong></p>
                 <ul class="small">
                     <li><code>email</code> - Email address</li>
                     <li><code>phone</code> - Phone number</li>
+                    {% if upload_type == 'coaches' %}
                     <li><code>role</code> - Coach, Manager, Assistant, etc.</li>
+                    {% endif %}
                     <li><code>notes</code> - Additional notes</li>
                 </ul>
             </div>
@@ -385,10 +423,17 @@
             </div>
             <div class="card-body">
                 <small class="font-monospace">
-team_name,coach_name,email,phone,role<br>
-Withdean Youth U14 White,John Smith,john@email.com,07123456789,Head Coach<br>
-Withdean Youth U14 White,Jane Doe,jane@email.com,07987654321,Assistant Coach<br>
-Withdean Youth U13 Red,Mike Johnson,mike@email.com,,Manager
+                    {% if upload_type == 'coaches' %}
+                    team_name,coach_name,email,phone,role
+                    Withdean Youth U14 White,John Smith,john@email.com,07123456789,Head Coach
+                    Withdean Youth U14 White,Jane Doe,jane@email.com,07987654321,Assistant Coach
+                    Withdean Youth U13 Red,Mike Johnson,mike@email.com,,Manager
+                    {% else %}
+                    team_name,contact_name,email,phone,notes
+                    Mile Oak Youth U7 Orange,Tony Boland,tnyblnd@gmail.com,07739 396004,Manager
+                    Eastbourne Town Youth U9 Green,Ben Lewis,benlewis@5wayssoccer.co.uk,7971254817,
+                    Fishersgate Flyers Youth U9,Ashley Harrocks,ashleyharrocks90@icloud.com,,
+                    {% endif %}
                 </small>
                 <div class="mt-2">
                     <button type="button" class="btn btn-sm btn-outline-primary" onclick="downloadSample()">
@@ -440,113 +485,126 @@ Withdean Youth U13 Red,Mike Johnson,mike@email.com,,Manager
 {% endblock %}
 
 {% block scripts %}
-{% if upload_type == 'coaches' %}
+{% if upload_type in ['coaches', 'contacts'] %}
 <script>
-function validateMapping() {
-    const selects = document.querySelectorAll('select[name^="mapping_"]');
-    const mappedFields = new Set();
-    let hasTeamName = false;
-    let hasCoachName = false;
+    const UPLOAD_TYPE = '{{ upload_type }}';
 
-    // Check what fields are mapped
-    selects.forEach(select => {
-        const value = select.value;
-        if (value) {
-            if (mappedFields.has(value)) {
-                // Duplicate mapping detected
-                showMappingError(`Multiple columns mapped to "${value}". Each field can only be mapped once.`);
-                return;
+    function validateMapping() {
+        const selects = document.querySelectorAll('select[name^="mapping_"]');
+        const mappedFields = new Set();
+        let hasTeamName = false;
+        let hasCoachName = false;
+        let hasContactName = false;
+
+        // Check what fields are mapped
+        selects.forEach(select => {
+            const value = select.value;
+            if (value) {
+                if (mappedFields.has(value)) {
+                    // Duplicate mapping detected
+                    showMappingError(`Multiple columns mapped to "${value}". Each field can only be mapped once.`);
+                    return;
+                }
+                mappedFields.add(value);
+
+                if (value === 'team_name') hasTeamName = true;
+                if (value === 'coach_name') hasCoachName = true;
+                if (value === 'contact_name') hasContactName = true;
             }
-            mappedFields.add(value);
+        });
 
-            if (value === 'team_name') hasTeamName = true;
-            if (value === 'coach_name') hasCoachName = true;
+        const proceedBtn = document.getElementById('proceed-btn');
+        const validationMessage = document.getElementById('validation-message');
+
+        if (hasTeamName && (hasCoachName || hasContactName)) {
+            proceedBtn.disabled = false;
+            validationMessage.innerHTML = '✅ Ready to proceed! Required fields are mapped.';
+            document.getElementById('mapping-validation').className = 'alert alert-success mt-3';
+        } else {
+            proceedBtn.disabled = true;
+            const missing = [];
+            if (!hasTeamName) missing.push('Team Name');
+            if (UPLOAD_TYPE === 'coaches' && !hasCoachName) missing.push('Coach Name');
+            if (UPLOAD_TYPE === 'contacts' && !hasContactName) missing.push('Contact Name');
+            validationMessage.innerHTML = `❌ Missing required fields: ${missing.join(', ')}`;
+            document.getElementById('mapping-validation').className = 'alert alert-warning mt-3';
         }
+    }
+
+    function showMappingError(message) {
+        const validationMessage = document.getElementById('validation-message');
+        validationMessage.innerHTML = `❌ ${message}`;
+        document.getElementById('mapping-validation').className = 'alert alert-danger mt-3';
+        document.getElementById('proceed-btn').disabled = true;
+    }
+
+    // Run validation on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        validateMapping();
     });
 
-    const proceedBtn = document.getElementById('proceed-btn');
-    const validationMessage = document.getElementById('validation-message');
+    function validateForm() {
+        const fileInput = document.getElementById('contact_file');
+        const previewText = document.getElementById('preview_text').value.trim();
 
-    if (hasTeamName && hasCoachName) {
-        proceedBtn.disabled = false;
-        validationMessage.innerHTML = '✅ Ready to proceed! Required fields are mapped.';
-        document.getElementById('mapping-validation').className = 'alert alert-success mt-3';
-    } else {
-        proceedBtn.disabled = true;
-        const missing = [];
-        if (!hasTeamName) missing.push('Team Name');
-        if (!hasCoachName) missing.push('Coach Name');
-        validationMessage.innerHTML = `❌ Missing required fields: ${missing.join(', ')}`;
-        document.getElementById('mapping-validation').className = 'alert alert-warning mt-3';
-    }
-}
+        if (!fileInput.files.length && !previewText) {
+            alert('Please either upload a CSV/Excel file or paste CSV data in the preview area.');
+            return false;
+        }
 
-function showMappingError(message) {
-    const validationMessage = document.getElementById('validation-message');
-    validationMessage.innerHTML = `❌ ${message}`;
-    document.getElementById('mapping-validation').className = 'alert alert-danger mt-3';
-    document.getElementById('proceed-btn').disabled = true;
-}
-
-// Run validation on page load
-document.addEventListener('DOMContentLoaded', function() {
-    validateMapping();
-});
-
-function validateForm() {
-    const fileInput = document.getElementById('coach_file');
-    const previewText = document.getElementById('preview_text').value.trim();
-
-    if (!fileInput.files.length && !previewText) {
-        alert('Please either upload a CSV file or paste CSV data in the preview area.');
-        return false;
+        return true;
     }
 
-    return true;
-}
+    function validatePreview() {
+        const previewText = document.getElementById('preview_text').value.trim();
+        if (!previewText) {
+            alert('Please paste CSV data in the preview area first.');
+            return;
+        }
 
-function validatePreview() {
-    const previewText = document.getElementById('preview_text').value.trim();
-    if (!previewText) {
-        alert('Please paste CSV data in the preview area first.');
-        return;
+        // Basic CSV validation
+        const lines = previewText.split('\n').filter(line => line.trim());
+        if (lines.length < 2) {
+            alert('CSV data should have at least a header row and one data row.');
+            return;
+        }
+
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const requiredHeaders = UPLOAD_TYPE === 'coaches' ? ['team_name', 'coach_name'] : ['team_name', 'contact_name'];
+        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+
+        if (missingHeaders.length > 0) {
+            alert(`Missing required columns: ${missingHeaders.join(', ')}`);
+            return;
+        }
+
+        alert(`✅ Validation passed!\n\nFound ${lines.length - 1} ${UPLOAD_TYPE} records with required columns.\nHeaders: ${headers.join(', ')}`);
     }
 
-    // Basic CSV validation
-    const lines = previewText.split('\n').filter(line => line.trim());
-    if (lines.length < 2) {
-        alert('CSV data should have at least a header row and one data row.');
-        return;
+    function downloadSample() {
+        let csvContent = '';
+        if (UPLOAD_TYPE === 'coaches') {
+            csvContent = `team_name,coach_name,email,phone,role
+Withdean Youth U14 White,John Smith,john@email.com,07123456789,Head Coach
+Withdean Youth U14 White,Jane Doe,jane@email.com,07987654321,Assistant Coach
+Withdean Youth U13 Red,Mike Johnson,mike@email.com,,Manager`;
+        } else {
+            csvContent = `team_name,contact_name,email,phone,notes
+Mile Oak Youth U7 Orange,Tony Boland,tnyblnd@gmail.com,07739 396004,Manager
+Eastbourne Town Youth U9 Green,Ben Lewis,benlewis@5wayssoccer.co.uk,7971254817,
+Fishersgate Flyers Youth U9,Ashley Harrocks,ashleyharrocks90@icloud.com,,`;
+        }
+
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${UPLOAD_TYPE}_sample.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
     }
-
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const requiredHeaders = ['team_name', 'coach_name'];
-    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
-
-    if (missingHeaders.length > 0) {
-        alert(`Missing required columns: ${missingHeaders.join(', ')}`);
-        return;
-    }
-
-    alert(`✅ Validation passed!\n\nFound ${lines.length - 1} coach records with required columns.\nHeaders: ${headers.join(', ')}`);
-}
-
-function downloadSample() {
-    const csvContent = `team_name,coach_name,email,phone,role,notes
-Withdean Youth U14 White,John Smith,john@email.com,07123456789,Head Coach,
-Withdean Youth U14 White,Jane Doe,jane@email.com,07987654321,Assistant Coach,
-Withdean Youth U13 Red,Mike Johnson,mike@email.com,,Manager,Available weekends only`;
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'coaches_sample.csv';
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-}
 </script>
 {% endif %}
 {% endblock %}

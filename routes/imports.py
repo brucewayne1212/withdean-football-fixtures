@@ -1,3 +1,4 @@
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, timezone
@@ -7,6 +8,8 @@ import io
 import csv
 import logging
 import re
+import pandas as pd
+from werkzeug.utils import secure_filename
 
 from database import db_manager
 from utils import get_user_organization, allowed_file
@@ -68,7 +71,7 @@ def _analyze_column_content(column_name, sample_rows):
 
     return None
 
-def analyze_csv_columns(csv_data):
+def analyze_csv_columns(csv_data, mode='coaches'):
     """
     Analyze CSV columns and attempt to map them to expected fields
 
@@ -90,14 +93,24 @@ def analyze_csv_columns(csv_data):
             sample_rows.append(row)
 
         # Define mapping patterns for automatic detection
-        field_patterns = {
-            'team_name': ['team_name', 'team', 'team name', 'club', 'club_name', 'squad'],
-            'coach_name': ['coach_name', 'coach', 'name', 'coach name', 'full_name', 'fullname', 'manager'],
-            'email': ['email', 'email_address', 'e-mail', 'mail', 'contact_email'],
-            'phone': ['phone', 'phone_number', 'mobile', 'cell', 'telephone', 'contact_number'],
-            'role': ['role', 'position', 'title', 'job_title', 'coach_role'],
-            'notes': ['notes', 'comments', 'description', 'additional_info', 'remarks']
-        }
+        if mode == 'contacts':
+            field_patterns = {
+                'team_name': ['team_name', 'team', 'team name', 'club', 'club_name', 'squad', 'opposition', 'opposing team'],
+                'contact_name': ['contact_name', 'contact', 'name', 'manager', 'full_name', 'fullname', 'contact person'],
+                'email': ['email', 'email_address', 'e-mail', 'mail', 'contact_email'],
+                'phone': ['phone', 'phone_number', 'mobile', 'cell', 'telephone', 'contact_number'],
+                'notes': ['notes', 'comments', 'description', 'additional_info', 'remarks']
+            }
+        else:
+            # Default to coaches
+            field_patterns = {
+                'team_name': ['team_name', 'team', 'team name', 'club', 'club_name', 'squad'],
+                'coach_name': ['coach_name', 'coach', 'name', 'coach name', 'full_name', 'fullname', 'manager'],
+                'email': ['email', 'email_address', 'e-mail', 'mail', 'contact_email'],
+                'phone': ['phone', 'phone_number', 'mobile', 'cell', 'telephone', 'contact_number'],
+                'role': ['role', 'position', 'title', 'job_title', 'coach_role'],
+                'notes': ['notes', 'comments', 'description', 'additional_info', 'remarks']
+            }
 
         # Attempt automatic mapping
         suggested_mapping = {}
@@ -133,13 +146,23 @@ def analyze_csv_columns(csv_data):
                         best_score = score
                         best_match = field
 
+            # Specific check for 'role' if not already mapped with high confidence
+            if not best_match or best_score < 90:
+                if 'role' in header_lower or 'position' in header_lower or 'title' in header_lower:
+                    if best_match != 'role' or best_score < 80: # Only override if current best match isn't role or confidence is low
+                        best_match = 'role'
+                        best_score = max(best_score, 80) # Give a decent score for role detection
+
             if best_match and best_score >= 70:
                 suggested_mapping[header] = best_match
                 confidence_scores[header] = best_score
 
         # Check if we have the required fields
         mapped_fields = set(suggested_mapping.values())
-        required_fields = {'team_name', 'coach_name'}
+        if mode == 'contacts':
+            required_fields = {'team_name', 'contact_name'}
+        else:
+            required_fields = {'team_name', 'coach_name'}
         has_required = required_fields.issubset(mapped_fields)
 
         # Calculate overall confidence
@@ -370,6 +393,186 @@ def preview_coach_csv(csv_data, column_mapping):
 
             preview_data['coaches'].append(coach_data)
             preview_data['teams'].add(coach_data['team_name'])
+
+    except Exception as e:
+        preview_data['errors'].append({
+            'row': 'Unknown',
+            'message': f'CSV parsing error: {str(e)}',
+            'data': {}
+        })
+
+    # Convert set to sorted list
+    preview_data['teams'] = sorted(list(preview_data['teams']))
+
+    return preview_data
+
+def process_team_contact_csv(session, organization_id, csv_data, update_existing=False, column_mapping=None):
+    """
+    Process CSV data for bulk team contact upload
+    """
+    result = {
+        'success': True,
+        'created': 0,
+        'updated': 0,
+        'errors': [],
+        'message': '',
+        'needs_mapping': False
+    }
+
+    try:
+        from models import TeamContact
+        
+        # Parse CSV data
+        csv_file = io.StringIO(csv_data.strip())
+        reader = csv.DictReader(csv_file)
+
+        # If no column mapping provided, try automatic detection
+        if column_mapping is None:
+            analysis = analyze_csv_columns(csv_data, mode='contacts')
+            if analysis.get('needs_manual_mapping'):
+                result['needs_mapping'] = True
+                result['analysis'] = analysis
+                return result
+            column_mapping = analysis['suggested_mapping']
+
+        # Process each row
+        for row_num, row in enumerate(reader, start=2):
+            try:
+                # Extract fields using column mapping
+                team_name = ''
+                contact_name = ''
+                role = None
+                email = None
+                phone = None
+                notes = None
+
+                # Map the fields
+                for csv_header, our_field in column_mapping.items():
+                    value = row.get(csv_header, '').strip()
+                    if our_field == 'team_name':
+                        team_name = value
+                    elif our_field == 'contact_name':
+                        contact_name = value
+                    elif our_field == 'role':
+                        role = value or None
+                    elif our_field == 'email':
+                        email = value or None
+                    elif our_field == 'phone':
+                        phone = value or None
+                    elif our_field == 'notes':
+                        notes = value or None
+
+                if not team_name or not contact_name:
+                    result['errors'].append({
+                        'row': row_num,
+                        'message': 'Missing required fields: team_name and contact_name are required'
+                    })
+                    continue
+
+                # Check if contact already exists for this team (by team name and contact name)
+                existing_contact = session.query(TeamContact).filter_by(
+                    organization_id=organization_id,
+                    team_name=team_name
+                ).first()
+                
+                # Note: TeamContact constraint is unique on (organization_id, team_name)
+                # So we can only have one contact per team name currently?
+                # Let's check models.py: UniqueConstraint('organization_id', 'team_name')
+                # Yes. So we update if exists.
+                
+                if existing_contact:
+                    if update_existing:
+                        existing_contact.contact_name = contact_name
+                        existing_contact.role = role
+                        existing_contact.email = email
+                        existing_contact.phone = phone
+                        existing_contact.notes = notes
+                        existing_contact.updated_at = datetime.utcnow()
+                        result['updated'] += 1
+                    else:
+                        result['errors'].append({
+                            'row': row_num,
+                            'message': f'Contact for team "{team_name}" already exists. Check "Update existing" to modify.'
+                        })
+                        continue
+                else:
+                    new_contact = TeamContact(
+                        organization_id=organization_id,
+                        team_name=team_name,
+                        contact_name=contact_name,
+                        role=role,
+                        email=email,
+                        phone=phone,
+                        notes=notes,
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    session.add(new_contact)
+                    result['created'] += 1
+
+            except Exception as e:
+                result['errors'].append({
+                    'row': row_num,
+                    'message': f'Error processing row: {str(e)}'
+                })
+                continue
+
+        session.commit()
+
+        if result['errors']:
+            result['success'] = False
+            result['message'] = f'Processed with {len(result["errors"])} errors'
+        else:
+            result['message'] = 'All contacts processed successfully'
+
+    except Exception as e:
+        result['success'] = False
+        result['message'] = f'CSV parsing error: {str(e)}'
+        session.rollback()
+
+    return result
+
+def preview_contact_csv(csv_data, column_mapping):
+    """Preview contact CSV data"""
+    preview_data = {
+        'contacts': [],
+        'teams': set(),
+        'total_rows': 0,
+        'errors': []
+    }
+
+    try:
+        csv_file = io.StringIO(csv_data.strip())
+        reader = csv.DictReader(csv_file)
+
+        for row_num, row in enumerate(reader, start=2):
+            preview_data['total_rows'] += 1
+
+            contact_data = {
+                'row_num': row_num,
+                'team_name': '',
+                'contact_name': '',
+                'role': '',
+                'email': '',
+                'phone': '',
+                'notes': ''
+            }
+
+            for csv_header, our_field in column_mapping.items():
+                value = row.get(csv_header, '').strip()
+                if our_field in contact_data:
+                    contact_data[our_field] = value or contact_data[our_field]
+
+            if not contact_data['team_name'] or not contact_data['contact_name']:
+                preview_data['errors'].append({
+                    'row': row_num,
+                    'message': 'Missing required fields',
+                    'data': contact_data
+                })
+                continue
+
+            preview_data['contacts'].append(contact_data)
+            preview_data['teams'].add(contact_data['team_name'])
 
     except Exception as e:
         preview_data['errors'].append({
@@ -640,6 +843,102 @@ def handle_paste_import_internal(session, org, managed_team_names, text):
     
     return redirect(url_for('imports.import_fixtures'))
 
+def process_sheet_fixtures(session, org, fixtures_data):
+    """Process fixtures from weekly sheet refresher"""
+    new_fixtures = 0
+    updated_fixtures = 0
+    new_tasks = 0
+    skipped_count = 0
+    
+    for fixture_data in fixtures_data:
+        try:
+            team_name = fixture_data.get('team', '').strip()
+            if not team_name:
+                skipped_count += 1
+                continue
+            
+            # Get or create team
+            team = get_or_create_team(session, org.id, team_name)
+            
+            # Parse date
+            fixture_date = fixture_data.get('date')
+            if not fixture_date:
+                skipped_count += 1
+                continue
+                
+            kickoff_datetime = None
+            try:
+                # Try ISO format first
+                if 'T' in fixture_date:
+                    kickoff_datetime = datetime.fromisoformat(fixture_date.replace('Z', '+00:00'))
+                else:
+                    # Try common formats
+                    for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d-%m-%Y']:
+                        try:
+                            kickoff_datetime = datetime.strptime(fixture_date, fmt).replace(tzinfo=timezone.utc)
+                            break
+                        except:
+                            continue
+            except:
+                pass
+                
+            if not kickoff_datetime:
+                skipped_count += 1
+                continue
+            
+            # Determine Home/Away
+            home_away = fixture_data.get('home_away', 'Home').capitalize()
+            if home_away not in ['Home', 'Away']:
+                home_away = 'Home'
+            
+            # Check if fixture exists
+            existing = session.query(Fixture).filter(
+                Fixture.organization_id == org.id,
+                Fixture.team_id == team.id,
+                Fixture.kickoff_datetime == kickoff_datetime
+            ).first()
+            
+            if existing:
+                existing.opposition_name = fixture_data.get('opposition', existing.opposition_name) or 'TBC'
+                existing.home_away = home_away
+                existing.kickoff_time_text = fixture_data.get('time', existing.kickoff_time_text) or 'TBC'
+                # existing.pitch_name = fixture_data.get('pitch', '') 
+                updated_fixtures += 1
+                fixture = existing
+            else:
+                fixture = Fixture(
+                    organization_id=org.id,
+                    team_id=team.id,
+                    opposition_name=fixture_data.get('opposition', 'TBC') or 'TBC',
+                    home_away=home_away,
+                    kickoff_datetime=kickoff_datetime,
+                    kickoff_time_text=fixture_data.get('time', 'TBC') or 'TBC'
+                )
+                session.add(fixture)
+                session.flush()
+                new_fixtures += 1
+            
+            # Create task if doesn't exist
+            existing_task = session.query(Task).filter_by(fixture_id=fixture.id).first()
+            if not existing_task:
+                task_type = 'home_email' if home_away == 'Home' else 'away_email'
+                task_status = 'pending' if home_away == 'Home' else 'waiting'
+                task = Task(
+                    organization_id=org.id,
+                    fixture_id=fixture.id,
+                    task_type=task_type,
+                    status=task_status
+                )
+                session.add(task)
+                new_tasks += 1
+                
+        except Exception as e:
+            logger.warning(f"Error processing refreshed fixture: {e}")
+            skipped_count += 1
+            continue
+            
+    return new_fixtures, updated_fixtures, new_tasks, skipped_count
+
 def handle_google_import(session, org, managed_team_names):
     """Handle Google Sheets import"""
     google_sheets_url = request.form.get('google_sheets_url', '').strip()
@@ -648,12 +947,30 @@ def handle_google_import(session, org, managed_team_names):
         return redirect(url_for('imports.import_fixtures'))
     
     try:
-        sheets_importer = GoogleSheetsImporter()
-        df = sheets_importer.fetch_sheet_as_csv(google_sheets_url)
-        pasted_text = sheets_importer.convert_to_fixture_format(df)
+        # Save the URL for future refreshes
+        if not org.settings:
+            org.settings = {}
+        org.settings['google_sheet_url'] = google_sheets_url
+        # Force SQLAlchemy to detect change in JSON field
+        from sqlalchemy.orm.attributes import flag_modified
+        flag_modified(org, "settings")
+        session.commit()
         
-        # Process using paste import logic
-        return handle_paste_import_internal(session, org, managed_team_names, pasted_text)
+        from weekly_sheet_refresher import refresh_weekly_fixtures
+        fixtures_data, errors = refresh_weekly_fixtures(google_sheets_url)
+        
+        if errors:
+            for error in errors:
+                flash(error, 'error')
+            if not fixtures_data:
+                return redirect(url_for('imports.import_fixtures'))
+        
+        new_fixtures, updated_fixtures, new_tasks, skipped_count = process_sheet_fixtures(session, org, fixtures_data)
+        session.commit()
+        
+        flash(f'Successfully imported {new_fixtures} new fixture(s), updated {updated_fixtures}.', 'success')
+        return redirect(url_for('imports.import_fixtures'))
+
     except Exception as e:
         flash(f'Error importing from Google Sheets: {str(e)}', 'error')
         return redirect(url_for('imports.import_fixtures'))
@@ -1011,10 +1328,507 @@ def bulk_coach_upload():
 @imports_bp.route('/bulk_contact_upload', methods=['GET', 'POST'])
 @login_required
 def bulk_contact_upload():
-    """Bulk contact upload - placeholder for now"""
-    if request.method == 'GET':
-        return render_template('bulk_upload.html', upload_type='contacts', user_name=current_user.name)
+    """Bulk contact upload"""
+    session = db_manager.get_session()
+    try:
+        org = get_user_organization()
+        if not org:
+            flash('No organization found.', 'error')
+            return redirect(url_for('auth.logout'))
+
+        if request.method == 'GET':
+            return render_template('bulk_upload.html', upload_type='contacts', user_name=current_user.name)
+
+        # Handle POST
+        csv_data = None
+        
+        # Check if file upload
+        if 'contact_file' in request.files:
+            file = request.files['contact_file']
+            if file and file.filename:
+                filename = file.filename.lower()
+                if filename.endswith('.csv'):
+                    csv_data = file.read().decode('utf-8')
+                elif filename.endswith(('.xlsx', '.xls')):
+                    try:
+                        # Read Excel file - sheet_name=None reads all sheets
+                        # header=None to read raw first, or assume header is row 0
+                        # We'll read with header=0 by default, but we need to handle merged cells
+                        
+                        # Use openpyxl engine which can help with some things, but pandas handles basic merge by filling NaN
+                        # We need to explicitly forward fill (ffill) to handle "merged across multiple rows" behavior
+                        # But standard read_excel puts NaN in merged cells after the first one.
+                        
+                        dfs = pd.read_excel(file, sheet_name=None, dtype=str)
+                        
+                        # Combine all sheets
+                        all_data = []
+                        for sheet_name, df in dfs.items():
+                            if df.empty:
+                                continue
+                                
+                            # 1. Handle Merged Cells (Forward Fill)
+                            # "Club name is often only entered once and then merged across multiple columns" (rows likely meant)
+                            # We forward fill all columns to propagate values down merged rows
+                            df = df.ffill()
+                            
+                            # 2. Filter for "Fixture Secretary"
+                            # We look for a column that might contain roles
+                            role_col = None
+                            for col in df.columns:
+                                if 'role' in str(col).lower() or 'position' in str(col).lower() or 'title' in str(col).lower():
+                                    role_col = col
+                                    break
+                            
+                            # If we found a role column, filter for Fixture Secretary
+                            if role_col:
+                                # Normalize text for comparison
+                                # We look for "Secretary" or "Fixture" to be safe, or exact match?
+                                # User said "extract the fixture secretary".
+                                # Let's try to be smart: if "Fixture Secretary" exists, keep only those.
+                                
+                                # Create a mask for rows that look like fixture secretaries
+                                # We'll be lenient: contains "secretary" AND ("fixture" or "sec")
+                                def is_fixture_sec(val):
+                                    val = str(val).lower()
+                                    return 'secretary' in val and ('fixture' in val or 'fix' in val)
+                                
+                                # Check if any row matches this strict criteria
+                                has_fix_sec = df[role_col].apply(is_fixture_sec).any()
+                                
+                                if has_fix_sec:
+                                    df = df[df[role_col].apply(is_fixture_sec)]
+                                else:
+                                    # Fallback: maybe just "Secretary"?
+                                    if df[role_col].str.contains('Secretary', case=False, na=False).any():
+                                         df = df[df[role_col].str.contains('Secretary', case=False, na=False)]
+                            
+                            # Add to collection
+                            all_data.append(df)
+                        
+                        if all_data:
+                            combined_df = pd.concat(all_data, ignore_index=True)
+                            # Convert to CSV string
+                            csv_data = combined_df.to_csv(index=False)
+                        else:
+                            flash('Excel file appears to be empty', 'error')
+                            return redirect(url_for('imports.bulk_contact_upload'))
+                            
+                    except Exception as e:
+                        flash(f'Error reading Excel file: {str(e)}', 'error')
+                        return redirect(url_for('imports.bulk_contact_upload'))
+                else:
+                    flash('Invalid file type. Please upload CSV or Excel.', 'error')
+                    return redirect(url_for('imports.bulk_contact_upload'))
+        
+        # Check if pasted text
+        if not csv_data and request.form.get('preview_text'):
+            csv_data = request.form.get('preview_text')
+            
+        # Check if passed from confirmation step
+        if not csv_data and request.form.get('csv_data'):
+            csv_data = request.form.get('csv_data')
+            
+        if not csv_data:
+            flash('No data provided', 'error')
+            return redirect(url_for('imports.bulk_contact_upload'))
+
+        update_existing = request.form.get('update_existing') == 'on'
+        
+        # Check if this is a confirmation save
+        if request.form.get('confirm_save') == 'true':
+            # Reconstruct mapping from form
+            mapping = {}
+            for key, value in request.form.items():
+                if key.startswith('mapping_') and value:
+                    original_header = key.replace('mapping_', '')
+                    mapping[original_header] = value
+            
+            result = process_team_contact_csv(session, org.id, csv_data, update_existing, mapping)
+            
+            if result['success']:
+                flash(f"Successfully imported {result['created']} new contacts and updated {result['updated']}.", 'success')
+                if result['errors']:
+                    flash(f"Some rows had errors: {len(result['errors'])} errors.", 'warning')
+                return redirect(url_for('settings.settings_view'))
+            else:
+                flash(f"Import failed: {result['message']}", 'error')
+                return redirect(url_for('imports.bulk_contact_upload'))
+
+        # Check if this is a mapping step
+        if request.form.get('mapping_step') == 'true':
+             # Reconstruct mapping from form
+            mapping = {}
+            for key, value in request.form.items():
+                if key.startswith('mapping_') and value:
+                    original_header = key.replace('mapping_', '')
+                    mapping[original_header] = value
+                    
+            preview = preview_contact_csv(csv_data, mapping)
+            return render_template('bulk_upload.html', 
+                                 upload_type='contacts',
+                                 user_name=current_user.name,
+                                 show_confirmation=True,
+                                 preview_data=preview,
+                                 csv_data=csv_data,
+                                 mappings=mapping,
+                                 update_existing=update_existing,
+                                 auto_mapped=False)
+
+        # Initial upload - analyze and show mapping
+        analysis = analyze_csv_columns(csv_data, mode='contacts')
+        
+        # Always show mapping step to allow user to guide the import
+        return render_template('bulk_upload.html',
+                             upload_type='contacts',
+                             user_name=current_user.name,
+                             show_mapping=True,
+                             analysis=analysis,
+                             csv_data=csv_data,
+                             update_existing=update_existing)
+
+    except Exception as e:
+        session.rollback()
+        flash(f'Error: {str(e)}', 'error')
+        return redirect(url_for('imports.bulk_contact_upload'))
+    finally:
+        session.close()
+
+@imports_bp.route('/refresh_fixtures')
+@login_required
+def refresh_fixtures():
+    """Refresh fixtures from the saved Google Sheet"""
+    session = db_manager.get_session()
+    try:
+        org = get_user_organization()
+        if not org:
+            flash('No organization found.', 'error')
+            return redirect(url_for('auth.logout'))
+            
+        # Get saved sheet URL from settings
+        sheet_url = org.settings.get('google_sheet_url') if org.settings else None
+        
+        if not sheet_url:
+            # If no URL saved, try to find one from previous usage or prompt user
+            flash('No Google Sheet URL configured. Please import from Google Sheets first to save the URL.', 'warning')
+            return redirect(url_for('imports.import_fixtures'))
+            
+        from weekly_sheet_refresher import refresh_weekly_fixtures
+        fixtures_data, errors = refresh_weekly_fixtures(sheet_url)
+        
+        if errors:
+            for error in errors:
+                flash(error, 'error')
+            if not fixtures_data:
+                return redirect(url_for('dashboard.dashboard_view'))
+        
+        # Process fixtures using shared helper
+        new_fixtures, updated_fixtures, new_tasks, skipped_count = process_sheet_fixtures(session, org, fixtures_data)
+        
+        session.commit()
+        
+        flash(f'Refreshed fixtures: {new_fixtures} new, {updated_fixtures} updated.', 'success')
+        return redirect(url_for('dashboard.dashboard_view'))
+        
+    except Exception as e:
+        session.rollback()
+        flash(f'Error refreshing fixtures: {str(e)}', 'error')
+        return redirect(url_for('dashboard.dashboard_view'))
+    finally:
+        session.close()
+@imports_bp.route('/bulk_team_upload', methods=['GET', 'POST'])
+@login_required
+def bulk_team_upload():
+    """Bulk team upload for master team list"""
+    session = db_manager.get_session()
+    try:
+        org = get_user_organization()
+        if not org:
+            flash('No organization found.', 'error')
+            return redirect(url_for('auth.logout'))
+
+        if request.method == 'GET':
+            return render_template('bulk_team_upload.html', user_name=current_user.name)
+
+        # Handle POST
+        csv_data = None
+        
+        # Check if file upload
+        if 'team_file' in request.files:
+            file = request.files['team_file']
+            if file and file.filename:
+                filename = file.filename.lower()
+                if filename.endswith('.csv'):
+                    csv_data = file.read().decode('utf-8')
+                elif filename.endswith(('.xlsx', '.xls')):
+                    try:
+                        dfs = pd.read_excel(file, sheet_name=None, dtype=str)
+                        all_data = []
+                        for sheet_name, df in dfs.items():
+                            if not df.empty:
+                                all_data.append(df)
+                        
+                        if all_data:
+                            combined_df = pd.concat(all_data, ignore_index=True)
+                            csv_data = combined_df.to_csv(index=False)
+                        else:
+                            flash('Excel file appears to be empty', 'error')
+                            return redirect(url_for('imports.bulk_team_upload'))
+                    except Exception as e:
+                        flash(f'Error reading Excel file: {str(e)}', 'error')
+                        return redirect(url_for('imports.bulk_team_upload'))
+                else:
+                    flash('Invalid file type. Please upload CSV or Excel.', 'error')
+                    return redirect(url_for('imports.bulk_team_upload'))
+        
+        # Check if pasted text
+        if not csv_data and request.form.get('preview_text'):
+            csv_data = request.form.get('preview_text')
+            
+        if not csv_data:
+            flash('No data provided', 'error')
+            return redirect(url_for('imports.bulk_team_upload'))
+
+        # Check if this is a confirmation save
+        if request.form.get('confirm_save') == 'true':
+            # Reconstruct mapping from form
+            mapping = {}
+            for key, value in request.form.items():
+                if key.startswith('mapping_') and value:
+                    original_header = key.replace('mapping_', '')
+                    mapping[original_header] = value
+            
+            result = process_team_csv(session, org.id, csv_data, mapping)
+            
+            if result['success']:
+                flash(f"Successfully imported {result['created']} new teams. {result['updated']} teams already existed.", 'success')
+                if result['errors']:
+                    flash(f"Some rows had errors: {len(result['errors'])} errors.", 'warning')
+                return redirect(url_for('settings.settings_view'))
+            else:
+                flash(f"Import failed: {result['message']}", 'error')
+                return redirect(url_for('imports.bulk_team_upload'))
+
+        # Check if this is a mapping step
+        if request.form.get('mapping_step') == 'true':
+            # Reconstruct mapping from form
+            mapping = {}
+            for key, value in request.form.items():
+                if key.startswith('mapping_') and value:
+                    original_header = key.replace('mapping_', '')
+                    mapping[original_header] = value
+                    
+            preview = preview_team_csv(csv_data, mapping)
+            return render_template('bulk_team_upload.html',
+                                 user_name=current_user.name,
+                                 show_confirmation=True,
+                                 preview_data=preview,
+                                 csv_data=csv_data,
+                                 mappings=mapping,
+                                 auto_mapped=False)
+
+        # Initial upload - analyze and show mapping
+        analysis = analyze_team_csv_columns(csv_data)
+        
+        # Always show mapping step to allow user to guide the import
+        return render_template('bulk_team_upload.html',
+                             user_name=current_user.name,
+                             show_mapping=True,
+                             analysis=analysis,
+                             csv_data=csv_data)
+
+    except Exception as e:
+        session.rollback()
+        flash(f'Error: {str(e)}', 'error')
+        return redirect(url_for('imports.bulk_team_upload'))
+    finally:
+        session.close()
+
+
+def process_team_csv(session, organization_id, csv_data, column_mapping=None):
+    """Process CSV data for bulk team upload"""
+    result = {
+        'success': True,
+        'created': 0,
+        'updated': 0,
+        'errors': [],
+        'message': ''
+    }
+
+    try:
+        from models import Team
+        
+        csv_file = io.StringIO(csv_data.strip())
+        reader = csv.DictReader(csv_file)
+
+        for row_num, row in enumerate(reader, start=2):
+            try:
+                team_name = ''
+                age_group = None
+
+                # Use column mapping if provided
+                if column_mapping:
+                    for csv_header, our_field in column_mapping.items():
+                        value = row.get(csv_header, '').strip()
+                        if our_field == 'team_name':
+                            team_name = value
+                        elif our_field == 'age_group':
+                            age_group = value or None
+                else:
+                    # Fallback to auto-detection
+                    for key in row.keys():
+                        if key and ('team' in key.lower() or 'name' in key.lower()):
+                            team_name = row[key].strip()
+                            if team_name:
+                                break
+                    
+                    if not team_name:
+                        team_name = list(row.values())[0].strip() if row.values() else None
+                    
+                    for key in row.keys():
+                        if key and ('age' in key.lower() or 'group' in key.lower()):
+                            age_group = row[key].strip() or None
+                            break
+                
+                if not team_name:
+                    result['errors'].append({
+                        'row': row_num,
+                        'message': 'No team name found'
+                    })
+                    continue
+
+                # Check if team already exists
+                existing_team = session.query(Team).filter_by(
+                    organization_id=organization_id,
+                    name=team_name
+                ).first()
+                
+                if existing_team:
+                    result['updated'] += 1
+                else:
+                    new_team = Team(
+                        organization_id=organization_id,
+                        name=team_name,
+                        age_group=age_group,
+                        is_managed=False,
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    session.add(new_team)
+                    result['created'] += 1
+
+            except Exception as e:
+                result['errors'].append({
+                    'row': row_num,
+                    'message': f'Error processing row: {str(e)}'
+                })
+                continue
+
+        session.commit()
+
+        if result['errors']:
+            result['message'] = f'Processed with {len(result["errors"])} errors'
+        else:
+            result['message'] = 'All teams processed successfully'
+
+    except Exception as e:
+        result['success'] = False
+        result['message'] = f'CSV parsing error: {str(e)}'
+        session.rollback()
+
+    return result
+
+
+def analyze_team_csv_columns(csv_data):
+    """Analyze CSV columns for team data"""
+    analysis = {
+        'headers': [],
+        'sample_rows': [],
+        'suggested_mapping': {},
+        'confidence_scores': {},
+        'needs_manual_mapping': False
+    }
     
-    # For now, just flash a message - full implementation can be added later
-    flash('Bulk contact upload functionality will be available soon.', 'info')
-    return redirect(url_for('settings.settings_view'))
+    try:
+        csv_file = io.StringIO(csv_data.strip())
+        reader = csv.DictReader(csv_file)
+        
+        # Get headers
+        analysis['headers'] = reader.fieldnames or []
+        
+        # Get sample rows
+        for i, row in enumerate(reader):
+            if i < 3:
+                analysis['sample_rows'].append(row)
+            else:
+                break
+        
+        # Suggest mappings
+        for header in analysis['headers']:
+            header_lower = header.lower()
+            
+            if 'team' in header_lower and 'name' in header_lower:
+                analysis['suggested_mapping'][header] = 'team_name'
+                analysis['confidence_scores'][header] = 95
+            elif 'team' in header_lower or header_lower == 'name':
+                analysis['suggested_mapping'][header] = 'team_name'
+                analysis['confidence_scores'][header] = 85
+            elif 'age' in header_lower or 'group' in header_lower:
+                analysis['suggested_mapping'][header] = 'age_group'
+                analysis['confidence_scores'][header] = 90
+        
+        # Check if we have team_name mapped
+        if 'team_name' not in analysis['suggested_mapping'].values():
+            analysis['needs_manual_mapping'] = True
+            
+    except Exception as e:
+        analysis['error'] = str(e)
+        analysis['needs_manual_mapping'] = True
+    
+    return analysis
+
+
+def preview_team_csv(csv_data, column_mapping):
+    """Preview team CSV data"""
+    preview_data = {
+        'teams': [],
+        'total_rows': 0,
+        'errors': []
+    }
+
+    try:
+        csv_file = io.StringIO(csv_data.strip())
+        reader = csv.DictReader(csv_file)
+
+        for row_num, row in enumerate(reader, start=2):
+            preview_data['total_rows'] += 1
+
+            team_data = {
+                'row_num': row_num,
+                'team_name': '',
+                'age_group': ''
+            }
+
+            for csv_header, our_field in column_mapping.items():
+                value = row.get(csv_header, '').strip()
+                if our_field in team_data:
+                    team_data[our_field] = value or team_data[our_field]
+
+            if not team_data['team_name']:
+                preview_data['errors'].append({
+                    'row': row_num,
+                    'message': 'Missing team name',
+                    'data': team_data
+                })
+                continue
+
+            preview_data['teams'].append(team_data)
+
+    except Exception as e:
+        preview_data['errors'].append({
+            'row': 'Unknown',
+            'message': f'CSV parsing error: {str(e)}',
+            'data': {}
+        })
+
+    return preview_data

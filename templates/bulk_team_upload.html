@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+
+{% block title %}Bulk Team Upload - Withdean Youth FC{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-upload text-danger"></i>
+            Bulk Team Upload
+        </h1>
+        <p class="text-muted">Upload a master list of teams for your organization</p>
+    </div>
+</div>
+
+{% if show_confirmation %}
+<!-- Confirmation Step -->
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i>
+            <strong>Data Parsed Successfully!</strong><br>
+            Please review the data below before saving.
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-eye"></i> Preview: {{ preview_data.teams|length }} Teams
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if preview_data.errors %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>{{ preview_data.errors|length }} rows had errors and will be skipped:</strong>
+                    <ul class="mb-0 mt-2">
+                        {% for error in preview_data.errors[:5] %}
+                        <li>Row {{ error.row }}: {{ error.message }}</li>
+                        {% endfor %}
+                        {% if preview_data.errors|length > 5 %}
+                        <li>... and {{ preview_data.errors|length - 5 }} more errors</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Team Name</th>
+                                <th>Age Group</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for team in preview_data.teams[:20] %}
+                            <tr>
+                                <td><strong>{{ team.team_name }}</strong></td>
+                                <td>{{ team.age_group or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                            {% if preview_data.teams|length > 20 %}
+                            <tr>
+                                <td colspan="2" class="text-center text-muted">
+                                    ... and {{ preview_data.teams|length - 20 }} more teams
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <textarea name="csv_data" style="display: none;">{{ csv_data }}</textarea>
+                    <input type="hidden" name="confirm_save" value="true">
+                    {% for csv_col, db_field in mappings.items() %}
+                    <input type="hidden" name="mapping_{{ csv_col }}" value="{{ db_field }}">
+                    {% endfor %}
+
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-save"></i> Save {{ preview_data.teams|length }} Teams
+                        </button>
+                        <a href="{{ url_for('imports.bulk_team_upload') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Start Over
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle"></i> Summary
+                </h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Total teams to save:</strong> {{ preview_data.teams|length }}</p>
+                {% if preview_data.errors %}
+                <p><strong>Rows with errors:</strong> {{ preview_data.errors|length }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% elif show_mapping %}
+<!-- Column Mapping Interface -->
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            <strong>Column Mapping</strong><br>
+            Please map your CSV columns to the expected fields.
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-arrows-alt-h"></i> Map Your CSV Columns
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <textarea name="csv_data" style="display: none;">{{ csv_data }}</textarea>
+                    <input type="hidden" name="mapping_step" value="true">
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Your CSV Column</th>
+                                    <th>Sample Data</th>
+                                    <th>Maps To</th>
+                                    <th>Confidence</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for header in analysis.headers %}
+                                <tr>
+                                    <td><strong>{{ header }}</strong></td>
+                                    <td class="small text-muted">
+                                        {% for row in analysis.sample_rows[:2] %}
+                                        {% if row[header] %}
+                                        "{{ row[header][:50] }}{% if row[header]|length > 50 %}...{% endif %}"<br>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <select class="form-select" name="mapping_{{ header }}"
+                                            onchange="validateMapping()">
+                                            <option value="">-- Ignore this column --</option>
+                                            <option value="team_name" {% if
+                                                analysis.suggested_mapping.get(header)=='team_name' %}selected{% endif
+                                                %}>
+                                                Team Name (Required)
+                                            </option>
+                                            <option value="age_group" {% if
+                                                analysis.suggested_mapping.get(header)=='age_group' %}selected{% endif
+                                                %}>
+                                                Age Group
+                                            </option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        {% if analysis.confidence_scores.get(header) %}
+                                        {% set confidence = analysis.confidence_scores[header] %}
+                                        {% if confidence >= 90 %}
+                                        <span class="badge bg-success">{{ confidence }}% - Excellent</span>
+                                        {% elif confidence >= 70 %}
+                                        <span class="badge bg-warning">{{ confidence }}% - Good</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ confidence }}% - Low</span>
+                                        {% endif %}
+                                        {% else %}
+                                        <span class="text-muted">No match</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="alert alert-info mt-3" id="mapping-validation">
+                        <i class="fas fa-info-circle"></i>
+                        <span id="validation-message">Please ensure Team Name is mapped to proceed.</span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger" id="proceed-btn" disabled>
+                            <i class="fas fa-upload"></i> Proceed with Mapping
+                        </button>
+                        <a href="{{ url_for('imports.bulk_team_upload') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Start Over
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-eye"></i> Preview Data
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="small"><strong>Detected {{ analysis.headers|length }} columns:</strong></p>
+                <div class="small">
+                    {% for header in analysis.headers %}
+                    <span class="badge bg-light text-dark me-1 mb-1">{{ header }}</span>
+                    {% endfor %}
+                </div>
+
+                {% if analysis.sample_rows %}
+                <p class="small mt-3"><strong>First row preview:</strong></p>
+                <div class="small font-monospace bg-light p-2 rounded">
+                    {% for key, value in analysis.sample_rows[0].items() %}
+                    <strong>{{ key }}:</strong> {{ value[:30] }}{% if value|length > 30 %}...{% endif %}<br>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- Upload Form -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-csv"></i> Upload Team List
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="team_file" class="form-label">CSV or Excel File</label>
+                        <input type="file" class="form-control" id="team_file" name="team_file"
+                            accept=".csv,.txt,.xlsx,.xls">
+                        <div class="form-text">
+                            Upload a CSV or Excel file with team names.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="preview_text" class="form-label">Or Paste CSV Data</label>
+                        <textarea class="form-control" id="preview_text" name="preview_text" rows="6"
+                            placeholder="Or paste CSV data directly here..."></textarea>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-upload"></i> Upload Teams
+                        </button>
+                        <a href="{{ url_for('settings.settings_view') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Settings
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle"></i> CSV Format
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="small"><strong>Required Column:</strong></p>
+                <ul class="small">
+                    <li><code>team_name</code> or <code>name</code> - Team name</li>
+                </ul>
+
+                <p class="small mt-3"><strong>Optional Columns:</strong></p>
+                <ul class="small">
+                    <li><code>age_group</code> - Age group (e.g., U14, U16)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-download"></i> Sample CSV
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="font-monospace">
+                    team_name,age_group
+                    Withdean Youth U14 White,U14
+                    Withdean Youth U14 Red,U14
+                    Withdean Youth U13 White,U13
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function validateMapping() {
+        const selects = document.querySelectorAll('select[name^="mapping_"]');
+        const mappedFields = new Set();
+        let hasTeamName = false;
+
+        // Check what fields are mapped
+        selects.forEach(select => {
+            const value = select.value;
+            if (value) {
+                if (mappedFields.has(value)) {
+                    // Duplicate mapping detected
+                    showMappingError(`Multiple columns mapped to "${value}". Each field can only be mapped once.`);
+                    return;
+                }
+                mappedFields.add(value);
+
+                if (value === 'team_name') hasTeamName = true;
+            }
+        });
+
+        const proceedBtn = document.getElementById('proceed-btn');
+        const validationMessage = document.getElementById('validation-message');
+
+        if (hasTeamName) {
+            proceedBtn.disabled = false;
+            validationMessage.innerHTML = '✅ Ready to proceed! Team Name is mapped.';
+            document.getElementById('mapping-validation').className = 'alert alert-success mt-3';
+        } else {
+            proceedBtn.disabled = true;
+            validationMessage.innerHTML = '❌ Missing required field: Team Name';
+            document.getElementById('mapping-validation').className = 'alert alert-warning mt-3';
+        }
+    }
+
+    function showMappingError(message) {
+        const validationMessage = document.getElementById('validation-message');
+        validationMessage.innerHTML = `❌ ${message}`;
+        document.getElementById('mapping-validation').className = 'alert alert-danger mt-3';
+        document.getElementById('proceed-btn').disabled = true;
+    }
+
+    // Run validation on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        if (document.getElementById('proceed-btn')) {
+            validateMapping();
+        }
+    });
+</script>
+{% endblock %}

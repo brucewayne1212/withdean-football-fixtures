@@ -1,12 +1,30 @@
 # Google App Engine configuration
 runtime: python311
 
+# Entry point
+entrypoint: gunicorn -b :$PORT app:app
+
 env_variables:
   FLASK_ENV: production
+  DATABASE_URL: "postgresql://neondb_owner:npg_V1zDyIcxCOv9@ep-falling-shape-abr14uib-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+  SECRET_KEY: "d5604e88275166a21a2c8ee16f3fd58bd172be311bc8a722cf4909c77c69afa9709h9sde_FnfWuQeBLs_2l9FAf58hE793bQggFGH9-E"
+  GOOGLE_OAUTH_CLIENT_ID: "233242605158-665qdtmlupffkra34bgc1ba3fr9rmdbs.apps.googleusercontent.com"
+  GOOGLE_OAUTH_CLIENT_SECRET: "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"
+
+# Handlers for static files
+handlers:
+  - url: /static
+    static_dir: static
+    secure: always
+
+  - url: /.*
+    script: auto
+    secure: always
 
 automatic_scaling:
   min_instances: 0
   max_instances: 10
+  target_cpu_utilization: 0.65
 
 resources:
   cpu: 1

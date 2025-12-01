@@ -41,10 +41,12 @@
                         </label>
                         <div class="card border-info">
                             <div class="card-body p-3">
-                                <pre id="templateText" style="background: transparent; border: none; white-space: pre-wrap; font-family: 'Courier New', monospace; min-height: 200px; font-size: 13px; line-height: 1.4;"></pre>
+                                <pre id="templateText"
+                                    style="background: transparent; border: none; white-space: pre-wrap; font-family: 'Courier New', monospace; min-height: 200px; font-size: 13px; line-height: 1.4;"></pre>
                             </div>
                             <div class="card-footer">
-                                <button type="button" class="btn btn-success" onclick="copyTemplateText()" id="copyTemplateBtn">
+                                <button type="button" class="btn btn-success" onclick="copyTemplateText()"
+                                    id="copyTemplateBtn">
                                     <i class="fas fa-copy"></i> Copy to Clipboard
                                 </button>
                                 <small class="text-muted ms-2" id="copyStatus"></small>
@@ -100,10 +102,12 @@
                             <strong>Email Response Text</strong>
                         </div>
                         <div class="card-body">
-                            <pre id="awayResponseText" class="mb-0" style="white-space: pre-wrap; font-family: 'Courier New', monospace; background-color: #f8f9fa; padding: 15px; border-radius: 5px; font-size: 12px;"></pre>
+                            <pre id="awayResponseText" class="mb-0"
+                                style="white-space: pre-wrap; font-family: 'Courier New', monospace; background-color: #f8f9fa; padding: 15px; border-radius: 5px; font-size: 12px;"></pre>
                         </div>
                         <div class="card-footer">
-                            <button type="button" class="btn btn-success btn-lg w-100" onclick="copyAwayResponseAndMarkComplete()" id="copyAndCompleteBtn">
+                            <button type="button" class="btn btn-success btn-lg w-100"
+                                onclick="copyAwayResponseAndMarkComplete()" id="copyAndCompleteBtn">
                                 <i class="fas fa-copy"></i> Copy & Mark Task Complete
                             </button>
                         </div>
@@ -124,82 +128,123 @@
     </div>
 </div>
 
-<!-- Team Filter and Filters -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Filters</h6>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="showAllTeams" 
-                               {{ 'checked' if show_all_teams }} 
-                               onchange="toggleAllTeams()">
-                        <label class="form-check-label" for="showAllTeams">
-                            Show all club teams ({{ total_tasks }} total)
-                        </label>
-                    </div>
+<!-- Bulk Complete Modal -->
+<div class="modal fade" id="bulkCompleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle text-success"></i>
+                    Complete <span id="bulkCompleteCount">0</span> Task(s)
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    You are about to mark <strong><span id="bulkCompleteCountText">0</span> task(s)</strong> as
+                    completed.
+                </div>
+                <div class="mb-3">
+                    <label for="bulkCompleteNotes" class="form-label">
+                        <i class="fas fa-sticky-note"></i> Notes (Optional)
+                    </label>
+                    <textarea class="form-control" id="bulkCompleteNotes" rows="3"
+                        placeholder="Add any notes about these tasks..."></textarea>
+                    <small class="text-muted">These notes will be added to all selected tasks.</small>
                 </div>
             </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="confirmBulkComplete()">
+                    <i class="fas fa-check"></i> Complete Tasks
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
             <div class="card-body">
-                {% if not show_all_teams %}
-                <div class="alert alert-info">
-                    <i class="fas fa-user-check"></i> 
-                    Showing only your {{ my_summary.total }} managed teams. 
-                    Toggle above to see all {{ total_tasks }} club fixtures.
-                </div>
-                {% endif %}
-                
-                <!-- Bulk Actions -->
-                <div class="mb-3">
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-success btn-sm" onclick="bulkComplete()" disabled id="bulkCompleteBtn">
-                            <i class="fas fa-check"></i> Mark Selected Complete
-                        </button>
-                        <button type="button" class="btn btn-warning btn-sm" onclick="bulkArchive()" disabled id="bulkArchiveBtn">
-                            <i class="fas fa-archive"></i> Archive Selected
-                        </button>
-                        <button type="button" class="btn btn-danger btn-sm" onclick="bulkDelete()" disabled id="bulkDeleteBtn" title="Permanent deletion - for matches added in error">
-                            <i class="fas fa-trash"></i> Permanently Delete
-                        </button>
-                    </div>
-                    <span id="selectedCount" class="text-muted ms-2">0 tasks selected</span>
-                </div>
-                
-                <form method="GET" class="row align-items-end">
+                <form method="GET" class="row g-3 align-items-center">
                     <input type="hidden" name="show_all" value="{{ 'true' if show_all_teams else 'false' }}">
-                    <div class="col-md-3">
-                        <label for="type" class="form-label">Task Type</label>
-                        <select name="type" id="type" class="form-select">
-                            <option value="all" {{ 'selected' if current_type == 'all' }}>All Types</option>
-                            <option value="home_email" {{ 'selected' if current_type == 'home_email' }}>Home Games (Send Emails)</option>
-                            <option value="away_email" {{ 'selected' if current_type == 'away_email' }}>Away Games (Send Emails)</option>
-                        </select>
+
+                    <!-- Team Toggle -->
+                    <div class="col-md-12 d-flex justify-content-between align-items-center mb-2">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="showAllTeams" {{ 'checked' if
+                                show_all_teams }} onchange="toggleAllTeams()">
+                            <label class="form-check-label fw-bold" for="showAllTeams">
+                                Show all club teams
+                            </label>
+                        </div>
+                        <span class="badge bg-light text-dark border">{{ total_tasks }} tasks total</span>
                     </div>
-                    <div class="col-md-3">
-                        <label for="status" class="form-label">Status</label>
-                        <select name="status" id="status" class="form-select">
-                            <option value="all" {{ 'selected' if current_status == 'all' }}>All Statuses</option>
-                            <option value="pending" {{ 'selected' if current_status == 'pending' }}>Pending</option>
-                            <option value="waiting" {{ 'selected' if current_status == 'waiting' }}>Waiting</option>
-                            <option value="in_progress" {{ 'selected' if current_status == 'in_progress' }}>In Progress</option>
-                            <option value="completed" {{ 'selected' if current_status == 'completed' }}>Completed</option>
-                        </select>
+
+                    <!-- Filter Groups -->
+                    <div class="col-md-5">
+                        <label class="form-label small text-muted text-uppercase fw-bold">Task Type</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="type" id="type_all" value="all" {{ 'checked' if
+                                current_type=='all' }} onchange="this.form.submit()">
+                            <label class="btn btn-outline-secondary" for="type_all">All</label>
+
+                            <input type="radio" class="btn-check" name="type" id="type_home" value="home_email"
+                                {{ 'checked' if current_type=='home_email' }} onchange="this.form.submit()">
+                            <label class="btn btn-outline-warning" for="type_home"><i
+                                    class="fas fa-home me-1"></i>Home</label>
+
+                            <input type="radio" class="btn-check" name="type" id="type_away" value="away_email"
+                                {{ 'checked' if current_type=='away_email' }} onchange="this.form.submit()">
+                            <label class="btn btn-outline-info" for="type_away"><i
+                                    class="fas fa-plane me-1"></i>Away</label>
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <button type="submit" class="btn btn-danger">
-                            <i class="fas fa-filter"></i> Apply Filters
-                        </button>
-                        <a href="{{ url_for('tasks.view_tasks') }}" class="btn btn-secondary">
-                            <i class="fas fa-times"></i> Clear
-                        </a>
-                        {% if not show_all_teams and my_summary.pending > 0 %}
-                        <a href="{{ url_for('tasks.view_tasks', status='pending') }}" class="btn btn-warning">
-                            <i class="fas fa-envelope"></i> My Pending ({{ my_summary.pending }})
-                        </a>
-                        {% endif %}
+
+                    <div class="col-md-7">
+                        <label class="form-label small text-muted text-uppercase fw-bold">Status</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="status" id="status_all" value="all" {{ 'checked'
+                                if current_status=='all' }} onchange="this.form.submit()">
+                            <label class="btn btn-outline-secondary" for="status_all">All</label>
+
+                            <input type="radio" class="btn-check" name="status" id="status_pending" value="pending"
+                                {{ 'checked' if current_status=='pending' }} onchange="this.form.submit()">
+                            <label class="btn btn-outline-warning" for="status_pending">Pending</label>
+
+                            <input type="radio" class="btn-check" name="status" id="status_waiting" value="waiting"
+                                {{ 'checked' if current_status=='waiting' }} onchange="this.form.submit()">
+                            <label class="btn btn-outline-info" for="status_waiting">Waiting</label>
+
+                            <input type="radio" class="btn-check" name="status" id="status_completed" value="completed"
+                                {{ 'checked' if current_status=='completed' }} onchange="this.form.submit()">
+                            <label class="btn btn-outline-success" for="status_completed">Done</label>
+                        </div>
                     </div>
                 </form>
+
+                <!-- Bulk Actions (Hidden by default until selection) -->
+                <div id="bulkActionsPanel" class="mt-3 pt-3 border-top" style="display: none;">
+                    <div class="d-flex align-items-center gap-2">
+                        <span id="selectedCount" class="fw-bold text-primary">0 selected</span>
+                        <div class="vr mx-2"></div>
+                        <button type="button" class="btn btn-success btn-sm" onclick="bulkComplete()"
+                            id="bulkCompleteBtn">
+                            <i class="fas fa-check me-1"></i> Complete
+                        </button>
+                        <button type="button" class="btn btn-warning btn-sm" onclick="bulkArchive()"
+                            id="bulkArchiveBtn">
+                            <i class="fas fa-archive me-1"></i> Archive
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm ms-auto" onclick="bulkDelete()"
+                            id="bulkDeleteBtn">
+                            <i class="fas fa-trash me-1"></i> Delete
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -218,7 +263,8 @@
                     <thead class="table-dark">
                         <tr>
                             <th width="40">
-                                <input type="checkbox" class="form-check-input" id="selectAll" onchange="toggleSelectAll()">
+                                <input type="checkbox" class="form-check-input" id="selectAll"
+                                    onchange="toggleSelectAll()">
                             </th>
                             <th class="sortable" data-sort="team" style="cursor: pointer;">
                                 Team <i class="fas fa-sort sort-icon" data-sort-icon="team"></i>
@@ -241,59 +287,65 @@
                         {% set opp = task.opposition %}
 
                         {# Make away fixtures (in waiting status) have clickable rows #}
-                        <tr class="clickable-row" onclick="openEmailGenerator('{{ task.id }}')" style="cursor: pointer;" title="Open email generator">
+                        <tr class="clickable-row" onclick="openEmailGenerator('{{ task.id }}')" style="cursor: pointer;"
+                            title="Open email generator">
 
                             <td>
-                                <input type="checkbox" class="form-check-input task-checkbox" value="{{ task.id }}" onclick="event.stopPropagation();" onchange="updateSelection(); event.stopPropagation();">
+                                <input type="checkbox" class="form-check-input task-checkbox" value="{{ task.id }}"
+                                    onclick="event.stopPropagation();"
+                                    onchange="updateSelection(); event.stopPropagation();">
                             </td>
                             <td data-sort-value="{{ task.team|lower }}">
                                 <strong>{{ task.team }}</strong>
                             </td>
                             <td>
-                                {% if opp and opp|string|lower not in ['nan', 'friendly - manager to sort', 'manager to sort', 'tbc'] %}
-                                    {{ opp }}
+                                {% if opp and opp|string|lower not in ['nan', 'friendly - manager to sort', 'manager to
+                                sort', 'tbc'] %}
+                                {{ opp }}
                                 {% else %}
-                                    TBC
+                                TBC
                                 {% endif %}
                             </td>
-                            <td data-sort-value="{% if task.kickoff_datetime %}{{ task.kickoff_datetime.isoformat() }}{% else %}9999-12-31T00:00:00{% endif %}">
+                            <td
+                                data-sort-value="{% if task.kickoff_datetime %}{{ task.kickoff_datetime.isoformat() }}{% else %}9999-12-31T00:00:00{% endif %}">
                                 {% if task.kickoff_datetime %}
-                                    <small><strong>{{ task.kickoff_datetime.strftime('%a %d %b') }}</strong></small>
+                                <small><strong>{{ task.kickoff_datetime.strftime('%a %d %b') }}</strong></small>
                                 {% else %}
-                                    <small>TBC</small>
+                                <small>TBC</small>
                                 {% endif %}
                             </td>
                             <td>
-                                <small>{{ task.kickoff_time if task.kickoff_time and task.kickoff_time != 'nan' else 'TBC' }}</small>
+                                <small>{{ task.kickoff_time if task.kickoff_time and task.kickoff_time != 'nan' else
+                                    'TBC' }}</small>
                             </td>
                             <td>
                                 {% if task_type == 'home_email' %}
-                                    <span class="badge bg-warning">
-                                        <i class="fas fa-home"></i> Home
-                                    </span>
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-home"></i> Home
+                                </span>
                                 {% else %}
-                                    <span class="badge bg-info">
-                                        <i class="fas fa-plane"></i> Away
-                                    </span>
+                                <span class="badge bg-info">
+                                    <i class="fas fa-plane"></i> Away
+                                </span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if task_status == 'pending' %}
-                                    <span class="badge bg-warning">
-                                        <i class="fas fa-clock"></i> Pending
-                                    </span>
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-clock"></i> Pending
+                                </span>
                                 {% elif task_status == 'waiting' %}
-                                    <span class="badge bg-info">
-                                        <i class="fas fa-hourglass-half"></i> Waiting
-                                    </span>
+                                <span class="badge bg-info">
+                                    <i class="fas fa-hourglass-half"></i> Waiting
+                                </span>
                                 {% elif task_status == 'in_progress' %}
-                                    <span class="badge bg-primary">
-                                        <i class="fas fa-spinner"></i> In Progress
-                                    </span>
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-spinner"></i> In Progress
+                                </span>
                                 {% else %}
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-check"></i> Completed
-                                    </span>
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check"></i> Completed
+                                </span>
                                 {% endif %}
                             </td>
                             <td>
@@ -301,21 +353,26 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ url_for('tasks.view_task', task_id=task.id) }}" class="btn btn-outline-primary" onclick="event.stopPropagation();">
+                                    <a href="{{ url_for('tasks.view_task', task_id=task.id) }}"
+                                        class="btn btn-outline-primary" onclick="event.stopPropagation();">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     {% if task_type == 'home_email' and task_status in ['pending', 'in_progress'] %}
-                                    <a href="{{ url_for('tasks.generate_email_route', task_id=task.id) }}" class="btn btn-outline-warning" onclick="event.stopPropagation();">
+                                    <a href="{{ url_for('tasks.generate_email_route', task_id=task.id) }}"
+                                        class="btn btn-outline-warning" onclick="event.stopPropagation();">
                                         <i class="fas fa-envelope"></i>
                                     </a>
                                     {% endif %}
                                     {% if task_type == 'away_email' %}
-                                    <button class="btn btn-outline-info" onclick="event.stopPropagation(); generateAwayEmail('{{ task.id }}', '{{ task.team|escapejs }}');" title="Generate away response">
+                                    <button class="btn btn-outline-info"
+                                        onclick="event.stopPropagation(); generateAwayEmail('{{ task.id }}', '{{ task.team|escapejs }}');"
+                                        title="Generate away response">
                                         <i class="fas fa-paper-plane"></i>
                                     </button>
                                     {% endif %}
                                     {% if task_status != 'completed' %}
-                                    <button class="btn btn-outline-success" onclick="markCompleted('{{ task.id }}'); event.stopPropagation();">
+                                    <button class="btn btn-outline-success"
+                                        onclick="markCompleted('{{ task.id }}'); event.stopPropagation();">
                                         <i class="fas fa-check"></i>
                                     </button>
                                     {% endif %}
@@ -334,9 +391,9 @@
                 <h5>No tasks found</h5>
                 <p class="text-muted">
                     {% if current_type != 'all' or current_status != 'all' %}
-                        Try adjusting your filters or <a href="{{ url_for('tasks.view_tasks') }}">view all tasks</a>.
+                    Try adjusting your filters or <a href="{{ url_for('tasks.view_tasks') }}">view all tasks</a>.
                     {% else %}
-                        <a href="{{ url_for('imports.upload_file') }}">Import some fixtures</a> to get started!
+                    <a href="{{ url_for('imports.upload_file') }}">Import some fixtures</a> to get started!
                     {% endif %}
                 </p>
             </div>
@@ -348,806 +405,862 @@
 
 {% block scripts %}
 <style>
-.sortable {
-    user-select: none;
-    position: relative;
-}
-.sortable:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-.sort-icon {
-    opacity: 0.5;
-    margin-left: 5px;
-    font-size: 0.8em;
-}
-.sort-icon.active {
-    opacity: 1;
-}
-.sort-icon.asc::before {
-    content: "\f0de"; /* fa-sort-up */
-}
-.sort-icon.desc::before {
-    content: "\f0dd"; /* fa-sort-down */
-}
+    .sortable {
+        user-select: none;
+        position: relative;
+    }
+
+    .sortable:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .sort-icon {
+        opacity: 0.5;
+        margin-left: 5px;
+        font-size: 0.8em;
+    }
+
+    .sort-icon.active {
+        opacity: 1;
+    }
+
+    .sort-icon.asc::before {
+        content: "\f0de";
+        /* fa-sort-up */
+    }
+
+    .sort-icon.desc::before {
+        content: "\f0dd";
+        /* fa-sort-down */
+    }
 </style>
 <script>
-// Table sorting functionality
-let currentSort = {
-    column: null,
-    direction: null
-};
+    // Table sorting functionality
+    let currentSort = {
+        column: null,
+        direction: null
+    };
 
-function sortTable(column) {
-    const tbody = document.querySelector('table tbody');
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    
-    // Determine sort direction
-    let direction = 'asc';
-    if (currentSort.column === column && currentSort.direction === 'asc') {
-        direction = 'desc';
-    }
-    
-    // Update current sort state
-    currentSort.column = column;
-    currentSort.direction = direction;
-    
-    // Update sort icons
-    document.querySelectorAll('.sort-icon').forEach(icon => {
-        icon.classList.remove('active', 'asc', 'desc');
-        if (icon.dataset.sortIcon === column) {
-            icon.classList.add('active', direction);
-        }
-    });
-    
-    // Sort rows
-    rows.sort((a, b) => {
-        let aValue, bValue;
-        
-        if (column === 'team') {
-            const aCell = a.querySelector('td:nth-child(2)');
-            const bCell = b.querySelector('td:nth-child(2)');
-            aValue = aCell ? aCell.dataset.sortValue || '' : '';
-            bValue = bCell ? bCell.dataset.sortValue || '' : '';
-        } else if (column === 'date') {
-            const aCell = a.querySelector('td:nth-child(4)');
-            const bCell = b.querySelector('td:nth-child(4)');
-            aValue = aCell ? aCell.dataset.sortValue || '9999-12-31T00:00:00' : '9999-12-31T00:00:00';
-            bValue = bCell ? bCell.dataset.sortValue || '9999-12-31T00:00:00' : '9999-12-31T00:00:00';
-        } else {
-            return 0;
-        }
-        
-        // Compare values
-        let comparison = 0;
-        if (column === 'date') {
-            // For dates, compare ISO strings directly
-            comparison = aValue.localeCompare(bValue);
-        } else {
-            // For text, use case-insensitive comparison
-            comparison = aValue.localeCompare(bValue, undefined, { sensitivity: 'base' });
-        }
-        
-        return direction === 'asc' ? comparison : -comparison;
-    });
-    
-    // Re-append sorted rows
-    rows.forEach(row => tbody.appendChild(row));
-}
+    function sortTable(column) {
+        const tbody = document.querySelector('table tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
 
-// Add click handlers to sortable headers
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.sortable').forEach(header => {
-        header.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const column = this.dataset.sort;
-            if (column) {
-                sortTable(column);
+        // Determine sort direction
+        let direction = 'asc';
+        if (currentSort.column === column && currentSort.direction === 'asc') {
+            direction = 'desc';
+        }
+
+        // Update current sort state
+        currentSort.column = column;
+        currentSort.direction = direction;
+
+        // Update sort icons
+        document.querySelectorAll('.sort-icon').forEach(icon => {
+            icon.classList.remove('active', 'asc', 'desc');
+            if (icon.dataset.sortIcon === column) {
+                icon.classList.add('active', direction);
             }
         });
-    });
-    
-    // Sort by date (ascending) by default on page load
-    sortTable('date');
-});
 
-// Toggle the template section visibility
-function toggleTemplateSection() {
-    const section = document.getElementById('templateSection');
-    const toggleIcon = document.getElementById('toggleIcon');
+        // Sort rows
+        rows.sort((a, b) => {
+            let aValue, bValue;
 
-    if (section.style.display === 'none') {
-        section.style.display = 'block';
-        toggleIcon.className = 'fas fa-chevron-up';
-    } else {
-        section.style.display = 'none';
-        toggleIcon.className = 'fas fa-chevron-down';
+            if (column === 'team') {
+                const aCell = a.querySelector('td:nth-child(2)');
+                const bCell = b.querySelector('td:nth-child(2)');
+                aValue = aCell ? aCell.dataset.sortValue || '' : '';
+                bValue = bCell ? bCell.dataset.sortValue || '' : '';
+            } else if (column === 'date') {
+                const aCell = a.querySelector('td:nth-child(4)');
+                const bCell = b.querySelector('td:nth-child(4)');
+                aValue = aCell ? aCell.dataset.sortValue || '9999-12-31T00:00:00' : '9999-12-31T00:00:00';
+                bValue = bCell ? bCell.dataset.sortValue || '9999-12-31T00:00:00' : '9999-12-31T00:00:00';
+            } else {
+                return 0;
+            }
+
+            // Compare values
+            let comparison = 0;
+            if (column === 'date') {
+                // For dates, compare ISO strings directly
+                comparison = aValue.localeCompare(bValue);
+            } else {
+                // For text, use case-insensitive comparison
+                comparison = aValue.localeCompare(bValue, undefined, { sensitivity: 'base' });
+            }
+
+            return direction === 'asc' ? comparison : -comparison;
+        });
+
+        // Re-append sorted rows
+        rows.forEach(row => tbody.appendChild(row));
     }
-}
 
-function markCompleted(taskId) {
-    if (confirm('Mark this task as completed?')) {
-        fetch(`/mark_completed/${taskId}`, {
+    // Add click handlers to sortable headers
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.sortable').forEach(header => {
+            header.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const column = this.dataset.sort;
+                if (column) {
+                    sortTable(column);
+                }
+            });
+        });
+
+        // Sort by date (ascending) by default on page load
+        sortTable('date');
+    });
+
+    // Toggle the template section visibility
+    function toggleTemplateSection() {
+        const section = document.getElementById('templateSection');
+        const toggleIcon = document.getElementById('toggleIcon');
+
+        if (section.style.display === 'none') {
+            section.style.display = 'block';
+            toggleIcon.className = 'fas fa-chevron-up';
+        } else {
+            section.style.display = 'none';
+            toggleIcon.className = 'fas fa-chevron-down';
+        }
+    }
+
+    function markCompleted(taskId) {
+        if (confirm('Mark this task as completed?')) {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="csrf_token"]')?.value || '{{ csrf_token() }}';
+            fetch(`/mark_completed/${taskId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ notes: '' })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error marking task as completed');
+                    }
+                })
+                .catch(error => {
+                    alert('Error marking task as completed');
+                });
+        }
+    }
+
+    function toggleAllTeams() {
+        const checkbox = document.getElementById('showAllTeams');
+        const currentUrl = new URL(window.location);
+
+        if (checkbox.checked) {
+            currentUrl.searchParams.set('show_all', 'true');
+        } else {
+            currentUrl.searchParams.delete('show_all');
+        }
+
+        window.location.href = currentUrl.toString();
+    }
+
+    // Bulk operations functionality
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('selectAll');
+        const taskCheckboxes = document.querySelectorAll('.task-checkbox');
+
+        taskCheckboxes.forEach(checkbox => {
+            checkbox.checked = selectAll.checked;
+        });
+
+        updateSelection();
+    }
+
+    function updateSelection() {
+        const taskCheckboxes = document.querySelectorAll('.task-checkbox');
+        const selectedCheckboxes = document.querySelectorAll('.task-checkbox:checked');
+        const selectAllCheckbox = document.getElementById('selectAll');
+
+        const selectedCount = selectedCheckboxes.length;
+        const totalCount = taskCheckboxes.length;
+
+        // Update select all checkbox state
+        if (selectedCount === 0) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = false;
+        } else if (selectedCount === totalCount) {
+            selectAllCheckbox.indeterminate = false;
+            selectAllCheckbox.checked = true;
+        } else {
+            selectAllCheckbox.indeterminate = true;
+        }
+
+        // Update UI
+        const bulkPanel = document.getElementById('bulkActionsPanel');
+        const selectedCountSpan = document.getElementById('selectedCount');
+
+        if (selectedCount > 0) {
+            bulkPanel.style.display = 'block';
+            selectedCountSpan.textContent = `${selectedCount} selected`;
+        } else {
+            bulkPanel.style.display = 'none';
+        }
+        document.getElementById('bulkCompleteBtn').disabled = selectedCount === 0;
+        document.getElementById('bulkArchiveBtn').disabled = selectedCount === 0;
+        document.getElementById('bulkDeleteBtn').disabled = selectedCount === 0;
+    }
+
+    function getSelectedTaskIds() {
+        const selectedCheckboxes = document.querySelectorAll('.task-checkbox:checked');
+        return Array.from(selectedCheckboxes).map(cb => cb.value);
+    }
+
+    function bulkComplete() {
+        const taskIds = getSelectedTaskIds();
+        if (taskIds.length === 0) return;
+
+        // Update the modal with the count
+        document.getElementById('bulkCompleteCount').textContent = taskIds.length;
+        document.getElementById('bulkCompleteCountText').textContent = taskIds.length;
+
+        // Clear any previous notes
+        document.getElementById('bulkCompleteNotes').value = '';
+
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('bulkCompleteModal'));
+        modal.show();
+    }
+
+    function confirmBulkComplete() {
+        const taskIds = getSelectedTaskIds();
+        if (taskIds.length === 0) return;
+
+        const notes = document.getElementById('bulkCompleteNotes').value || '';
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="csrf_token"]')?.value || '{{ csrf_token() }}';
+
+        // Hide the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('bulkCompleteModal'));
+        modal.hide();
+
+        // Show loading state on the bulk complete button
+        const bulkCompleteBtn = document.getElementById('bulkCompleteBtn');
+        const originalHTML = bulkCompleteBtn.innerHTML;
+        bulkCompleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processing...';
+        bulkCompleteBtn.disabled = true;
+
+        fetch('/bulk_complete', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
             },
-            body: JSON.stringify({notes: ''})
+            body: JSON.stringify({
+                task_ids: taskIds,
+                notes: notes
+            })
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error marking task as completed');
-            }
-        })
-        .catch(error => {
-            alert('Error marking task as completed');
-        });
-    }
-}
-
-function toggleAllTeams() {
-    const checkbox = document.getElementById('showAllTeams');
-    const currentUrl = new URL(window.location);
-
-    if (checkbox.checked) {
-        currentUrl.searchParams.set('show_all', 'true');
-    } else {
-        currentUrl.searchParams.delete('show_all');
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`${data.completed_count} tasks marked as completed!`);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    alert('Error completing tasks: ' + data.error);
+                    bulkCompleteBtn.innerHTML = originalHTML;
+                    bulkCompleteBtn.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error completing tasks');
+                bulkCompleteBtn.innerHTML = originalHTML;
+                bulkCompleteBtn.disabled = false;
+            });
     }
 
-    window.location.href = currentUrl.toString();
-}
+    function bulkArchive() {
+        const taskIds = getSelectedTaskIds();
+        if (taskIds.length === 0) return;
 
-// Bulk operations functionality
-function toggleSelectAll() {
-    const selectAll = document.getElementById('selectAll');
-    const taskCheckboxes = document.querySelectorAll('.task-checkbox');
-
-    taskCheckboxes.forEach(checkbox => {
-        checkbox.checked = selectAll.checked;
-    });
-
-    updateSelection();
-}
-
-function updateSelection() {
-    const taskCheckboxes = document.querySelectorAll('.task-checkbox');
-    const selectedCheckboxes = document.querySelectorAll('.task-checkbox:checked');
-    const selectAllCheckbox = document.getElementById('selectAll');
-
-    const selectedCount = selectedCheckboxes.length;
-    const totalCount = taskCheckboxes.length;
-
-    // Update select all checkbox state
-    if (selectedCount === 0) {
-        selectAllCheckbox.indeterminate = false;
-        selectAllCheckbox.checked = false;
-    } else if (selectedCount === totalCount) {
-        selectAllCheckbox.indeterminate = false;
-        selectAllCheckbox.checked = true;
-    } else {
-        selectAllCheckbox.indeterminate = true;
-    }
-
-    // Update UI
-    document.getElementById('selectedCount').textContent = `${selectedCount} tasks selected`;
-    document.getElementById('bulkCompleteBtn').disabled = selectedCount === 0;
-    document.getElementById('bulkArchiveBtn').disabled = selectedCount === 0;
-    document.getElementById('bulkDeleteBtn').disabled = selectedCount === 0;
-}
-
-function getSelectedTaskIds() {
-    const selectedCheckboxes = document.querySelectorAll('.task-checkbox:checked');
-    return Array.from(selectedCheckboxes).map(cb => cb.value);
-}
-
-function bulkComplete() {
-    const taskIds = getSelectedTaskIds();
-    if (taskIds.length === 0) return;
-
-    const notes = prompt(`Add optional notes for ${taskIds.length} task(s):`);
-    if (notes === null) return; // User cancelled
-
-    fetch('/bulk_complete', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            task_ids: taskIds,
-            notes: notes || ''
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast(`${data.completed_count} tasks marked as completed!`);
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            alert('Error completing tasks: ' + data.error);
+        if (!confirm(`Archive ${taskIds.length} task(s)? They will be hidden but can be restored later.`)) {
+            return;
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error completing tasks');
-    });
-}
 
-function bulkArchive() {
-    const taskIds = getSelectedTaskIds();
-    if (taskIds.length === 0) return;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="csrf_token"]')?.value || '{{ csrf_token() }}';
 
-    if (!confirm(`Archive ${taskIds.length} task(s)? They will be hidden but can be restored later.`)) {
-        return;
-    }
-
-    fetch('/bulk_archive', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            task_ids: taskIds
+        fetch('/bulk_archive', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                task_ids: taskIds
+            })
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast(`${data.archived_count} tasks archived!`);
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            alert('Error archiving tasks: ' + data.error);
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`${data.archived_count} tasks archived!`);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    alert('Error archiving tasks: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error archiving tasks');
+            });
+    }
+
+    function bulkDelete() {
+        const taskIds = getSelectedTaskIds();
+        if (taskIds.length === 0) return;
+
+        const confirmMessage = `PERMANENT DELETION WARNING!\n\nThis will permanently delete ${taskIds.length} task(s) from the database.\nThis action cannot be undone and should only be used for matches added in error.\n\nFor regular cleanup, use the Archive function instead.\n\nAre you absolutely sure you want to PERMANENTLY DELETE these tasks?`;
+
+        if (!confirm(confirmMessage)) {
+            return;
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error archiving tasks');
-    });
-}
 
-function bulkDelete() {
-    const taskIds = getSelectedTaskIds();
-    if (taskIds.length === 0) return;
+        // Second confirmation for permanent deletion
+        if (!confirm(`Last chance! Permanently delete ${taskIds.length} task(s)? This CANNOT be undone!`)) {
+            return;
+        }
 
-    const confirmMessage = `PERMANENT DELETION WARNING!\n\nThis will permanently delete ${taskIds.length} task(s) from the database.\nThis action cannot be undone and should only be used for matches added in error.\n\nFor regular cleanup, use the Archive function instead.\n\nAre you absolutely sure you want to PERMANENTLY DELETE these tasks?`;
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="csrf_token"]')?.value || '{{ csrf_token() }}';
 
-    if (!confirm(confirmMessage)) {
-        return;
-    }
-
-    // Second confirmation for permanent deletion
-    if (!confirm(`Last chance! Permanently delete ${taskIds.length} task(s)? This CANNOT be undone!`)) {
-        return;
-    }
-
-    fetch('/bulk_delete', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            task_ids: taskIds,
-            permanent: true
+        fetch('/bulk_delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                task_ids: taskIds,
+                permanent: true
+            })
         })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast(`${data.deleted_count} tasks permanently deleted!`);
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            alert('Error deleting tasks: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error deleting tasks');
-    });
-}
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`${data.deleted_count} tasks permanently deleted!`);
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    alert('Error deleting tasks: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error deleting tasks');
+            });
+    }
 
-function showToast(message) {
-    // Simple toast notification
-    const toast = document.createElement('div');
-    toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed top-0 end-0 m-3';
-    toast.style.zIndex = '1050';
-    toast.innerHTML = `
+    function showToast(message) {
+        // Simple toast notification
+        const toast = document.createElement('div');
+        toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed top-0 end-0 m-3';
+        toast.style.zIndex = '1050';
+        toast.innerHTML = `
         <div class="d-flex">
             <div class="toast-body">${message}</div>
             <button type="button" class="btn-close btn-close-white me-2 m-auto"></button>
         </div>
     `;
-    document.body.appendChild(toast);
+        document.body.appendChild(toast);
 
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
 
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
-}
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
 
-// Away Email Response Generator Functions
-function toggleAwayEmailSection() {
-    const section = document.getElementById('awayEmailSection');
-    section.style.display = section.style.display === 'none' ? 'block' : 'none';
+    // Away Email Response Generator Functions
+    function toggleAwayEmailSection() {
+        const section = document.getElementById('awayEmailSection');
+        section.style.display = section.style.display === 'none' ? 'block' : 'none';
 
-    if (section.style.display === 'block') {
+        if (section.style.display === 'block') {
+            // Scroll to the section
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    function showAwayEmailSection(button) {
+        // Show the away email section
+        const section = document.getElementById('awayEmailSection');
+        section.style.display = 'block';
+
+        // Extract team information from the row
+        const row = button.closest('tr');
+        const teamCell = row.querySelector('td:nth-child(2) strong');
+
+        if (teamCell) {
+            const teamName = teamCell.textContent.trim();
+
+            // Pre-populate the team selector
+            const teamSelector = document.getElementById('teamSelector');
+
+            // See if we can auto-select the team
+            const options = teamSelector.options;
+            let teamFound = false;
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].text === teamName) {
+                    teamSelector.selectedIndex = i;
+                    teamFound = true;
+                    break;
+                }
+            }
+
+            // Generate the response immediately if team was found
+            if (teamFound) {
+                setTimeout(() => generateResponseText(), 300);
+            }
+        }
+
         // Scroll to the section
         section.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-}
 
-function showAwayEmailSection(button) {
-    // Show the away email section
-    const section = document.getElementById('awayEmailSection');
-    section.style.display = 'block';
-
-    // Extract team information from the row
-    const row = button.closest('tr');
-    const teamCell = row.querySelector('td:nth-child(2) strong');
-
-    if (teamCell) {
-        const teamName = teamCell.textContent.trim();
-
-        // Pre-populate the team selector
+    function generateResponseText() {
         const teamSelector = document.getElementById('teamSelector');
+        const generateBtn = document.getElementById('generateBtn');
+        const responseText = document.getElementById('responseText');
+        const responseSection = document.getElementById('responseTextSection');
 
-        // See if we can auto-select the team
-        const options = teamSelector.options;
-        let teamFound = false;
-        for (let i = 0; i < options.length; i++) {
-            if (options[i].text === teamName) {
-                teamSelector.selectedIndex = i;
-                teamFound = true;
-                break;
-            }
+        const selectedTeam = teamSelector.value;
+
+        if (!selectedTeam) {
+            alert('Please select a team first.');
+            return;
         }
 
-        // Generate the response immediately if team was found
-        if (teamFound) {
-            setTimeout(() => generateResponseText(), 300);
-        }
-    }
+        // Show loading state
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        generateBtn.disabled = true;
 
-    // Scroll to the section
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function generateResponseText() {
-    const teamSelector = document.getElementById('teamSelector');
-    const generateBtn = document.getElementById('generateBtn');
-    const responseText = document.getElementById('responseText');
-    const responseSection = document.getElementById('responseTextSection');
-
-    const selectedTeam = teamSelector.value;
-
-    if (!selectedTeam) {
-        alert('Please select a team first.');
-        return;
-    }
-
-    // Show loading state
-    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-    generateBtn.disabled = true;
-
-    fetch('/api/generate-away-match-response', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            team_name: selectedTeam
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            responseText.textContent = data.response_text;
-            responseSection.style.display = 'block';
-        } else {
-            alert('Error generating response: ' + (data.message || 'Unknown error'));
-            responseSection.style.display = 'none';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error generating response text.');
-        responseSection.style.display = 'none';
-    })
-    .finally(() => {
-        generateBtn.innerHTML = '<i class="fas fa-magic"></i> Generate Response';
-        generateBtn.disabled = false;
-    });
-}
-
-function copyToClipboard() {
-    const responseText = document.getElementById('responseText');
-    const copyBtn = document.getElementById('copyBtn');
-
-    // Check if text is available
-    const textToCopy = responseText.textContent.trim();
-    if (!textToCopy) {
-        alert('No text to copy. Please generate a response first.');
-        return;
-    }
-
-    // Copy to clipboard
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            // Show success feedback
-            const originalHTML = copyBtn.innerHTML;
-            copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-            copyBtn.classList.remove('btn-outline-primary');
-            copyBtn.classList.add('btn-outline-success');
-
-            setTimeout(() => {
-                copyBtn.innerHTML = originalHTML;
-                copyBtn.classList.remove('btn-outline-success');
-                copyBtn.classList.add('btn-outline-primary');
-            }, 2000);
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
-            fallbackCopy(textToCopy, copyBtn);
-        });
-    } else {
-        // Fallback for older browsers or non-HTTPS
-        fallbackCopy(textToCopy, copyBtn);
-    }
-}
-
-function fallbackCopy(text, copyBtn) {
-    // Create temporary textarea
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
-    document.body.appendChild(textArea);
-
-    textArea.focus();
-    textArea.select();
-
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            const originalHTML = copyBtn.innerHTML;
-            copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-            copyBtn.classList.remove('btn-outline-primary');
-            copyBtn.classList.add('btn-outline-success');
-
-            setTimeout(() => {
-                copyBtn.innerHTML = originalHTML;
-                copyBtn.classList.remove('btn-outline-success');
-                copyBtn.classList.add('btn-outline-primary');
-            }, 2000);
-        } else {
-            alert('Failed to copy to clipboard.');
-        }
-    } catch (err) {
-        alert('Failed to copy to clipboard.');
-    }
-
-    // Clean up
-    document.body.removeChild(textArea);
-}
-
-// Handle clicking on away fixture rows
-function generateAwayEmail(taskId, teamName) {
-    // Show the modal
-    const modal = new bootstrap.Modal(document.getElementById('awayEmailModal'));
-    modal.show();
-
-    // Set team name in modal title
-    document.getElementById('modalTeamName').textContent = teamName;
-
-    // Show loading state
-    document.getElementById('loadingSection').style.display = 'block';
-    document.getElementById('contentSection').style.display = 'none';
-    document.getElementById('errorSection').style.display = 'none';
-
-    // Store task ID for completion marking
-    document.getElementById('copyAndCompleteBtn').dataset.taskId = taskId;
-
-    // Generate the email response
-    fetch('/api/generate-away-match-response', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            team_name: teamName
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        document.getElementById('loadingSection').style.display = 'none';
-
-        if (data.success) {
-            document.getElementById('awayResponseText').textContent = data.response_text;
-            document.getElementById('contentSection').style.display = 'block';
-        } else {
-            document.getElementById('errorMessage').textContent = data.message || 'Unknown error';
-            document.getElementById('errorSection').style.display = 'block';
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        document.getElementById('loadingSection').style.display = 'none';
-        document.getElementById('errorMessage').textContent = 'Network error: ' + error.message;
-        document.getElementById('errorSection').style.display = 'block';
-    });
-}
-
-// Copy response text and mark task complete
-function copyAwayResponseAndMarkComplete() {
-    const responseText = document.getElementById('awayResponseText').textContent.trim();
-    const taskId = document.getElementById('copyAndCompleteBtn').dataset.taskId;
-    const copyBtn = document.getElementById('copyAndCompleteBtn');
-
-    if (!responseText) {
-        alert('No response text to copy!');
-        return;
-    }
-
-    // Copy to clipboard first
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(responseText).then(() => {
-            // Show copy success briefly
-            const originalHTML = copyBtn.innerHTML;
-            copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied - Marking Complete...';
-            copyBtn.disabled = true;
-
-            // Mark task as completed
-            const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-            return fetch(`/mark_completed/${taskId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-Token': csrfToken
-                },
-                body: JSON.stringify({
-                    notes: 'Away email response generated and sent to opposition'
-                })
-            });
-        }).then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                copyBtn.innerHTML = '<i class="fas fa-check-double"></i> Done!';
-                showToast('Response copied and task marked complete!');
-
-                // Close modal after a delay
-                setTimeout(() => {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('awayEmailModal'));
-                    modal.hide();
-                    // Reload page to update task status
-                    location.reload();
-                }, 1500);
-            } else {
-                copyBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Copied but failed to complete task';
-                alert('Response copied but failed to mark task as complete. Please try again.');
-                copyBtn.disabled = false;
-            }
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
-            // Try fallback copy
-            fallbackCopy(responseText, copyBtn, taskId);
-        });
-    } else {
-        // Use fallback method
-        fallbackCopy(responseText, copyBtn, taskId);
-    }
-}
-
-function fallbackCopy(text, copyBtn, taskId) {
-    // Create temporary textarea
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
-    document.body.appendChild(textArea);
-
-    textArea.focus();
-    textArea.select();
-
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            const originalHTML = copyBtn.innerHTML;
-            copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied - Marking Complete...';
-            copyBtn.disabled = true;
-
-            // Mark task as completed
-            fetch(`/mark_completed/${taskId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    notes: 'Away email response generated and sent to opposition'
-                })
+        fetch('/api/generate-away-match-response', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                team_name: selectedTeam
             })
+        })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    copyBtn.innerHTML = '<i class="fas fa-check-double"></i> Done!';
-                    showToast('Response copied and task marked complete!');
-
-                    // Close modal after a delay
-                    setTimeout(() => {
-                        const modal = bootstrap.Modal.getInstance(document.getElementById('awayEmailModal'));
-                        modal.hide();
-                        // Reload page to update task status
-                        location.reload();
-                    }, 1500);
+                    responseText.textContent = data.response_text;
+                    responseSection.style.display = 'block';
                 } else {
-                    copyBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Copied but failed to complete task';
-                    alert('Response copied but failed to mark task as complete. Please try manually.');
-                    copyBtn.disabled = false;
+                    alert('Error generating response: ' + (data.message || 'Unknown error'));
+                    responseSection.style.display = 'none';
                 }
             })
             .catch(error => {
-                copyBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Copied but failed to complete task';
-                alert('Response copied but failed to mark task as complete. Please try manually.');
-                copyBtn.disabled = false;
+                console.error('Error:', error);
+                alert('Error generating response text.');
+                responseSection.style.display = 'none';
+            })
+            .finally(() => {
+                generateBtn.innerHTML = '<i class="fas fa-magic"></i> Generate Response';
+                generateBtn.disabled = false;
+            });
+    }
+
+    function copyToClipboard() {
+        const responseText = document.getElementById('responseText');
+        const copyBtn = document.getElementById('copyBtn');
+
+        // Check if text is available
+        const textToCopy = responseText.textContent.trim();
+        if (!textToCopy) {
+            alert('No text to copy. Please generate a response first.');
+            return;
+        }
+
+        // Copy to clipboard
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                // Show success feedback
+                const originalHTML = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                copyBtn.classList.remove('btn-outline-primary');
+                copyBtn.classList.add('btn-outline-success');
+
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalHTML;
+                    copyBtn.classList.remove('btn-outline-success');
+                    copyBtn.classList.add('btn-outline-primary');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                fallbackCopy(textToCopy, copyBtn);
             });
         } else {
+            // Fallback for older browsers or non-HTTPS
+            fallbackCopy(textToCopy, copyBtn);
+        }
+    }
+
+    function fallbackCopy(text, copyBtn) {
+        // Create temporary textarea
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+
+        textArea.focus();
+        textArea.select();
+
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                const originalHTML = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                copyBtn.classList.remove('btn-outline-primary');
+                copyBtn.classList.add('btn-outline-success');
+
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalHTML;
+                    copyBtn.classList.remove('btn-outline-success');
+                    copyBtn.classList.add('btn-outline-primary');
+                }, 2000);
+            } else {
+                alert('Failed to copy to clipboard.');
+            }
+        } catch (err) {
             alert('Failed to copy to clipboard.');
         }
-    } catch (err) {
-        alert('Failed to copy to clipboard.');
-    } finally {
+
         // Clean up
         document.body.removeChild(textArea);
     }
-}
 
-function openEmailGenerator(taskId) {
-    if (!taskId) {
-        return;
-    }
-    window.location.href = `/generate_email/${taskId}`;
-}
+    // Handle clicking on away fixture rows
+    function generateAwayEmail(taskId, teamName) {
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('awayEmailModal'));
+        modal.show();
 
-// Initialize the team selector when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    loadManagedTeams();
-    updateTemplateText(); // Initialize template text
-});
+        // Set team name in modal title
+        document.getElementById('modalTeamName').textContent = teamName;
 
-function loadManagedTeams() {
-    fetch('/api/managed-teams')
-        .then(response => response.json())
-        .then(data => {
-            const selector = document.getElementById('teamSelector');
-            if (data.teams) {
-                data.teams.forEach(team => {
-                    const option = document.createElement('option');
-                    option.value = team.name;
-                    option.textContent = team.name;
-                    selector.appendChild(option);
-                });
-            }
-            // Initialize template text after teams are loaded
-            updateTemplateText();
+        // Show loading state
+        document.getElementById('loadingSection').style.display = 'block';
+        document.getElementById('contentSection').style.display = 'none';
+        document.getElementById('errorSection').style.display = 'none';
+
+        // Store task ID for completion marking
+        document.getElementById('copyAndCompleteBtn').dataset.taskId = taskId;
+
+        // Generate the email response
+        fetch('/api/generate-away-match-response', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                team_name: teamName
+            })
         })
-        .catch(error => {
-            console.error('Error loading teams:', error);
-        });
-}
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loadingSection').style.display = 'none';
 
-// Template generation functions
-function updateTemplateText() {
-    const teamSelector = document.getElementById('teamSelector');
-    const templateTextArea = document.getElementById('templateText');
-
-    const selectedTeam = teamSelector.value.trim();
-
-    if (!selectedTeam) {
-        templateTextArea.textContent = 'Please select a team to generate the email template...';
-        return;
+                if (data.success) {
+                    document.getElementById('awayResponseText').textContent = data.response_text;
+                    document.getElementById('contentSection').style.display = 'block';
+                } else {
+                    document.getElementById('errorMessage').textContent = data.message || 'Unknown error';
+                    document.getElementById('errorSection').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('loadingSection').style.display = 'none';
+                document.getElementById('errorMessage').textContent = 'Network error: ' + error.message;
+                document.getElementById('errorSection').style.display = 'block';
+            });
     }
 
-    // Generate template using the API
-    fetch('/api/generate-away-match-response', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            team_name: selectedTeam
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            templateTextArea.textContent = data.response_text;
-        } else {
-            templateTextArea.textContent = 'Error generating template: ' + (data.message || 'Unknown error');
+    // Copy response text and mark task complete
+    function copyAwayResponseAndMarkComplete() {
+        const responseText = document.getElementById('awayResponseText').textContent.trim();
+        const taskId = document.getElementById('copyAndCompleteBtn').dataset.taskId;
+        const copyBtn = document.getElementById('copyAndCompleteBtn');
+
+        if (!responseText) {
+            alert('No response text to copy!');
+            return;
         }
-    })
-    .catch(error => {
-        console.error('Error generating template:', error);
-        templateTextArea.textContent = 'Error loading template. Please try again.';
-    });
-}
 
-function copyTemplateText() {
-    const templateText = document.getElementById('templateText').textContent.trim();
-    const copyBtn = document.getElementById('copyTemplateBtn');
-    const copyStatus = document.getElementById('copyStatus');
+        // Copy to clipboard first
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(responseText).then(() => {
+                // Show copy success briefly
+                const originalHTML = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied - Marking Complete...';
+                copyBtn.disabled = true;
 
-    if (!templateText || templateText.startsWith('Please select') || templateText.startsWith('Error')) {
-        alert('Please select a team and generate a valid template first.');
-        return;
-    }
+                // Mark task as completed
+                const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+                return fetch(`/mark_completed/${taskId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': csrfToken
+                    },
+                    body: JSON.stringify({
+                        notes: 'Away email response generated and sent to opposition'
+                    })
+                });
+            }).then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        copyBtn.innerHTML = '<i class="fas fa-check-double"></i> Done!';
+                        showToast('Response copied and task marked complete!');
 
-    // Copy to clipboard
-    if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(templateText).then(() => {
-            // Show success feedback
-            showCopySuccess(copyBtn, copyStatus);
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
-            fallbackCopyTemplate(templateText, copyBtn, copyStatus);
-        });
-    } else {
-        // Fallback for older browsers or non-HTTPS
-        fallbackCopyTemplate(templateText, copyBtn, copyStatus);
-    }
-}
-
-function showCopySuccess(copyBtn, copyStatus) {
-    const originalHTML = copyBtn.innerHTML;
-    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-    copyBtn.classList.remove('btn-success');
-    copyBtn.classList.add('btn-outline-success');
-    copyStatus.textContent = 'Copied to clipboard!';
-    copyStatus.className = 'text-success ms-2';
-
-    setTimeout(() => {
-        copyBtn.innerHTML = originalHTML;
-        copyBtn.classList.remove('btn-outline-success');
-        copyBtn.classList.add('btn-success');
-        copyStatus.textContent = '';
-    }, 2000);
-}
-
-function fallbackCopyTemplate(text, copyBtn, copyStatus) {
-    // Create temporary textarea
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
-    document.body.appendChild(textArea);
-
-    textArea.focus();
-    textArea.select();
-
-    try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-            showCopySuccess(copyBtn, copyStatus);
+                        // Close modal after a delay
+                        setTimeout(() => {
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('awayEmailModal'));
+                            modal.hide();
+                            // Reload page to update task status
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        copyBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Copied but failed to complete task';
+                        alert('Response copied but failed to mark task as complete. Please try again.');
+                        copyBtn.disabled = false;
+                    }
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                    // Try fallback copy
+                    fallbackCopy(responseText, copyBtn, taskId);
+                });
         } else {
+            // Use fallback method
+            fallbackCopy(responseText, copyBtn, taskId);
+        }
+    }
+
+    function fallbackCopy(text, copyBtn, taskId) {
+        // Create temporary textarea
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+
+        textArea.focus();
+        textArea.select();
+
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                const originalHTML = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied - Marking Complete...';
+                copyBtn.disabled = true;
+
+                // Mark task as completed
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="csrf_token"]')?.value || '{{ csrf_token() }}';
+                fetch(`/mark_completed/${taskId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        notes: 'Away email response generated and sent to opposition'
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            copyBtn.innerHTML = '<i class="fas fa-check-double"></i> Done!';
+                            showToast('Response copied and task marked complete!');
+
+                            // Close modal after a delay
+                            setTimeout(() => {
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('awayEmailModal'));
+                                modal.hide();
+                                // Reload page to update task status
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            copyBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Copied but failed to complete task';
+                            alert('Response copied but failed to mark task as complete. Please try manually.');
+                            copyBtn.disabled = false;
+                        }
+                    })
+                    .catch(error => {
+                        copyBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Copied but failed to complete task';
+                        alert('Response copied but failed to mark task as complete. Please try manually.');
+                        copyBtn.disabled = false;
+                    });
+            } else {
+                alert('Failed to copy to clipboard.');
+            }
+        } catch (err) {
+            alert('Failed to copy to clipboard.');
+        } finally {
+            // Clean up
+            document.body.removeChild(textArea);
+        }
+    }
+
+    function openEmailGenerator(taskId) {
+        if (!taskId) {
+            return;
+        }
+        window.location.href = `/generate_email/${taskId}`;
+    }
+
+    // Initialize the team selector when page loads
+    document.addEventListener('DOMContentLoaded', function () {
+        loadManagedTeams();
+        updateTemplateText(); // Initialize template text
+    });
+
+    function loadManagedTeams() {
+        fetch('/api/managed-teams')
+            .then(response => response.json())
+            .then(data => {
+                const selector = document.getElementById('teamSelector');
+                if (data.teams) {
+                    data.teams.forEach(team => {
+                        const option = document.createElement('option');
+                        option.value = team.name;
+                        option.textContent = team.name;
+                        selector.appendChild(option);
+                    });
+                }
+                // Initialize template text after teams are loaded
+                updateTemplateText();
+            })
+            .catch(error => {
+                console.error('Error loading teams:', error);
+            });
+    }
+
+    // Template generation functions
+    function updateTemplateText() {
+        const teamSelector = document.getElementById('teamSelector');
+        const templateTextArea = document.getElementById('templateText');
+
+        const selectedTeam = teamSelector.value.trim();
+
+        if (!selectedTeam) {
+            templateTextArea.textContent = 'Please select a team to generate the email template...';
+            return;
+        }
+
+        // Generate template using the API
+        fetch('/api/generate-away-match-response', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                team_name: selectedTeam
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    templateTextArea.textContent = data.response_text;
+                } else {
+                    templateTextArea.textContent = 'Error generating template: ' + (data.message || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                console.error('Error generating template:', error);
+                templateTextArea.textContent = 'Error loading template. Please try again.';
+            });
+    }
+
+    function copyTemplateText() {
+        const templateText = document.getElementById('templateText').textContent.trim();
+        const copyBtn = document.getElementById('copyTemplateBtn');
+        const copyStatus = document.getElementById('copyStatus');
+
+        if (!templateText || templateText.startsWith('Please select') || templateText.startsWith('Error')) {
+            alert('Please select a team and generate a valid template first.');
+            return;
+        }
+
+        // Copy to clipboard
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(templateText).then(() => {
+                // Show success feedback
+                showCopySuccess(copyBtn, copyStatus);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                fallbackCopyTemplate(templateText, copyBtn, copyStatus);
+            });
+        } else {
+            // Fallback for older browsers or non-HTTPS
+            fallbackCopyTemplate(templateText, copyBtn, copyStatus);
+        }
+    }
+
+    function showCopySuccess(copyBtn, copyStatus) {
+        const originalHTML = copyBtn.innerHTML;
+        copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        copyBtn.classList.remove('btn-success');
+        copyBtn.classList.add('btn-outline-success');
+        copyStatus.textContent = 'Copied to clipboard!';
+        copyStatus.className = 'text-success ms-2';
+
+        setTimeout(() => {
+            copyBtn.innerHTML = originalHTML;
+            copyBtn.classList.remove('btn-outline-success');
+            copyBtn.classList.add('btn-success');
+            copyStatus.textContent = '';
+        }, 2000);
+    }
+
+    function fallbackCopyTemplate(text, copyBtn, copyStatus) {
+        // Create temporary textarea
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+
+        textArea.focus();
+        textArea.select();
+
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                showCopySuccess(copyBtn, copyStatus);
+            } else {
+                copyStatus.textContent = 'Failed to copy to clipboard.';
+                copyStatus.className = 'text-danger ms-2';
+                setTimeout(() => {
+                    copyStatus.textContent = '';
+                }, 3000);
+            }
+        } catch (err) {
             copyStatus.textContent = 'Failed to copy to clipboard.';
             copyStatus.className = 'text-danger ms-2';
             setTimeout(() => {
                 copyStatus.textContent = '';
             }, 3000);
         }
-    } catch (err) {
-        copyStatus.textContent = 'Failed to copy to clipboard.';
-        copyStatus.className = 'text-danger ms-2';
-        setTimeout(() => {
-            copyStatus.textContent = '';
-        }, 3000);
-    }
 
-    // Clean up
-    document.body.removeChild(textArea);
-}
+        // Clean up
+        document.body.removeChild(textArea);
+    }
 </script>
 {% endblock %}

@@ -49,7 +49,8 @@
                     </div>
                     <div class="col-md-3">
                         <div class="p-2 rounded bg-warning bg-opacity-10">
-                            <div class="h6 mb-0 text-warning">{{ user_info.created_date[:10] if user_info.created_date else '-' }}</div>
+                            <div class="h6 mb-0 text-warning">{{ user_info.created_date[:10] if user_info.created_date
+                                else '-' }}</div>
                             <small class="text-muted">Member Since</small>
                         </div>
                     </div>
@@ -62,27 +63,32 @@
 <!-- Settings Navigation Tabs -->
 <ul class="nav nav-tabs mb-4" id="settingsTabs" role="tablist">
     <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="teams-tab" data-bs-toggle="tab" data-bs-target="#teams" type="button" role="tab">
+        <button class="nav-link active" id="teams-tab" data-bs-toggle="tab" data-bs-target="#teams" type="button"
+            role="tab">
             <i class="fas fa-users"></i> Teams
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="pitches-tab" data-bs-toggle="tab" data-bs-target="#pitches" type="button" role="tab">
+        <button class="nav-link" id="pitches-tab" data-bs-toggle="tab" data-bs-target="#pitches" type="button"
+            role="tab">
             <i class="fas fa-map-marker-alt"></i> Pitches
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="contacts-tab" data-bs-toggle="tab" data-bs-target="#contacts" type="button" role="tab">
+        <button class="nav-link" id="contacts-tab" data-bs-toggle="tab" data-bs-target="#contacts" type="button"
+            role="tab">
             <i class="fas fa-address-book"></i> Contacts
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="preferences-tab" data-bs-toggle="tab" data-bs-target="#preferences" type="button" role="tab">
+        <button class="nav-link" id="preferences-tab" data-bs-toggle="tab" data-bs-target="#preferences" type="button"
+            role="tab">
             <i class="fas fa-envelope"></i> Email
         </button>
     </li>
     <li class="nav-item" role="presentation">
-        <button class="nav-link" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" type="button" role="tab">
+        <button class="nav-link" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" type="button"
+            role="tab">
             <i class="fas fa-user-cog"></i> Account
         </button>
     </li>
@@ -104,10 +110,15 @@
                             <small class="text-muted">Select and manage the teams you're responsible for</small>
                         </div>
                         <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#selectTeamsModal">
+                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                data-bs-target="#selectTeamsModal">
                                 <i class="fas fa-edit"></i> Select Teams
                             </button>
-                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#addCoachModal">
+                            <a href="{{ url_for('imports.bulk_team_upload') }}" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-upload"></i> Upload Master List
+                            </a>
+                            <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal"
+                                data-bs-target="#addCoachModal">
                                 <i class="fas fa-plus"></i> Add Coaches
                             </button>
                             <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#awayMatchModal">
@@ -124,30 +135,36 @@
                                         <i class="fas fa-globe"></i> Club-wide Fixtures URL
                                     </h6>
                                     <p class="mb-2 small">
-                                        Add a URL that contains all fixtures for your age group/club. 
+                                        Add a URL that contains all fixtures for your age group/club.
                                         The app will automatically identify and import fixtures for your managed teams.
                                     </p>
                                     {% if org_settings.get('club_fixtures_url') %}
-                                        <div class="small text-success mb-2">
-                                            <i class="fas fa-check-circle"></i> Club URL configured
-                                            <br><small class="text-muted">{{ org_settings.get('club_fixtures_url', '')[:60] }}{% if org_settings.get('club_fixtures_url', '')|length > 60 %}...{% endif %}</small>
-                                        </div>
+                                    <div class="small text-success mb-2">
+                                        <i class="fas fa-check-circle"></i> Club URL configured
+                                        <br><small class="text-muted">{{ org_settings.get('club_fixtures_url', '')[:60]
+                                            }}{% if org_settings.get('club_fixtures_url', '')|length > 60 %}...{% endif
+                                            %}</small>
+                                    </div>
                                     {% else %}
-                                        <div class="small text-warning">
-                                            <i class="fas fa-exclamation-circle"></i> No club URL configured
-                                        </div>
+                                    <div class="small text-warning">
+                                        <i class="fas fa-exclamation-circle"></i> No club URL configured
+                                    </div>
                                     {% endif %}
                                 </div>
                                 <div class="btn-group-vertical ms-2">
-                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#clubFixturesUrlModal">
-                                        <i class="fas fa-cog"></i> {% if org_settings.get('club_fixtures_url') %}Edit{% else %}Configure{% endif %}
+                                    <button class="btn btn-sm btn-info" data-bs-toggle="modal"
+                                        data-bs-target="#clubFixturesUrlModal">
+                                        <i class="fas fa-cog"></i> {% if org_settings.get('club_fixtures_url') %}Edit{%
+                                        else %}Configure{% endif %}
                                     </button>
                                     {% if org_settings.get('club_fixtures_url') %}
-                                    <button class="btn btn-sm btn-success mt-1" onclick="refreshClubFixtures()" id="refreshClubFixturesBtn">
+                                    <button class="btn btn-sm btn-success mt-1" onclick="refreshClubFixtures()"
+                                        id="refreshClubFixturesBtn">
                                         <i class="fas fa-sync"></i> Refresh Fixtures
                                     </button>
                                     {% endif %}
-                                    <a href="{{ url_for('imports.import_fixtures') }}?method=url" class="btn btn-sm btn-outline-primary mt-1">
+                                    <a href="{{ url_for('imports.import_fixtures') }}?method=url"
+                                        class="btn btn-sm btn-outline-primary mt-1">
                                         <i class="fas fa-external-link-alt"></i> Import via URL
                                     </a>
                                 </div>
@@ -167,61 +184,66 @@
                                             </h6>
                                             <div class="btn-group btn-group-sm">
                                                 <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
-                                                        data-bs-target="#teamFaUrlModal" 
-                                                        data-team="{{ team }}" 
-                                                        data-team-id="{{ team_data.id }}"
-                                                        data-fa-url="{{ team_data.fa_fixtures_url }}"
-                                                        title="FA Fixtures URL">
+                                                    data-bs-target="#teamFaUrlModal" data-team="{{ team }}"
+                                                    data-team-id="{{ team_data.id }}"
+                                                    data-fa-url="{{ team_data.fa_fixtures_url }}"
+                                                    title="FA Fixtures URL">
                                                     <i class="fas fa-link"></i>
                                                 </button>
                                                 <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
-                                                        data-bs-target="#teamKitModal" data-team="{{ team }}"
-                                                        title="Kit Colours">
+                                                    data-bs-target="#teamKitModal" data-team="{{ team }}"
+                                                    title="Kit Colours">
                                                     <i class="fas fa-tshirt"></i>
                                                 </button>
                                             </div>
                                         </div>
                                         {% if team_data.fa_fixtures_url %}
-                                            <div class="small text-muted mb-2">
-                                                <i class="fas fa-check-circle text-success"></i> FA URL configured
-                                            </div>
+                                        <div class="small text-muted mb-2">
+                                            <i class="fas fa-check-circle text-success"></i> FA URL configured
+                                        </div>
                                         {% else %}
-                                            <div class="small text-muted mb-2">
-                                                <i class="fas fa-exclamation-circle text-warning"></i> No FA URL
-                                            </div>
+                                        <div class="small text-muted mb-2">
+                                            <i class="fas fa-exclamation-circle text-warning"></i> No FA URL
+                                        </div>
                                         {% endif %}
                                         {% set team_coaches = user_manager.get_team_coaches(team) %}
                                         {% if team_coaches %}
-                                            <div class="small text-muted mb-2 flex-grow-1 coach-summary" data-team="{{ team|e }}">
-                                                {% for coach in team_coaches[:2] %}
-                                                <div class="mb-1">
-                                                    <strong>{{ coach.role or 'Coach' }}:</strong> {{ coach.coach_name[:15] }}{% if coach.coach_name|length > 15 %}...{% endif %}
-                                                </div>
-                                                {% endfor %}
-                                                {% if team_coaches|length > 2 %}
-                                                <small class="text-muted">+ {{ team_coaches|length - 2 }} more coaches</small>
-                                                {% endif %}
+                                        <div class="small text-muted mb-2 flex-grow-1 coach-summary"
+                                            data-team="{{ team|e }}">
+                                            {% for coach in team_coaches[:2] %}
+                                            <div class="mb-1">
+                                                <strong>{{ coach.role or 'Coach' }}:</strong> {{ coach.coach_name[:15]
+                                                }}{% if coach.coach_name|length > 15 %}...{% endif %}
                                             </div>
+                                            {% endfor %}
+                                            {% if team_coaches|length > 2 %}
+                                            <small class="text-muted">+ {{ team_coaches|length - 2 }} more
+                                                coaches</small>
+                                            {% endif %}
+                                        </div>
                                         {% else %}
-                                            <div class="small text-muted mb-2 flex-grow-1 coach-summary" data-team="{{ team|e }}">
-                                                <i class="fas fa-exclamation-triangle text-warning"></i> No coaches added
-                                            </div>
+                                        <div class="small text-muted mb-2 flex-grow-1 coach-summary"
+                                            data-team="{{ team|e }}">
+                                            <i class="fas fa-exclamation-triangle text-warning"></i> No coaches added
+                                        </div>
                                         {% endif %}
                                         <div class="mt-auto">
                                             <div class="btn-group btn-group-sm w-100" role="group">
                                                 <button class="btn btn-outline-secondary" data-bs-toggle="modal"
-                                                        data-bs-target="#teamCoachModal" data-team="{{ team }}"
-                                                        title="Manage Coaches">
+                                                    data-bs-target="#teamCoachModal" data-team="{{ team }}"
+                                                    title="Manage Coaches">
                                                     <i class="fas fa-user-edit"></i> Manage
                                                 </button>
                                                 <div class="btn-group" role="group">
-                                                    <button class="btn btn-outline-danger dropdown-toggle" data-bs-toggle="dropdown" type="button">
+                                                    <button class="btn btn-outline-danger dropdown-toggle"
+                                                        data-bs-toggle="dropdown" type="button">
                                                         <i class="fas fa-ellipsis-v"></i>
                                                     </button>
                                                     <ul class="dropdown-menu">
-                                                        <li><button class="dropdown-item text-danger" onclick="deleteTeam('{{ team }}')">
-                                                            <i class="fas fa-trash"></i> Delete Team
-                                                        </button></li>
+                                                        <li><button class="dropdown-item text-danger"
+                                                                onclick="deleteTeam('{{ team }}')">
+                                                                <i class="fas fa-trash"></i> Delete Team
+                                                            </button></li>
                                                     </ul>
                                                 </div>
                                             </div>
@@ -275,13 +297,16 @@
                                                 <h6 class="card-title mb-1">
                                                     <i class="fas fa-stadium text-success me-2"></i>{{ pitch.name }}
                                                 </h6>
-                                                <small class="text-muted">{{ pitch.address[:35] }}{% if pitch.address|length > 35 %}...{% endif %}</small>
+                                                <small class="text-muted">{{ pitch.address[:35] }}{% if
+                                                    pitch.address|length > 35 %}...{% endif %}</small>
                                             </div>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" onclick="editPitch('{{ pitch_name }}')" title="Edit">
+                                                <button class="btn btn-outline-primary"
+                                                    onclick="editPitch('{{ pitch_name }}')" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
-                                                <button class="btn btn-outline-danger" onclick="deletePitch('{{ pitch_name }}')" title="Delete">
+                                                <button class="btn btn-outline-danger"
+                                                    onclick="deletePitch('{{ pitch_name }}')" title="Delete">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </div>
@@ -294,7 +319,8 @@
                                             <div><i class="fas fa-clock me-1"></i> Setup notes included</div>
                                             {% endif %}
                                             {% if pitch.special_instructions %}
-                                            <div><i class="fas fa-exclamation-triangle me-1"></i> Special rules apply</div>
+                                            <div><i class="fas fa-exclamation-triangle me-1"></i> Special rules apply
+                                            </div>
                                             {% endif %}
                                         </div>
                                     </div>
@@ -331,10 +357,12 @@
                             <small class="text-muted">Store contact details for teams your squads play against</small>
                         </div>
                         <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#addContactModal">
+                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal"
+                                data-bs-target="#addContactModal">
                                 <i class="fas fa-plus"></i> Add Contact
                             </button>
-                            <a href="{{ url_for('imports.bulk_contact_upload') }}" class="btn btn-sm btn-outline-danger">
+                            <a href="{{ url_for('imports.bulk_contact_upload') }}"
+                                class="btn btn-sm btn-outline-danger">
                                 <i class="fas fa-upload"></i> Bulk Upload
                             </a>
                         </div>
@@ -347,7 +375,8 @@
                                 <span class="input-group-text">
                                     <i class="fas fa-search"></i>
                                 </span>
-                                <input type="text" class="form-control" id="contactSearch" placeholder="Search teams or contacts...">
+                                <input type="text" class="form-control" id="contactSearch"
+                                    placeholder="Search teams or contacts...">
                                 <button class="btn btn-outline-secondary" type="button" onclick="clearContactSearch()">
                                     <i class="fas fa-times"></i>
                                 </button>
@@ -370,10 +399,12 @@
                                                 {% endif %}
                                             </div>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-primary" onclick="editContact('{{ team_name }}')" title="Edit">
+                                                <button class="btn btn-outline-primary"
+                                                    onclick="editContact('{{ team_name }}')" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
-                                                <button class="btn btn-outline-danger" onclick="deleteContact('{{ team_name }}')" title="Delete">
+                                                <button class="btn btn-outline-danger"
+                                                    onclick="deleteContact('{{ team_name }}')" title="Delete">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </div>
@@ -383,7 +414,9 @@
                                             <div class="d-flex align-items-center">
                                                 <i class="fas fa-envelope text-muted me-2" style="width: 14px;"></i>
                                                 <code class="small">{{ contact.email }}</code>
-                                                <button class="btn btn-sm btn-link ms-1 p-0" onclick="copyToClipboard('{{ contact.email }}', 'Email copied!')" title="Copy">
+                                                <button class="btn btn-sm btn-link ms-1 p-0"
+                                                    onclick="copyToClipboard('{{ contact.email }}', 'Email copied!')"
+                                                    title="Copy">
                                                     <i class="fas fa-copy"></i>
                                                 </button>
                                             </div>
@@ -432,28 +465,34 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
-                                        <label for="default_referee_note" class="form-label">Default Referee Note</label>
-                                        <textarea class="form-control" id="default_referee_note" name="default_referee_note" rows="2"
-                                                  placeholder="Where to meet the referee, payment arrangements, etc.">{{ preferences.default_referee_note }}</textarea>
+                                        <label for="default_referee_note" class="form-label">Default Referee
+                                            Note</label>
+                                        <textarea class="form-control" id="default_referee_note"
+                                            name="default_referee_note" rows="2"
+                                            placeholder="Where to meet the referee, payment arrangements, etc.">{{ preferences.default_referee_note }}</textarea>
                                     </div>
                                     <div class="mb-3">
                                         <label for="default_colours" class="form-label">Default Home Kit</label>
-                                        <input type="text" class="form-control" id="default_colours" name="default_colours"
-                                               value="{{ preferences.default_colours }}" placeholder="e.g., Red shirts, black shorts">
+                                        <input type="text" class="form-control" id="default_colours"
+                                            name="default_colours" value="{{ preferences.default_colours }}"
+                                            placeholder="e.g., Red shirts, black shorts">
                                     </div>
                                     <div class="mb-3">
                                         <label for="default_day" class="form-label">Primary Match Day</label>
                                         <select class="form-select" id="default_day" name="default_day">
-                                            <option value="Saturday" {{ 'selected' if preferences.default_day == 'Saturday' }}>Saturday</option>
-                                            <option value="Sunday" {{ 'selected' if preferences.default_day == 'Sunday' }}>Sunday</option>
+                                            <option value="Saturday" {{ 'selected' if
+                                                preferences.default_day=='Saturday' }}>Saturday</option>
+                                            <option value="Sunday" {{ 'selected' if preferences.default_day=='Sunday'
+                                                }}>Sunday</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="email_signature" class="form-label">Email Signature</label>
-                                        <textarea class="form-control" id="email_signature" name="email_signature" rows="3"
-                                                  placeholder="Your name, club role, contact details">{{ preferences.email_signature }}</textarea>
+                                        <textarea class="form-control" id="email_signature" name="email_signature"
+                                            rows="3"
+                                            placeholder="Your name, club role, contact details">{{ preferences.email_signature }}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -464,14 +503,17 @@
                                     <small class="text-muted">Customize your automatic email templates</small>
                                 </div>
                                 <div class="btn-group" role="group">
-                                    <a href="{{ url_for('settings.manage_email_template') }}" class="btn btn-outline-danger btn-sm">
+                                    <a href="{{ url_for('settings.manage_email_template') }}"
+                                        class="btn btn-outline-danger btn-sm">
                                         <i class="fas fa-edit"></i> Edit Templates
                                     </a>
                                     <form method="POST" action="/settings/weekly-sheet" class="d-inline ms-2">
-                                        <label for="weekly_sheet_url_small" class="form-label small mb-1">Fixture Sheet URL</label>
-                                        <input type="url" class="form-control form-control-sm d-inline-block me-1" id="weekly_sheet_url_small" name="weekly_sheet_url"
-                                               value="{{ org_settings.get('weekly_sheet_url', '') }}" style="width: 250px;"
-                                               placeholder="Google Sheet URL">
+                                        <label for="weekly_sheet_url_small" class="form-label small mb-1">Fixture Sheet
+                                            URL</label>
+                                        <input type="url" class="form-control form-control-sm d-inline-block me-1"
+                                            id="weekly_sheet_url_small" name="weekly_sheet_url"
+                                            value="{{ org_settings.get('weekly_sheet_url', '') }}" style="width: 250px;"
+                                            placeholder="Google Sheet URL">
                                         <button type="submit" class="btn btn-outline-primary btn-sm">
                                             <i class="fas fa-save"></i> Save
                                         </button>
@@ -506,17 +548,17 @@
                             <div class="mb-3">
                                 <label for="name" class="form-label">Name</label>
                                 <input type="text" class="form-control" id="name" name="name"
-                                       value="{{ user_info.name }}" required>
+                                    value="{{ user_info.name }}" required>
                             </div>
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email</label>
                                 <input type="email" class="form-control" id="email" name="email"
-                                       value="{{ user_info.email }}">
+                                    value="{{ user_info.email }}">
                             </div>
                             <div class="mb-3">
                                 <label for="role" class="form-label">Role</label>
                                 <input type="text" class="form-control" id="role" name="role"
-                                       value="{{ user_info.role }}" placeholder="e.g., Secretary, Chairman">
+                                    value="{{ user_info.role }}" placeholder="e.g., Secretary, Chairman">
                             </div>
                             <button type="submit" class="btn btn-danger">
                                 <i class="fas fa-save"></i> Save User Info
@@ -578,7 +620,8 @@
                     <!-- Instructions -->
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i>
-                        <strong>How to manage your teams:</strong> First check the boxes for the teams you want to work with, then choose your action below.
+                        <strong>How to manage your teams:</strong> First check the boxes for the teams you want to work
+                        with, then choose your action below.
                     </div>
 
                     <!-- Team Selection -->
@@ -590,15 +633,17 @@
                                 <div class="col-md-6 col-lg-4">
                                     <div class="form-check border rounded p-2 hover-bg-light">
                                         <input class="form-check-input bulk-team-checkbox" type="checkbox" name="teams"
-                                               value="{{ team }}" id="team_{{ loop.index }}"
-                                               {{ 'checked' if team in managed_teams else '' }}>
+                                            value="{{ team }}" id="team_{{ loop.index }}" {{ 'checked' if team in
+                                            managed_teams else '' }}>
                                         <label class="form-check-label fw-medium" for="team_{{ loop.index }}">
                                             {{ team }}
                                         </label>
                                         {% if team in managed_teams %}
-                                        <small class="text-success d-block"><i class="fas fa-eye"></i> Currently managed</small>
+                                        <small class="text-success d-block"><i class="fas fa-eye"></i> Currently
+                                            managed</small>
                                         {% else %}
-                                        <small class="text-muted d-block"><i class="fas fa-eye-slash"></i> Not managed</small>
+                                        <small class="text-muted d-block"><i class="fas fa-eye-slash"></i> Not
+                                            managed</small>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -621,20 +666,20 @@
                         </div>
                     </div>
                 </div>
-    <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <div class="btn-group" role="group">
-            <button type="button" id="manageBtn" class="btn btn-primary">
-                <i class="fas fa-save"></i> Manage Selected
-            </button>
-            <button type="button" id="archiveBtn" class="btn btn-warning">
-                <i class="fas fa-archive"></i> Archive Selected
-            </button>
-            <button type="button" id="deleteBtn" class="btn btn-danger">
-                <i class="fas fa-trash"></i> Delete Selected
-            </button>
-        </div>
-    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <div class="btn-group" role="group">
+                        <button type="button" id="manageBtn" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Manage Selected
+                        </button>
+                        <button type="button" id="archiveBtn" class="btn btn-warning">
+                            <i class="fas fa-archive"></i> Archive Selected
+                        </button>
+                        <button type="button" id="deleteBtn" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Delete Selected
+                        </button>
+                    </div>
+                </div>
             </form>
         </div>
     </div>
@@ -666,7 +711,7 @@
                                     <small class="text-muted">(if different)</small>
                                 </label>
                                 <input type="text" class="form-control" id="parking_address" name="parking_address"
-                                       placeholder="Leave blank if same as pitch address">
+                                    placeholder="Leave blank if same as pitch address">
                             </div>
                             <div class="mb-3">
                                 <label for="pitch_parking" class="form-label">Parking Information</label>
@@ -680,18 +725,18 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="pitch_special" class="form-label">Special Instructions</label>
-                                <textarea class="form-control" id="pitch_special" name="special_instructions" rows="4" 
-                                          placeholder="e.g., Boot policies, equipment rules, etc."></textarea>
+                                <textarea class="form-control" id="pitch_special" name="special_instructions" rows="4"
+                                    placeholder="e.g., Boot policies, equipment rules, etc."></textarea>
                             </div>
                             <div class="mb-3">
                                 <label for="pitch_opening" class="form-label">Setup/Opening Notes</label>
-                                <textarea class="form-control" id="pitch_opening" name="opening_notes" rows="3" 
-                                          placeholder="e.g., Arrival time, goal setup, etc."></textarea>
+                                <textarea class="form-control" id="pitch_opening" name="opening_notes" rows="3"
+                                    placeholder="e.g., Arrival time, goal setup, etc."></textarea>
                             </div>
                             <div class="mb-3">
                                 <label for="pitch_warmup" class="form-label">Warm-up Notes</label>
                                 <textarea class="form-control" id="pitch_warmup" name="warm_up_notes" rows="2"
-                                          placeholder="e.g., Warm-up time, pitch preparation"></textarea>
+                                    placeholder="e.g., Warm-up time, pitch preparation"></textarea>
                             </div>
                         </div>
 
@@ -702,16 +747,19 @@
                                     <small class="text-muted">(upload your own estate map)</small>
                                 </label>
                                 <input type="file" class="form-control" id="custom_map_upload" name="custom_map_upload"
-                                       accept="image/*">
+                                    accept="image/*">
                                 <div class="form-text">
-                                    Upload your custom estate walking map image (JPG, PNG, etc.). This will be included in emails to help visitors navigate your facilities.
+                                    Upload your custom estate walking map image (JPG, PNG, etc.). This will be included
+                                    in emails to help visitors navigate your facilities.
                                 </div>
                                 <div id="current_map_display" style="display: none; margin-top: 10px;">
                                     <small class="text-muted">Current map:</small>
                                     <div style="text-align: center; margin: 10px 0;">
-                                        <img id="current_map_image" src="" alt="Current Map" style="max-width: 200px; height: auto; border: 1px solid #ddd; border-radius: 4px;">
+                                        <img id="current_map_image" src="" alt="Current Map"
+                                            style="max-width: 200px; height: auto; border: 1px solid #ddd; border-radius: 4px;">
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeCurrentMap()">
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                        onclick="removeCurrentMap()">
                                         <i class="fas fa-trash"></i> Remove Current Map
                                     </button>
                                 </div>
@@ -722,7 +770,7 @@
                                     <small class="text-muted">(auto-generated from address)</small>
                                 </label>
                                 <input type="url" class="form-control" id="pitch_google_maps" name="google_maps_link"
-                                       placeholder="Will be auto-generated when you save">
+                                    placeholder="Will be auto-generated when you save">
                                 <div class="form-text">Auto-generated from address, or enter custom URL</div>
                             </div>
 
@@ -732,7 +780,7 @@
                                     <small class="text-muted">(Google Drive or other image URL)</small>
                                 </label>
                                 <input type="url" class="form-control" id="pitch_map_image" name="map_image_url"
-                                       placeholder="Enter Google Drive or other image URL">
+                                    placeholder="Enter Google Drive or other image URL">
                                 <div class="form-text">For Google Drive images, use the direct image URL format</div>
                             </div>
 
@@ -744,10 +792,12 @@
                                         <div class="card">
                                             <div class="card-header">
                                                 <h6 class="mb-0"><i class="fas fa-map"></i> Main Map</h6>
-                                                <small class="text-muted">Pitch location (+ parking if different)</small>
+                                                <small class="text-muted">Pitch location (+ parking if
+                                                    different)</small>
                                             </div>
                                             <div class="card-body text-center">
-                                                <img id="mapPreviewImage" src="" alt="Main Map Preview" class="img-fluid" style="max-height: 250px;">
+                                                <img id="mapPreviewImage" src="" alt="Main Map Preview"
+                                                    class="img-fluid" style="max-height: 250px;">
                                             </div>
                                         </div>
                                     </div>
@@ -760,7 +810,8 @@
                                                 <small class="text-muted">Parking location only</small>
                                             </div>
                                             <div class="card-body text-center">
-                                                <img id="parkingMapPreviewImage" src="" alt="Parking Map Preview" class="img-fluid" style="max-height: 250px;">
+                                                <img id="parkingMapPreviewImage" src="" alt="Parking Map Preview"
+                                                    class="img-fluid" style="max-height: 250px;">
                                             </div>
                                         </div>
                                     </div>
@@ -894,7 +945,8 @@
                 <div class="modal-body">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i>
-                        <strong>Kit Information:</strong> These colours will appear in emails sent to opposition teams for fixtures involving this team.
+                        <strong>Kit Information:</strong> These colours will appear in emails sent to opposition teams
+                        for fixtures involving this team.
                         Leave fields blank to use default club colours.
                     </div>
 
@@ -904,17 +956,17 @@
                             <div class="mb-3">
                                 <label for="home_shirt" class="form-label">Shirt</label>
                                 <input type="text" class="form-control" id="home_shirt" name="home_shirt"
-                                       placeholder="e.g., Blue and Black Shirts">
+                                    placeholder="e.g., Blue and Black Shirts">
                             </div>
                             <div class="mb-3">
                                 <label for="home_shorts" class="form-label">Shorts</label>
                                 <input type="text" class="form-control" id="home_shorts" name="home_shorts"
-                                       placeholder="e.g., Black Shorts">
+                                    placeholder="e.g., Black Shorts">
                             </div>
                             <div class="mb-3">
                                 <label for="home_socks" class="form-label">Socks</label>
                                 <input type="text" class="form-control" id="home_socks" name="home_socks"
-                                       placeholder="e.g., Blue and Black Hooped Socks">
+                                    placeholder="e.g., Blue and Black Hooped Socks">
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -922,17 +974,17 @@
                             <div class="mb-3">
                                 <label for="away_shirt" class="form-label">Shirt</label>
                                 <input type="text" class="form-control" id="away_shirt" name="away_shirt"
-                                       placeholder="e.g., White Shirts">
+                                    placeholder="e.g., White Shirts">
                             </div>
                             <div class="mb-3">
                                 <label for="away_shorts" class="form-label">Shorts</label>
                                 <input type="text" class="form-control" id="away_shorts" name="away_shorts"
-                                       placeholder="e.g., White Shorts">
+                                    placeholder="e.g., White Shorts">
                             </div>
                             <div class="mb-3">
                                 <label for="away_socks" class="form-label">Socks</label>
                                 <input type="text" class="form-control" id="away_socks" name="away_socks"
-                                       placeholder="e.g., White Socks">
+                                    placeholder="e.g., White Socks">
                             </div>
                         </div>
                     </div>
@@ -991,7 +1043,8 @@
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label for="team_coach_name" class="form-label">Coach Name *</label>
-                                        <input type="text" class="form-control" id="team_coach_name" name="coach_name" required>
+                                        <input type="text" class="form-control" id="team_coach_name" name="coach_name"
+                                            required>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
@@ -1029,7 +1082,8 @@
                                 <button type="submit" class="btn btn-danger" id="teamCoachSubmitBtn">
                                     <i class="fas fa-plus"></i> Add Coach
                                 </button>
-                                <button type="button" class="btn btn-outline-secondary d-none" id="teamCoachCancelEditBtn">
+                                <button type="button" class="btn btn-outline-secondary d-none"
+                                    id="teamCoachCancelEditBtn">
                                     Cancel Edit
                                 </button>
                             </div>
@@ -1059,19 +1113,22 @@
                     <div class="mb-3">
                         <label for="club_fixtures_url" class="form-label">FA Full-Time Club Fixtures URL</label>
                         <input type="url" class="form-control" id="club_fixtures_url" name="club_fixtures_url"
-                               placeholder="https://fulltime.thefa.com/fixtures.html?...">
+                            placeholder="https://fulltime.thefa.com/fixtures.html?...">
                         <small class="form-text text-muted">
-                            Enter the URL from the FA Full-Time fixtures page that shows ALL fixtures for your age group/club.
+                            Enter the URL from the FA Full-Time fixtures page that shows ALL fixtures for your age
+                            group/club.
                             The app will automatically identify and import fixtures for your managed teams.
                         </small>
                     </div>
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i>
-                        This URL should contain all fixtures for your club. The app will match fixtures to your managed teams automatically.
+                        This URL should contain all fixtures for your club. The app will match fixtures to your managed
+                        teams automatically.
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="clubUrlCancelBtn">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        id="clubUrlCancelBtn">Cancel</button>
                     <button type="submit" class="btn btn-primary" id="clubUrlSaveBtn">
                         <i class="fas fa-save"></i> Save URL
                     </button>
@@ -1099,23 +1156,26 @@
                     </div>
                     <div class="mb-3">
                         <label for="fa_fixtures_url" class="form-label">FA Full-Time Fixtures URL</label>
-                        <input type="url" class="form-control" id="fa_fixtures_url" name="fa_fixtures_url" 
-                               placeholder="https://fulltime.thefa.com/fixtures.html?...">
+                        <input type="url" class="form-control" id="fa_fixtures_url" name="fa_fixtures_url"
+                            placeholder="https://fulltime.thefa.com/fixtures.html?...">
                         <small class="form-text text-muted">
-                            Enter the URL from the FA Full-Time fixtures page for this team. 
-                            You can find this by navigating to the team's fixtures page on the FA website and copying the URL.
+                            Enter the URL from the FA Full-Time fixtures page for this team.
+                            You can find this by navigating to the team's fixtures page on the FA website and copying
+                            the URL.
                         </small>
                     </div>
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> 
-                        The app will periodically check this URL to automatically import upcoming fixtures. 
-                        Note: The FA website uses CAPTCHA protection, so automatic updates may require manual intervention.
+                        <i class="fas fa-info-circle"></i>
+                        The app will periodically check this URL to automatically import upcoming fixtures.
+                        Note: The FA website uses CAPTCHA protection, so automatic updates may require manual
+                        intervention.
                     </div>
                     <div id="faUrlRefreshStatus" class="mt-2"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-info" id="refreshFaFixturesBtn" onclick="refreshFaFixtures()" style="display: none;">
+                    <button type="button" class="btn btn-info" id="refreshFaFixturesBtn" onclick="refreshFaFixtures()"
+                        style="display: none;">
                         <i class="fas fa-sync"></i> Refresh Fixtures Now
                     </button>
                     <button type="submit" class="btn btn-primary">
@@ -1140,7 +1200,9 @@
             <div class="modal-body">
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle"></i>
-                    <strong>How this works:</strong> Copy a paragraph of text from your team inbox that contains match details, then we'll generate the appropriate response thanking them and providing your contact information.
+                    <strong>How this works:</strong> Copy a paragraph of text from your team inbox that contains match
+                    details, then we'll generate the appropriate response thanking them and providing your contact
+                    information.
                 </div>
 
                 <!-- Input Section -->
@@ -1156,8 +1218,9 @@
                                 Paste the email/fixture text you received from the opposition team:
                             </label>
                             <textarea class="form-control" id="away_match_text" name="away_match_text" rows="6"
-                                      placeholder="Paste the email text here... e.g., 'Hi, we would like to arrange a fixture for...'"></textarea>
-                            <div class="form-text">The more detail you provide, the better the response we can generate.</div>
+                                placeholder="Paste the email text here... e.g., 'Hi, we would like to arrange a fixture for...'"></textarea>
+                            <div class="form-text">The more detail you provide, the better the response we can generate.
+                            </div>
                         </div>
                         <button type="button" id="generateBtn" class="btn btn-info" onclick="generateAwayMatchText()">
                             <i class="fas fa-magic"></i> Generate Response Text
@@ -1205,11 +1268,11 @@
 
 {% block scripts %}
 <script>
-// Toast notification function
-function showToast(message) {
-    // Create toast element
-    const toast = document.createElement('div');
-    toast.style.cssText = `
+    // Toast notification function
+    function showToast(message) {
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
@@ -1223,187 +1286,216 @@ function showToast(message) {
         max-width: 300px;
         word-wrap: break-word;
     `;
-    toast.textContent = message;
+        toast.textContent = message;
 
-    document.body.appendChild(toast);
+        document.body.appendChild(toast);
 
-    // Remove after 3 seconds
-    setTimeout(() => {
-        if (toast.parentNode) {
-            toast.parentNode.removeChild(toast);
-        }
-    }, 3000);
-}
-
-
-
-function deletePitch(pitchName) {
-    if (confirm(`Are you sure you want to delete the pitch configuration for "${pitchName}"?`)) {
-        fetch(`/settings/pitch/${encodeURIComponent(pitchName)}`, {
-            method: 'DELETE'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error deleting pitch');
+        // Remove after 3 seconds
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
             }
-        })
-        .catch(error => {
-            alert('Error deleting pitch');
-        });
+        }, 3000);
     }
-}
 
-function removeCurrentMap() {
-    if (confirm('Are you sure you want to remove the current custom map?')) {
-        document.getElementById('current_map_display').style.display = 'none';
-        // Note: The actual file will be removed when the form is submitted with a new file or when explicitly deleted
+
+
+    function deletePitch(pitchName) {
+        if (confirm(`Are you sure you want to delete the pitch configuration for "${pitchName}"?`)) {
+            fetch(`/settings/pitch/${encodeURIComponent(pitchName)}`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error deleting pitch');
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting pitch');
+                });
+        }
     }
-}
 
-// Contact management functions
-function copyToClipboard(text, message) {
-    navigator.clipboard.writeText(text).then(() => {
-        showToast(message || 'Copied to clipboard!');
-    }).catch(() => {
-        // Fallback for browsers that don't support clipboard API
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        
-        try {
-            document.execCommand('copy');
+    function removeCurrentMap() {
+        if (confirm('Are you sure you want to remove the current custom map?')) {
+            document.getElementById('current_map_display').style.display = 'none';
+            // Note: The actual file will be removed when the form is submitted with a new file or when explicitly deleted
+        }
+    }
+
+    // Contact management functions
+    function copyToClipboard(text, message) {
+        navigator.clipboard.writeText(text).then(() => {
             showToast(message || 'Copied to clipboard!');
-        } catch (err) {
-            alert('Copy to clipboard failed. Please copy manually: ' + text);
-        }
-        
-        textArea.remove();
-    });
-}
+        }).catch(() => {
+            // Fallback for browsers that don't support clipboard API
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
 
-function handleBulkArchive() {
-    const selectedTeams = Array.from(document.querySelectorAll('.bulk-team-checkbox:checked')).map(cb => cb.value);
-
-    if (selectedTeams.length === 0) {
-        alert('Please select at least one team to archive.');
-        return;
-    }
-
-    const confirmMessage = `Archive ${selectedTeams.length} teams?\n\nTeams to archive: ${selectedTeams.join(', ')}\n\nArchived teams will be hidden from your dashboard but can be restored later.`;
-
-    if (!confirm(confirmMessage)) {
-        return;
-    }
-
-    document.getElementById('archiveBtn').disabled = true;
-    document.getElementById('archiveBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Archiving...';
-
-    fetch('/settings/teams/bulk-archive', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ teams: selectedTeams })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast(`Successfully archived ${data.archived_count} teams!`);
-            bootstrap.Modal.getInstance(document.getElementById('selectTeamsModal')).hide();
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            alert('Error archiving teams: ' + (data.message || 'Unknown error'));
-        }
-    })
-    .catch(error => {
-        alert('Error archiving teams');
-        console.error('Error:', error);
-    })
-    .finally(() => {
-        document.getElementById('archiveBtn').disabled = false;
-        document.getElementById('archiveBtn').innerHTML = '<i class="fas fa-archive"></i> Archive Selected';
-    });
-}
-
-function updateSelectionSummary() {
-    const checkboxes = document.querySelectorAll('.bulk-team-checkbox:checked');
-    const totalSelected = checkboxes.length;
-    let managedCount = 0;
-    let newCount = 0;
-
-    checkboxes.forEach(cb => {
-        const teamName = cb.value;
-        // Check if team is currently managed by looking at the checkbox state and data attribute
-        if (cb.hasAttribute('checked') && cb.getAttribute('checked') === 'checked') {
-            managedCount++;
-        } else {
-            newCount++;
-        }
-    });
-
-    // Update the summary display
-    document.getElementById('selectionCount').textContent = totalSelected;
-    document.getElementById('managedCount').textContent = managedCount;
-    document.getElementById('newCount').textContent = newCount;
-}
-
-function editContact(teamName) {
-    fetch(`/settings/contacts/${encodeURIComponent(teamName)}`)
-        .then(response => response.json())
-        .then(contact => {
-            document.getElementById('contactModalTitle').textContent = 'Edit Team Contact';
-            document.getElementById('team_name').value = contact.team_name || teamName;
-            document.getElementById('contact_name').value = contact.contact_name || '';
-            document.getElementById('contact_email').value = contact.email || '';
-            document.getElementById('contact_phone').value = contact.phone || '';
-            document.getElementById('contact_notes').value = contact.notes || '';
-            
-            const modal = new bootstrap.Modal(document.getElementById('addContactModal'));
-            modal.show();
-        })
-        .catch(error => {
-            alert('Error loading contact information');
-        });
-}
-
-function deleteContact(teamName) {
-    if (confirm(`Are you sure you want to delete the contact for ${teamName}?`)) {
-        fetch(`/settings/contacts/${encodeURIComponent(teamName)}`, {
-            method: 'DELETE'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast(`Contact for ${teamName} deleted successfully!`);
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
-            } else {
-                alert('Error deleting contact');
+            try {
+                document.execCommand('copy');
+                showToast(message || 'Copied to clipboard!');
+            } catch (err) {
+                alert('Copy to clipboard failed. Please copy manually: ' + text);
             }
-        })
-        .catch(error => {
-            alert('Error deleting contact');
+
+            textArea.remove();
         });
     }
-}
 
-// Coach/Manager management functions
-function editCoach(teamName) {
-    fetch(`/settings/coaches/${encodeURIComponent(teamName)}`)
-        .then(response => response.json())
-        .then(data => {
-            if (Object.keys(data).length > 0) {
+    function handleBulkArchive() {
+        const selectedTeams = Array.from(document.querySelectorAll('.bulk-team-checkbox:checked')).map(cb => cb.value);
+
+        if (selectedTeams.length === 0) {
+            alert('Please select at least one team to archive.');
+            return;
+        }
+
+        const confirmMessage = `Archive ${selectedTeams.length} teams?\n\nTeams to archive: ${selectedTeams.join(', ')}\n\nArchived teams will be hidden from your dashboard but can be restored later.`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        document.getElementById('archiveBtn').disabled = true;
+        document.getElementById('archiveBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Archiving...';
+
+        fetch('/settings/teams/bulk-archive', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ teams: selectedTeams })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Successfully archived ${data.archived_count} teams!`);
+                    bootstrap.Modal.getInstance(document.getElementById('selectTeamsModal')).hide();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    alert('Error archiving teams: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                alert('Error archiving teams');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                document.getElementById('archiveBtn').disabled = false;
+                document.getElementById('archiveBtn').innerHTML = '<i class="fas fa-archive"></i> Archive Selected';
+            });
+    }
+
+    function updateSelectionSummary() {
+        const checkboxes = document.querySelectorAll('.bulk-team-checkbox:checked');
+        const totalSelected = checkboxes.length;
+        let managedCount = 0;
+        let newCount = 0;
+
+        checkboxes.forEach(cb => {
+            const teamName = cb.value;
+            // Check if team is currently managed by looking at the checkbox state and data attribute
+            if (cb.hasAttribute('checked') && cb.getAttribute('checked') === 'checked') {
+                managedCount++;
+            } else {
+                newCount++;
+            }
+        });
+
+        // Update the summary display
+        document.getElementById('selectionCount').textContent = totalSelected;
+        document.getElementById('managedCount').textContent = managedCount;
+        document.getElementById('newCount').textContent = newCount;
+    }
+
+    function editContact(teamName) {
+        fetch(`/settings/contacts/${encodeURIComponent(teamName)}`)
+            .then(response => response.json())
+            .then(contact => {
+                document.getElementById('contactModalTitle').textContent = 'Edit Team Contact';
+                document.getElementById('team_name').value = contact.team_name || teamName;
+                document.getElementById('contact_name').value = contact.contact_name || '';
+                document.getElementById('contact_email').value = contact.email || '';
+                document.getElementById('contact_phone').value = contact.phone || '';
+                document.getElementById('contact_notes').value = contact.notes || '';
+
+                const modal = new bootstrap.Modal(document.getElementById('addContactModal'));
+                modal.show();
+            })
+            .catch(error => {
+                alert('Error loading contact information');
+            });
+    }
+
+    function deleteContact(teamName) {
+        if (confirm(`Are you sure you want to delete the contact for ${teamName}?`)) {
+            fetch(`/settings/contacts/${encodeURIComponent(teamName)}`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(`Contact for ${teamName} deleted successfully!`);
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        alert('Error deleting contact');
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting contact');
+                });
+        }
+    }
+
+    // Coach/Manager management functions
+    function editCoach(teamName) {
+        fetch(`/settings/coaches/${encodeURIComponent(teamName)}`)
+            .then(response => response.json())
+            .then(data => {
+                if (Object.keys(data).length > 0) {
+                    document.getElementById('coachModalTitle').textContent = 'Edit Coach/Manager';
+                    document.getElementById('coach_team_name').value = teamName;
+                    document.getElementById('coach_name').value = data.coach_name || '';
+                    document.getElementById('coach_role').value = data.role || 'Coach';
+                    document.getElementById('coach_email').value = data.email || '';
+                    document.getElementById('coach_phone').value = data.phone || '';
+                    document.getElementById('coach_notes').value = data.notes || '';
+
+                    // Store coach ID for updating
+                    document.getElementById('coach_id').value = data.id || '';
+                }
+
+                const modal = new bootstrap.Modal(document.getElementById('addCoachModal'));
+                modal.show();
+            })
+            .catch(error => {
+                alert('Error loading coach information');
+            });
+    }
+
+    function editCoachById(coachId) {
+        fetch(`/settings/coaches/id/${coachId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
                 document.getElementById('coachModalTitle').textContent = 'Edit Coach/Manager';
-                document.getElementById('coach_team_name').value = teamName;
+                document.getElementById('coach_team_name').value = data.team_name || '';
                 document.getElementById('coach_name').value = data.coach_name || '';
                 document.getElementById('coach_role').value = data.role || 'Coach';
                 document.getElementById('coach_email').value = data.email || '';
@@ -1411,525 +1503,496 @@ function editCoach(teamName) {
                 document.getElementById('coach_notes').value = data.notes || '';
 
                 // Store coach ID for updating
-                document.getElementById('coach_id').value = data.id || '';
-            }
+                document.getElementById('coach_id').value = data.id;
 
-            const modal = new bootstrap.Modal(document.getElementById('addCoachModal'));
-            modal.show();
-        })
-        .catch(error => {
-            alert('Error loading coach information');
-        });
-}
-
-function editCoachById(coachId) {
-    fetch(`/settings/coaches/id/${coachId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert('Error: ' + data.error);
-                return;
-            }
-
-            document.getElementById('coachModalTitle').textContent = 'Edit Coach/Manager';
-            document.getElementById('coach_team_name').value = data.team_name || '';
-            document.getElementById('coach_name').value = data.coach_name || '';
-            document.getElementById('coach_role').value = data.role || 'Coach';
-            document.getElementById('coach_email').value = data.email || '';
-            document.getElementById('coach_phone').value = data.phone || '';
-            document.getElementById('coach_notes').value = data.notes || '';
-
-            // Store coach ID for updating
-            document.getElementById('coach_id').value = data.id;
-
-            const modal = new bootstrap.Modal(document.getElementById('addCoachModal'));
-            modal.show();
-        })
-        .catch(error => {
-            alert('Error loading coach data');
-        });
-}
-
-function addCoachForTeam(teamName) {
-    document.getElementById('coachModalTitle').textContent = 'Add Coach/Manager';
-    document.getElementById('coach_team_name').value = teamName;
-    document.getElementById('coach_name').value = '';
-    document.getElementById('coach_role').value = 'Coach';
-    document.getElementById('coach_email').value = '';
-    document.getElementById('coach_phone').value = '';
-    document.getElementById('coach_notes').value = '';
-
-    // Clear coach ID (this is a new coach)
-    document.getElementById('coach_id').value = '';
-
-    const modal = new bootstrap.Modal(document.getElementById('addCoachModal'));
-    modal.show();
-}
-
-function deleteCoach(teamName) {
-    if (confirm(`Are you sure you want to delete the coach/manager for ${teamName}?`)) {
-        fetch(`/settings/coaches/${encodeURIComponent(teamName)}`, {
-            method: 'DELETE'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                showToast(`Coach/Manager for ${teamName} deleted successfully!`);
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
-            } else {
-                alert('Error deleting coach/manager');
-            }
-        })
-        .catch(error => {
-            alert('Error deleting coach/manager');
-        });
-    }
-}
-
-function deleteCoachById(coachId) {
-    if (confirm('Are you sure you want to delete this coach/manager?')) {
-        fetch(`/settings/coaches/delete`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                coach_id: coachId
+                const modal = new bootstrap.Modal(document.getElementById('addCoachModal'));
+                modal.show();
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                showToast('Coach/Manager deleted successfully!');
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
-            } else {
-                alert('Error deleting coach/manager');
-            }
-        })
-        .catch(error => {
-            alert('Error deleting coach/manager');
-        });
+            .catch(error => {
+                alert('Error loading coach data');
+            });
     }
-}
 
-// Reset modal when adding new pitch
-document.addEventListener('DOMContentLoaded', function() {
-    const addPitchModal = document.getElementById('addPitchModal');
-    addPitchModal.addEventListener('hidden.bs.modal', function () {
-        document.getElementById('pitchModalTitle').textContent = 'Add New Pitch';
-        document.getElementById('pitchForm').reset();
-    });
-    
-    // Reset contact modal when closing
-    const addContactModal = document.getElementById('addContactModal');
-    addContactModal.addEventListener('hidden.bs.modal', function () {
-        document.getElementById('contactModalTitle').textContent = 'Add Team Contact';
-        document.getElementById('contactForm').reset();
-    });
-    
-    // Reset coach modal when closing
-    const addCoachModal = document.getElementById('addCoachModal');
-    addCoachModal.addEventListener('hidden.bs.modal', function () {
+    function addCoachForTeam(teamName) {
         document.getElementById('coachModalTitle').textContent = 'Add Coach/Manager';
-        document.getElementById('coachForm').reset();
-    });
-    
-    // Team kit modal functionality
-    const teamKitModal = document.getElementById('teamKitModal');
-    teamKitModal.addEventListener('show.bs.modal', function (event) {
-        const button = event.relatedTarget;
-        const teamName = button.getAttribute('data-team');
+        document.getElementById('coach_team_name').value = teamName;
+        document.getElementById('coach_name').value = '';
+        document.getElementById('coach_role').value = 'Coach';
+        document.getElementById('coach_email').value = '';
+        document.getElementById('coach_phone').value = '';
+        document.getElementById('coach_notes').value = '';
 
-        // Set modal title and team name
-        document.getElementById('teamKitModalTitle').textContent = `Manage Kit Colours - ${teamName}`;
-        document.getElementById('kit_team_name').value = teamName;
+        // Clear coach ID (this is a new coach)
+        document.getElementById('coach_id').value = '';
 
-        // Load existing kit data for this team
-        loadTeamKit(teamName);
+        const modal = new bootstrap.Modal(document.getElementById('addCoachModal'));
+        modal.show();
+    }
 
-        // Update preview on input changes
-        ['home_shirt', 'home_shorts', 'home_socks', 'away_shirt', 'away_shorts', 'away_socks'].forEach(field => {
-            document.getElementById(field).addEventListener('input', updateKitPreview);
-        });
-
-        // Initialize preview
-        updateKitPreview();
-    });
-
-    teamKitModal.addEventListener('hidden.bs.modal', function () {
-        // Clear form when modal closes
-        document.getElementById('teamKitForm').reset();
-        document.getElementById('homeKitPreview').textContent = '-';
-        document.getElementById('awayKitPreview').textContent = '-';
-    });
-
-    // Team FA URL modal functionality
-    // Club Fixtures URL Modal
-    const clubFixturesUrlModal = document.getElementById('clubFixturesUrlModal');
-    if (clubFixturesUrlModal) {
-        clubFixturesUrlModal.addEventListener('show.bs.modal', function (event) {
-            const clubUrl = '{{ org_settings.get("club_fixtures_url", "") }}';
-            document.getElementById('club_fixtures_url').value = clubUrl;
-            document.getElementById('clubUrlSaveStatus').innerHTML = '';
-            const saveBtn = document.getElementById('clubUrlSaveBtn');
-            saveBtn.disabled = false;
-            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save URL';
-        });
-        
-        // Handle form submission
-        const clubUrlForm = document.getElementById('clubFixturesUrlForm');
-        if (clubUrlForm) {
-            clubUrlForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const formData = new FormData(this);
-                const saveBtn = document.getElementById('clubUrlSaveBtn');
-                const cancelBtn = document.getElementById('clubUrlCancelBtn');
-                const statusDiv = document.getElementById('clubUrlSaveStatus');
-                const originalBtnHTML = saveBtn.innerHTML;
-                
-                // Disable buttons and show loading
-                saveBtn.disabled = true;
-                cancelBtn.disabled = true;
-                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-                statusDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Saving URL...</div>';
-                
-                fetch('/settings/club-fixtures/url', {
-                    method: 'POST',
-                    body: formData
+    function deleteCoach(teamName) {
+        if (confirm(`Are you sure you want to delete the coach/manager for ${teamName}?`)) {
+            fetch(`/settings/coaches/${encodeURIComponent(teamName)}`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showToast(`Coach/Manager for ${teamName} deleted successfully!`);
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        alert('Error deleting coach/manager');
+                    }
                 })
+                .catch(error => {
+                    alert('Error deleting coach/manager');
+                });
+        }
+    }
+
+    function deleteCoachById(coachId) {
+        if (confirm('Are you sure you want to delete this coach/manager?')) {
+            fetch(`/settings/coaches/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    coach_id: coachId
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showToast('Coach/Manager deleted successfully!');
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        alert('Error deleting coach/manager');
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting coach/manager');
+                });
+        }
+    }
+
+    // Reset modal when adding new pitch
+    document.addEventListener('DOMContentLoaded', function () {
+        const addPitchModal = document.getElementById('addPitchModal');
+        addPitchModal.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('pitchModalTitle').textContent = 'Add New Pitch';
+            document.getElementById('pitchForm').reset();
+        });
+
+        // Reset contact modal when closing
+        const addContactModal = document.getElementById('addContactModal');
+        addContactModal.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('contactModalTitle').textContent = 'Add Team Contact';
+            document.getElementById('contactForm').reset();
+        });
+
+        // Reset coach modal when closing
+        const addCoachModal = document.getElementById('addCoachModal');
+        addCoachModal.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('coachModalTitle').textContent = 'Add Coach/Manager';
+            document.getElementById('coachForm').reset();
+        });
+
+        // Team kit modal functionality
+        const teamKitModal = document.getElementById('teamKitModal');
+        teamKitModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const teamName = button.getAttribute('data-team');
+
+            // Set modal title and team name
+            document.getElementById('teamKitModalTitle').textContent = `Manage Kit Colours - ${teamName}`;
+            document.getElementById('kit_team_name').value = teamName;
+
+            // Load existing kit data for this team
+            loadTeamKit(teamName);
+
+            // Update preview on input changes
+            ['home_shirt', 'home_shorts', 'home_socks', 'away_shirt', 'away_shorts', 'away_socks'].forEach(field => {
+                document.getElementById(field).addEventListener('input', updateKitPreview);
+            });
+
+            // Initialize preview
+            updateKitPreview();
+        });
+
+        teamKitModal.addEventListener('hidden.bs.modal', function () {
+            // Clear form when modal closes
+            document.getElementById('teamKitForm').reset();
+            document.getElementById('homeKitPreview').textContent = '-';
+            document.getElementById('awayKitPreview').textContent = '-';
+        });
+
+        // Team FA URL modal functionality
+        // Club Fixtures URL Modal
+        const clubFixturesUrlModal = document.getElementById('clubFixturesUrlModal');
+        if (clubFixturesUrlModal) {
+            clubFixturesUrlModal.addEventListener('show.bs.modal', function (event) {
+                const clubUrl = '{{ org_settings.get("club_fixtures_url", "") }}';
+                document.getElementById('club_fixtures_url').value = clubUrl;
+                document.getElementById('clubUrlSaveStatus').innerHTML = '';
+                const saveBtn = document.getElementById('clubUrlSaveBtn');
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fas fa-save"></i> Save URL';
+            });
+
+            // Handle form submission
+            const clubUrlForm = document.getElementById('clubFixturesUrlForm');
+            if (clubUrlForm) {
+                clubUrlForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+
+                    const formData = new FormData(this);
+                    const saveBtn = document.getElementById('clubUrlSaveBtn');
+                    const cancelBtn = document.getElementById('clubUrlCancelBtn');
+                    const statusDiv = document.getElementById('clubUrlSaveStatus');
+                    const originalBtnHTML = saveBtn.innerHTML;
+
+                    // Disable buttons and show loading
+                    saveBtn.disabled = true;
+                    cancelBtn.disabled = true;
+                    saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                    statusDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Saving URL...</div>';
+
+                    fetch('/settings/club-fixtures/url', {
+                        method: 'POST',
+                        body: formData
+                    })
+                        .then(response => {
+                            if (response.ok) {
+                                return response.json();
+                            }
+                            return response.text().then(text => {
+                                throw new Error(text || 'Failed to save URL');
+                            });
+                        })
+                        .then(data => {
+                            // Show success message
+                            statusDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> URL saved successfully!<br><small>Reloading page to update...</small></div>';
+                            saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved';
+
+                            // Close modal after 2 seconds and reload page
+                            setTimeout(() => {
+                                const modal = bootstrap.Modal.getInstance(clubFixturesUrlModal);
+                                if (modal) {
+                                    modal.hide();
+                                }
+                                // Reload page to show updated status
+                                location.reload();
+                            }, 2000);
+                        })
+                        .catch(error => {
+                            statusDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ' + error.message + '</div>';
+                            saveBtn.innerHTML = originalBtnHTML;
+                            saveBtn.disabled = false;
+                            cancelBtn.disabled = false;
+                        });
+                });
+            }
+        }
+
+        // Function to refresh club fixtures
+        window.refreshClubFixtures = function () {
+            const refreshBtn = document.getElementById('refreshClubFixturesBtn');
+            const originalHTML = refreshBtn.innerHTML;
+
+            // Disable button and show loading
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+
+            // Create status message in the alert box
+            const alertBox = refreshBtn.closest('.alert');
+            let statusDiv = alertBox.querySelector('.refresh-status');
+            if (!statusDiv) {
+                statusDiv = document.createElement('div');
+                statusDiv.className = 'refresh-status mt-2';
+                alertBox.appendChild(statusDiv);
+            }
+            statusDiv.innerHTML = '<div class="alert alert-info mb-0"><i class="fas fa-spinner fa-spin"></i> Scraping fixtures from FA website...</div>';
+
+            fetch('/settings/club-fixtures/refresh', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
+                }
+            })
                 .then(response => {
                     if (response.ok) {
                         return response.json();
                     }
-                    return response.text().then(text => {
-                        throw new Error(text || 'Failed to save URL');
-                    });
+                    throw new Error('Refresh failed');
                 })
                 .then(data => {
-                    // Show success message
-                    statusDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> URL saved successfully!<br><small>Reloading page to update...</small></div>';
-                    saveBtn.innerHTML = '<i class="fas fa-check"></i> Saved';
-                    
-                    // Close modal after 2 seconds and reload page
-                    setTimeout(() => {
-                        const modal = bootstrap.Modal.getInstance(clubFixturesUrlModal);
-                        if (modal) {
-                            modal.hide();
+                    if (data.success) {
+                        const teamsMatched = data.teams_matched && data.teams_matched.length > 0
+                            ? data.teams_matched.join(', ')
+                            : 'None';
+
+                        let summaryHtml = '<div class="alert alert-success mb-0">' +
+                            '<h6><i class="fas fa-check-circle"></i> Refresh Complete!</h6>' +
+                            '<ul class="mb-2 small">' +
+                            '<li><strong>Total fixtures found on FA website:</strong> ' + data.total_fixtures + '</li>' +
+                            '<li><strong>Fixtures imported:</strong> ' + data.fixtures_imported + '</li>' +
+                            '<li><strong>Teams matched:</strong> ' + teamsMatched + '</li>' +
+                            '</ul>';
+
+                        // Add detailed team summary if available
+                        if (data.teams_summary && data.teams_summary.length > 0) {
+                            summaryHtml += '<div class="border-top pt-2 mt-2"><strong>Team Summary:</strong><ul class="mb-0 small">';
+                            data.teams_summary.forEach(team => {
+                                summaryHtml += '<li>' + team.name + ': ' + team.fixture_count + ' fixture' + (team.fixture_count !== 1 ? 's' : '') + '</li>';
+                            });
+                            summaryHtml += '</ul></div>';
                         }
-                        // Reload page to show updated status
-                        location.reload();
-                    }, 2000);
+
+                        summaryHtml += '</div>';
+                        statusDiv.innerHTML = summaryHtml;
+
+                        // Optionally reload page after 5 seconds to show updated fixtures
+                        setTimeout(() => {
+                            if (confirm('Refresh complete! Would you like to reload the page to see the updated fixtures?')) {
+                                location.reload();
+                            }
+                        }, 5000);
+                    } else {
+                        statusDiv.innerHTML = '<div class="alert alert-danger mb-0"><i class="fas fa-exclamation-circle"></i> Error: ' + (data.error || 'Failed to refresh fixtures') + '</div>';
+                    }
                 })
                 .catch(error => {
-                    statusDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error: ' + error.message + '</div>';
-                    saveBtn.innerHTML = originalBtnHTML;
-                    saveBtn.disabled = false;
-                    cancelBtn.disabled = false;
+                    statusDiv.innerHTML = '<div class="alert alert-danger mb-0"><i class="fas fa-exclamation-circle"></i> Error: ' + error.message + '</div>';
+                    console.error('Error:', error);
+                })
+                .finally(() => {
+                    refreshBtn.disabled = false;
+                    refreshBtn.innerHTML = originalHTML;
                 });
-            });
-        }
-    }
+        };
 
-    // Function to refresh club fixtures
-    window.refreshClubFixtures = function() {
-        const refreshBtn = document.getElementById('refreshClubFixturesBtn');
-        const originalHTML = refreshBtn.innerHTML;
-        
-        // Disable button and show loading
-        refreshBtn.disabled = true;
-        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
-        
-        // Create status message in the alert box
-        const alertBox = refreshBtn.closest('.alert');
-        let statusDiv = alertBox.querySelector('.refresh-status');
-        if (!statusDiv) {
-            statusDiv = document.createElement('div');
-            statusDiv.className = 'refresh-status mt-2';
-            alertBox.appendChild(statusDiv);
-        }
-        statusDiv.innerHTML = '<div class="alert alert-info mb-0"><i class="fas fa-spinner fa-spin"></i> Scraping fixtures from FA website...</div>';
-        
-        fetch('/settings/club-fixtures/refresh', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
-            }
-        })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            }
-            throw new Error('Refresh failed');
-        })
-        .then(data => {
-            if (data.success) {
-                const teamsMatched = data.teams_matched && data.teams_matched.length > 0 
-                    ? data.teams_matched.join(', ') 
-                    : 'None';
-                
-                let summaryHtml = '<div class="alert alert-success mb-0">' +
-                    '<h6><i class="fas fa-check-circle"></i> Refresh Complete!</h6>' +
-                    '<ul class="mb-2 small">' +
-                    '<li><strong>Total fixtures found on FA website:</strong> ' + data.total_fixtures + '</li>' +
-                    '<li><strong>Fixtures imported:</strong> ' + data.fixtures_imported + '</li>' +
-                    '<li><strong>Teams matched:</strong> ' + teamsMatched + '</li>' +
-                    '</ul>';
-                
-                // Add detailed team summary if available
-                if (data.teams_summary && data.teams_summary.length > 0) {
-                    summaryHtml += '<div class="border-top pt-2 mt-2"><strong>Team Summary:</strong><ul class="mb-0 small">';
-                    data.teams_summary.forEach(team => {
-                        summaryHtml += '<li>' + team.name + ': ' + team.fixture_count + ' fixture' + (team.fixture_count !== 1 ? 's' : '') + '</li>';
-                    });
-                    summaryHtml += '</ul></div>';
-                }
-                
-                summaryHtml += '</div>';
-                statusDiv.innerHTML = summaryHtml;
-                
-                // Optionally reload page after 5 seconds to show updated fixtures
-                setTimeout(() => {
-                    if (confirm('Refresh complete! Would you like to reload the page to see the updated fixtures?')) {
-                        location.reload();
-                    }
-                }, 5000);
+        const teamFaUrlModal = document.getElementById('teamFaUrlModal');
+        teamFaUrlModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const teamName = button.getAttribute('data-team');
+            const teamId = button.getAttribute('data-team-id');
+            const faUrl = button.getAttribute('data-fa-url') || '';
+
+            // Set modal title and populate form
+            document.getElementById('teamFaUrlModalTitle').textContent = `FA Fixtures URL - ${teamName}`;
+            document.getElementById('fa_url_team_name').value = teamName;
+            document.getElementById('fa_url_team_id').value = teamId;
+            document.getElementById('fa_fixtures_url').value = faUrl;
+
+            // Show/hide refresh button based on whether URL exists
+            const refreshBtn = document.getElementById('refreshFaFixturesBtn');
+            const statusDiv = document.getElementById('faUrlRefreshStatus');
+            if (faUrl) {
+                refreshBtn.style.display = 'inline-block';
+                refreshBtn.setAttribute('data-team-name', teamName);
+                statusDiv.innerHTML = '';
             } else {
-                statusDiv.innerHTML = '<div class="alert alert-danger mb-0"><i class="fas fa-exclamation-circle"></i> Error: ' + (data.error || 'Failed to refresh fixtures') + '</div>';
+                refreshBtn.style.display = 'none';
+                statusDiv.innerHTML = '';
             }
-        })
-        .catch(error => {
-            statusDiv.innerHTML = '<div class="alert alert-danger mb-0"><i class="fas fa-exclamation-circle"></i> Error: ' + error.message + '</div>';
-            console.error('Error:', error);
-        })
-        .finally(() => {
-            refreshBtn.disabled = false;
-            refreshBtn.innerHTML = originalHTML;
         });
-    };
 
-    const teamFaUrlModal = document.getElementById('teamFaUrlModal');
-    teamFaUrlModal.addEventListener('show.bs.modal', function (event) {
-        const button = event.relatedTarget;
-        const teamName = button.getAttribute('data-team');
-        const teamId = button.getAttribute('data-team-id');
-        const faUrl = button.getAttribute('data-fa-url') || '';
+        // Function to refresh FA fixtures
+        function refreshFaFixtures() {
+            const refreshBtn = document.getElementById('refreshFaFixturesBtn');
+            const teamName = refreshBtn.getAttribute('data-team-name');
+            const statusDiv = document.getElementById('faUrlRefreshStatus');
 
-        // Set modal title and populate form
-        document.getElementById('teamFaUrlModalTitle').textContent = `FA Fixtures URL - ${teamName}`;
-        document.getElementById('fa_url_team_name').value = teamName;
-        document.getElementById('fa_url_team_id').value = teamId;
-        document.getElementById('fa_fixtures_url').value = faUrl;
-        
-        // Show/hide refresh button based on whether URL exists
-        const refreshBtn = document.getElementById('refreshFaFixturesBtn');
-        const statusDiv = document.getElementById('faUrlRefreshStatus');
-        if (faUrl) {
-            refreshBtn.style.display = 'inline-block';
-            refreshBtn.setAttribute('data-team-name', teamName);
-            statusDiv.innerHTML = '';
-        } else {
-            refreshBtn.style.display = 'none';
-            statusDiv.innerHTML = '';
-        }
-    });
-    
-    // Function to refresh FA fixtures
-    function refreshFaFixtures() {
-        const refreshBtn = document.getElementById('refreshFaFixturesBtn');
-        const teamName = refreshBtn.getAttribute('data-team-name');
-        const statusDiv = document.getElementById('faUrlRefreshStatus');
-        
-        if (!teamName) {
-            statusDiv.innerHTML = '<div class="alert alert-danger">Team name not found</div>';
-            return;
-        }
-        
-        // Disable button and show loading
-        refreshBtn.disabled = true;
-        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
-        statusDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Refreshing fixtures...</div>';
-        
-        // Make request to refresh endpoint
-        fetch(`/settings/teams/${encodeURIComponent(teamName)}/refresh-fa-fixtures`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
+            if (!teamName) {
+                statusDiv.innerHTML = '<div class="alert alert-danger">Team name not found</div>';
+                return;
             }
-        })
-        .then(response => {
-            if (response.ok) {
-                return response.json().catch(() => ({}));
-            }
-            throw new Error('Refresh failed');
-        })
-        .then(data => {
-            statusDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Fixtures refreshed successfully! Please refresh the page to see updates.</div>';
-            refreshBtn.innerHTML = '<i class="fas fa-sync"></i> Refresh Fixtures Now';
-        })
-        .catch(error => {
-            statusDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error refreshing fixtures. Please try again or check the console.</div>';
-            refreshBtn.innerHTML = '<i class="fas fa-sync"></i> Refresh Fixtures Now';
-            console.error('Error:', error);
-        })
-        .finally(() => {
-            refreshBtn.disabled = false;
-        });
-    }
 
-    teamFaUrlModal.addEventListener('hidden.bs.modal', function () {
-        // Clear form when modal closes
-        document.getElementById('teamFaUrlForm').reset();
-    });
+            // Disable button and show loading
+            refreshBtn.disabled = true;
+            refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+            statusDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> Refreshing fixtures...</div>';
 
-    // Team coach modal functionality
-    const teamCoachModal = document.getElementById('teamCoachModal');
-    teamCoachModal.addEventListener('show.bs.modal', function (event) {
-        const button = event.relatedTarget;
-        const teamName = button.getAttribute('data-team');
-
-        // Set team name
-        document.getElementById('currentTeamName').textContent = teamName;
-        document.getElementById('team_coach_team_name').value = teamName;
-
-        // Reset form to add mode
-        resetTeamCoachForm(true);
-
-        // Load current coaches for this team
-        loadTeamCoaches(teamName);
-    });
-    
-    const teamCoachForm = document.getElementById('teamCoachForm');
-    const teamCoachSubmitBtn = document.getElementById('teamCoachSubmitBtn');
-    const teamCoachCancelEditBtn = document.getElementById('teamCoachCancelEditBtn');
-
-    if (teamCoachCancelEditBtn) {
-        teamCoachCancelEditBtn.addEventListener('click', () => resetTeamCoachForm());
-    }
-
-    if (teamCoachForm) {
-        teamCoachForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(this);
-            const teamName = document.getElementById('team_coach_team_name').value;
-
-            fetch('/settings/coaches', {
+            // Make request to refresh endpoint
+            fetch(`/settings/teams/${encodeURIComponent(teamName)}/refresh-fa-fixtures`, {
                 method: 'POST',
-                body: formData,
                 headers: {
-                    'Accept': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('input[name="csrf_token"]')?.value || ''
                 }
             })
-            .then(response => response.json().then(data => ({ ok: response.ok, data })))
-            .then(({ ok, data }) => {
-                if (ok && data.success) {
-                    this.reset();
-                    document.getElementById('team_coach_team_name').value = teamName;
-                    document.getElementById('team_coach_id').value = '';
-                    loadTeamCoaches(teamName);
-                    showToast('Coach details saved!');
-                    resetTeamCoachForm(true);
-                } else {
-                    throw new Error(data.message || 'Unknown error');
+                .then(response => {
+                    if (response.ok) {
+                        return response.json().catch(() => ({}));
+                    }
+                    throw new Error('Refresh failed');
+                })
+                .then(data => {
+                    statusDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Fixtures refreshed successfully! Please refresh the page to see updates.</div>';
+                    refreshBtn.innerHTML = '<i class="fas fa-sync"></i> Refresh Fixtures Now';
+                })
+                .catch(error => {
+                    statusDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> Error refreshing fixtures. Please try again or check the console.</div>';
+                    refreshBtn.innerHTML = '<i class="fas fa-sync"></i> Refresh Fixtures Now';
+                    console.error('Error:', error);
+                })
+                .finally(() => {
+                    refreshBtn.disabled = false;
+                });
+        }
+
+        teamFaUrlModal.addEventListener('hidden.bs.modal', function () {
+            // Clear form when modal closes
+            document.getElementById('teamFaUrlForm').reset();
+        });
+
+        // Team coach modal functionality
+        const teamCoachModal = document.getElementById('teamCoachModal');
+        teamCoachModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const teamName = button.getAttribute('data-team');
+
+            // Set team name
+            document.getElementById('currentTeamName').textContent = teamName;
+            document.getElementById('team_coach_team_name').value = teamName;
+
+            // Reset form to add mode
+            resetTeamCoachForm(true);
+
+            // Load current coaches for this team
+            loadTeamCoaches(teamName);
+        });
+
+        const teamCoachForm = document.getElementById('teamCoachForm');
+        const teamCoachSubmitBtn = document.getElementById('teamCoachSubmitBtn');
+        const teamCoachCancelEditBtn = document.getElementById('teamCoachCancelEditBtn');
+
+        if (teamCoachCancelEditBtn) {
+            teamCoachCancelEditBtn.addEventListener('click', () => resetTeamCoachForm());
+        }
+
+        if (teamCoachForm) {
+            teamCoachForm.addEventListener('submit', function (e) {
+                e.preventDefault();
+
+                const formData = new FormData(this);
+                const teamName = document.getElementById('team_coach_team_name').value;
+
+                fetch('/settings/coaches', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                    .then(response => response.json().then(data => ({ ok: response.ok, data })))
+                    .then(({ ok, data }) => {
+                        if (ok && data.success) {
+                            this.reset();
+                            document.getElementById('team_coach_team_name').value = teamName;
+                            document.getElementById('team_coach_id').value = '';
+                            loadTeamCoaches(teamName);
+                            showToast('Coach details saved!');
+                            resetTeamCoachForm(true);
+                        } else {
+                            throw new Error(data.message || 'Unknown error');
+                        }
+                    })
+                    .catch(error => {
+                        alert('Error adding coach: ' + error.message);
+                        console.error('Error:', error);
+                    });
+            });
+        }
+
+        // Contact search functionality
+        const contactSearchInput = document.getElementById('contactSearch');
+        if (contactSearchInput) {
+            contactSearchInput.addEventListener('input', filterContacts);
+
+            // Trigger search when user presses Enter
+            contactSearchInput.addEventListener('keyup', function (e) {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    filterContacts();
                 }
+            });
+        }
+    });
+
+    function loadTeamKit(teamName) {
+        // Fetch kit data for the team
+        fetch(`/settings/team-kit/${encodeURIComponent(teamName)}`)
+            .then(response => response.json())
+            .then(kit => {
+                // Populate form fields with existing data
+                document.getElementById('home_shirt').value = kit.home_shirt || '';
+                document.getElementById('home_shorts').value = kit.home_shorts || '';
+                document.getElementById('home_socks').value = kit.home_socks || '';
+                document.getElementById('away_shirt').value = kit.away_shirt || '';
+                document.getElementById('away_shorts').value = kit.away_shorts || '';
+                document.getElementById('away_socks').value = kit.away_socks || '';
             })
             .catch(error => {
-                alert('Error adding coach: ' + error.message);
-                console.error('Error:', error);
+                console.error('Error loading kit data:', error);
+                // If error, leave form blank (this is fine for new teams)
             });
-        });
     }
 
-    // Contact search functionality
-    const contactSearchInput = document.getElementById('contactSearch');
-    if (contactSearchInput) {
-        contactSearchInput.addEventListener('input', filterContacts);
+    function updateKitPreview() {
+        const homeShirt = document.getElementById('home_shirt').value.trim();
+        const homeShorts = document.getElementById('home_shorts').value.trim();
+        const homeSocks = document.getElementById('home_socks').value.trim();
 
-        // Trigger search when user presses Enter
-        contactSearchInput.addEventListener('keyup', function(e) {
-            if (e.key === 'Enter' || e.keyCode === 13) {
-                filterContacts();
-            }
-        });
+        const awayShirt = document.getElementById('away_shirt').value.trim();
+        const awayShorts = document.getElementById('away_shorts').value.trim();
+        const awaySocks = document.getElementById('away_socks').value.trim();
+
+        // Build home kit description
+        const homeParts = [homeShirt, homeShorts, homeSocks].filter(part => part);
+        const homeKitText = homeParts.length > 0 ? homeParts.join(', ') : 'Use default club colours';
+
+        // Build away kit description
+        const awayParts = [awayShirt, awayShorts, awaySocks].filter(part => part);
+        const awayKitText = awayParts.length > 0 ? awayParts.join(', ') : 'Use default club colours';
+
+        // Update preview
+        document.getElementById('homeKitPreview').textContent = homeKitText;
+        document.getElementById('awayKitPreview').textContent = awayKitText;
     }
-});
 
-function loadTeamKit(teamName) {
-    // Fetch kit data for the team
-    fetch(`/settings/team-kit/${encodeURIComponent(teamName)}`)
-        .then(response => response.json())
-        .then(kit => {
-            // Populate form fields with existing data
-            document.getElementById('home_shirt').value = kit.home_shirt || '';
-            document.getElementById('home_shorts').value = kit.home_shorts || '';
-            document.getElementById('home_socks').value = kit.home_socks || '';
-            document.getElementById('away_shirt').value = kit.away_shirt || '';
-            document.getElementById('away_shorts').value = kit.away_shorts || '';
-            document.getElementById('away_socks').value = kit.away_socks || '';
-        })
-        .catch(error => {
-            console.error('Error loading kit data:', error);
-            // If error, leave form blank (this is fine for new teams)
-        });
-}
+    function loadTeamCoaches(teamName) {
+        // Fetch coaches for the team
+        fetch(`/settings/coaches/team/${encodeURIComponent(teamName)}`)
+            .then(response => response.json())
+            .then(coaches => {
+                const currentCoachesDiv = document.getElementById('currentCoaches');
 
-function updateKitPreview() {
-    const homeShirt = document.getElementById('home_shirt').value.trim();
-    const homeShorts = document.getElementById('home_shorts').value.trim();
-    const homeSocks = document.getElementById('home_socks').value.trim();
+                if (coaches && coaches.length > 0) {
+                    let html = '<div class="card"><div class="card-header"><h6 class="mb-0">Current Coaches</h6></div><div class="card-body">';
 
-    const awayShirt = document.getElementById('away_shirt').value.trim();
-    const awayShorts = document.getElementById('away_shorts').value.trim();
-    const awaySocks = document.getElementById('away_socks').value.trim();
+                    coaches.forEach((coach, index) => {
+                        const coachPayload = encodeURIComponent(JSON.stringify({
+                            team: teamName,
+                            id: coach.id || '',
+                            name: coach.coach_name || '',
+                            email: coach.email || '',
+                            phone: coach.phone || '',
+                            role: coach.role || 'Coach',
+                            notes: coach.notes || ''
+                        }));
 
-    // Build home kit description
-    const homeParts = [homeShirt, homeShorts, homeSocks].filter(part => part);
-    const homeKitText = homeParts.length > 0 ? homeParts.join(', ') : 'Use default club colours';
+                        const deletePayload = encodeURIComponent(JSON.stringify({
+                            team: teamName,
+                            id: coach.id || '',
+                            name: coach.coach_name || ''
+                        }));
 
-    // Build away kit description
-    const awayParts = [awayShirt, awayShorts, awaySocks].filter(part => part);
-    const awayKitText = awayParts.length > 0 ? awayParts.join(', ') : 'Use default club colours';
-
-    // Update preview
-    document.getElementById('homeKitPreview').textContent = homeKitText;
-    document.getElementById('awayKitPreview').textContent = awayKitText;
-}
-
-function loadTeamCoaches(teamName) {
-    // Fetch coaches for the team
-    fetch(`/settings/coaches/team/${encodeURIComponent(teamName)}`)
-        .then(response => response.json())
-        .then(coaches => {
-            const currentCoachesDiv = document.getElementById('currentCoaches');
-
-            if (coaches && coaches.length > 0) {
-                let html = '<div class="card"><div class="card-header"><h6 class="mb-0">Current Coaches</h6></div><div class="card-body">';
-
-                coaches.forEach((coach, index) => {
-                    const coachPayload = encodeURIComponent(JSON.stringify({
-                        team: teamName,
-                        id: coach.id || '',
-                        name: coach.coach_name || '',
-                        email: coach.email || '',
-                        phone: coach.phone || '',
-                        role: coach.role || 'Coach',
-                        notes: coach.notes || ''
-                    }));
-
-                    const deletePayload = encodeURIComponent(JSON.stringify({
-                        team: teamName,
-                        id: coach.id || '',
-                        name: coach.coach_name || ''
-                    }));
-
-                    html += `
+                        html += `
                         <div class="row align-items-center mb-2 ${index > 0 ? 'border-top pt-2' : ''}">
                             <div class="col">
                                 <strong>${coach.coach_name}</strong>
@@ -1947,641 +2010,641 @@ function loadTeamCoaches(teamName) {
                             </div>
                         </div>
                     `;
+                    });
+
+                    html += '</div></div>';
+                    currentCoachesDiv.innerHTML = html;
+                    updateTeamCoachSummary(teamName, coaches);
+                } else {
+                    currentCoachesDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> No coaches added yet for this team.</div>';
+                    updateTeamCoachSummary(teamName, []);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading coaches:', error);
+                document.getElementById('currentCoaches').innerHTML = '<div class="alert alert-danger">Error loading coaches</div>';
+            });
+    }
+
+    function deleteTeam(teamName) {
+        if (confirm(`⚠️ PERMANENTLY DELETE TEAM: "${teamName}"?\n\nThis will delete:\n• The team\n• All fixtures and matches for this team\n• All task assignments\n• All coach contacts\n\nThis action CANNOT be undone. Are you sure?`)) {
+            fetch(`/settings/teams/${encodeURIComponent(teamName)}`, {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(`Team "${teamName}" deleted permanently!`);
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        alert('Error deleting team: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting team');
+                    console.error('Error:', error);
                 });
-
-                html += '</div></div>';
-                currentCoachesDiv.innerHTML = html;
-                updateTeamCoachSummary(teamName, coaches);
-            } else {
-                currentCoachesDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> No coaches added yet for this team.</div>';
-                updateTeamCoachSummary(teamName, []);
-            }
-        })
-        .catch(error => {
-            console.error('Error loading coaches:', error);
-            document.getElementById('currentCoaches').innerHTML = '<div class="alert alert-danger">Error loading coaches</div>';
-        });
-}
-
-function deleteTeam(teamName) {
-    if (confirm(`⚠️ PERMANENTLY DELETE TEAM: "${teamName}"?\n\nThis will delete:\n• The team\n• All fixtures and matches for this team\n• All task assignments\n• All coach contacts\n\nThis action CANNOT be undone. Are you sure?`)) {
-        fetch(`/settings/teams/${encodeURIComponent(teamName)}`, {
-            method: 'DELETE'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast(`Team "${teamName}" deleted permanently!`);
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
-            } else {
-                alert('Error deleting team: ' + (data.message || 'Unknown error'));
-            }
-        })
-        .catch(error => {
-            alert('Error deleting team');
-            console.error('Error:', error);
-        });
-    }
-}
-
-function deleteTeamCoach(teamName, coachName, coachId = '') {
-    if (!confirm(`Are you sure you want to remove ${coachName} from ${teamName}?`)) {
-        return;
-    }
-
-    const payload = coachId ? { coach_id: coachId } : { team_name: teamName, coach_name: coachName };
-    const csrfTokenInput = document.querySelector('#teamCoachForm input[name="csrf_token"]');
-    const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
-
-    fetch('/settings/coaches/delete', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken
-        },
-        body: JSON.stringify(payload)
-    })
-    .then(response => response.json().then(data => ({ ok: response.ok, data })))
-    .then(({ ok, data }) => {
-        if (ok && (data.success || data.status === 'success')) {
-            loadTeamCoaches(teamName);
-            showToast('Coach removed');
-        } else {
-            throw new Error(data.message || data.error || 'Unknown error');
         }
-    })
-    .catch(error => {
-        alert('Error deleting coach: ' + error.message);
-        console.error('Error:', error);
-    });
-}
-
-function handleEditCoach(button) {
-    try {
-        const payload = JSON.parse(decodeURIComponent(button.getAttribute('data-coach')));
-        editTeamCoach(
-            payload.team,
-            payload.name,
-            payload.email,
-            payload.phone,
-            payload.role,
-            payload.notes,
-            payload.id
-        );
-    } catch (error) {
-        console.error('Failed to parse coach data for edit:', error);
-    }
-}
-
-function handleDeleteCoach(button) {
-    try {
-        const payload = JSON.parse(decodeURIComponent(button.getAttribute('data-coach')));
-        deleteTeamCoach(payload.team, payload.name, payload.id);
-    } catch (error) {
-        console.error('Failed to parse coach data for delete:', error);
-    }
-}
-
-function startNewCoachEntry() {
-    resetTeamCoachForm(true);
-    const nameInput = document.getElementById('team_coach_name');
-    if (nameInput) {
-        nameInput.focus();
-    }
-}
-
-function updateTeamCoachSummary(teamName, coaches) {
-    const summaryElement = document.querySelector(`.coach-summary[data-team="${escapeSelector(teamName)}"]`);
-    if (!summaryElement) {
-        return;
     }
 
-    if (!coaches || coaches.length === 0) {
-        summaryElement.innerHTML = '<i class="fas fa-exclamation-triangle text-warning"></i> No coaches added';
-        return;
-    }
-
-    let html = '';
-    coaches.slice(0, 2).forEach(coach => {
-        const role = coach.role || 'Coach';
-        const name = coach.coach_name || '';
-        const shortenedName = name.length > 15 ? `${name.slice(0, 15)}...` : name;
-        html += `<div class="mb-1"><strong>${role}:</strong> ${shortenedName}</div>`;
-    });
-
-    if (coaches.length > 2) {
-        html += `<small class="text-muted">+ ${coaches.length - 2} more coaches</small>`;
-    }
-
-    summaryElement.innerHTML = html;
-}
-
-function escapeSelector(value) {
-    if (window.CSS && CSS.escape) {
-        return CSS.escape(value);
-    }
-    return value.replace(/([ #;?%&,.+*~\\':"!^$[\]()=>|\/@])/g, '\\$1');
-}
-
-function editTeamCoach(teamName, coachName, email = '', phone = '', role = 'Coach', notes = '', coachId = '') {
-    document.getElementById('team_coach_team_name').value = teamName;
-    document.getElementById('team_coach_id').value = coachId;
-    document.getElementById('team_coach_name').value = coachName;
-    document.getElementById('team_coach_email').value = email || '';
-    document.getElementById('team_coach_phone').value = phone || '';
-    document.getElementById('team_coach_role').value = role || 'Coach';
-    document.getElementById('team_coach_notes').value = notes || '';
-
-    const submitBtn = document.getElementById('teamCoachSubmitBtn');
-    submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
-    submitBtn.classList.remove('btn-danger');
-    submitBtn.classList.add('btn-success');
-
-    const cancelBtn = document.getElementById('teamCoachCancelEditBtn');
-    cancelBtn.classList.remove('d-none');
-}
-
-function resetTeamCoachForm(skipReload = false) {
-    const form = document.getElementById('teamCoachForm');
-    form.reset();
-    const teamName = document.getElementById('currentTeamName').textContent;
-    document.getElementById('team_coach_team_name').value = teamName;
-    document.getElementById('team_coach_id').value = '';
-    document.getElementById('team_coach_role').value = 'Coach';
-
-    const submitBtn = document.getElementById('teamCoachSubmitBtn');
-    submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Coach';
-    submitBtn.classList.add('btn-danger');
-    submitBtn.classList.remove('btn-success');
-
-    const cancelBtn = document.getElementById('teamCoachCancelEditBtn');
-    cancelBtn.classList.add('d-none');
-
-    if (!skipReload && teamName) {
-        loadTeamCoaches(teamName);
-    }
-}
-
-// Team Management Modal Functions
-document.addEventListener('DOMContentLoaded', function() {
-    // Team management modal initialization
-    const teamManagementModal = document.getElementById('selectTeamsModal');
-    if (teamManagementModal) {
-        // Handle manage button click
-        document.getElementById('manageBtn').addEventListener('click', handleManageTeams);
-
-        // Handle archive button click
-        document.getElementById('archiveBtn').addEventListener('click', handleBulkArchive);
-
-        // Handle delete button click
-        document.getElementById('deleteBtn').addEventListener('click', handleBulkDelete);
-
-        // Handle checkbox changes to update selection summary
-        document.addEventListener('change', function(e) {
-            if (e.target.classList.contains('bulk-team-checkbox')) {
-                updateSelectionSummary();
-            }
-        });
-
-        // Initialize modal state
-        teamManagementModal.addEventListener('show.bs.modal', function() {
-            updateSelectionSummary();
-        });
-    }
-});
-
-function updateSelectionSummaryOld() {
-    // Legacy function kept for compatibility - replaced by updateSelectionSummary()
-    updateSelectionSummary();
-}
-
-function handleManageTeams() {
-    const form = document.getElementById('teamManagementForm');
-    const formData = new FormData(form);
-
-    // Convert FormData to URLSearchParams for the POST request
-    const searchParams = new URLSearchParams(formData);
-
-    document.getElementById('manageBtn').disabled = true;
-    document.getElementById('manageBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-
-    fetch('/settings/teams', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: searchParams.toString()
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast('Team selections updated successfully!');
-            bootstrap.Modal.getInstance(document.getElementById('selectTeamsModal')).hide();
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            alert('Error updating team selections');
-        }
-    })
-    .catch(error => {
-        alert('Error updating team selections');
-        console.error('Error:', error);
-    })
-    .finally(() => {
-        document.getElementById('manageBtn').disabled = false;
-        document.getElementById('manageBtn').innerHTML = '<i class="fas fa-save"></i> Manage Selected';
-    });
-}
-
-function handleBulkDelete() {
-    const selectedTeams = Array.from(document.querySelectorAll('.bulk-team-checkbox:checked')).map(cb => cb.value);
-
-    if (selectedTeams.length === 0) {
-        alert('Please select at least one team to delete.');
-        return;
-    }
-
-    const confirmMessage = `⚠️ PERMANENTLY DELETE ${selectedTeams.length} TEAMS?\n\nTeams to delete: ${selectedTeams.join(', ')}\n\nThis will delete:\n• All teams\n• All fixtures and matches\n• All task assignments\n• All coach contacts\n\nThis action CANNOT be undone. Are you sure?`;
-
-    if (!confirm(confirmMessage)) {
-        return;
-    }
-
-    document.getElementById('deleteBtn').disabled = true;
-    document.getElementById('deleteBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
-
-    fetch('/settings/teams/bulk-delete', {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ teams: selectedTeams })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showToast(`Successfully deleted ${data.deleted_count} teams!`);
-            bootstrap.Modal.getInstance(document.getElementById('selectTeamsModal')).hide();
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            alert('Error deleting teams: ' + (data.message || 'Unknown error'));
-        }
-    })
-    .catch(error => {
-        alert('Error deleting teams');
-        console.error('Error:', error);
-    })
-    .finally(() => {
-        document.getElementById('deleteBtn').disabled = false;
-        document.getElementById('deleteBtn').innerHTML = '<i class="fas fa-trash"></i> Delete Selected';
-    });
-}
-
-// Away Match Text Generation Functions
-function generateAwayMatchText() {
-    const textInput = document.getElementById('away_match_text').value.trim();
-
-    if (!textInput) {
-        alert('Please paste some match details first.');
-        return;
-    }
-
-    // Show loading state
-    const generateBtn = document.getElementById('generateBtn');
-    const originalText = generateBtn.innerHTML;
-    generateBtn.disabled = true;
-    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-
-    // Call API to generate response text
-    fetch('/api/generate-away-match-response', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            input_text: textInput
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Hide input section and show output section
-            document.getElementById('responseSection').style.display = 'block';
-
-            // Scroll to response section
-            document.getElementById('responseSection').scrollIntoView({ behavior: 'smooth' });
-
-            // Populate the response text
-            document.getElementById('generatedResponse').innerHTML = data.response_text;
-
-            // Update button text
-            generateBtn.disabled = false;
-            generateBtn.innerHTML = originalText;
-
-            showToast('Response text generated successfully!');
-        } else {
-            alert('Error: ' + (data.message || 'Failed to generate response text'));
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Error generating response text: ' + error.message);
-    })
-    .finally(() => {
-        generateBtn.disabled = false;
-        generateBtn.innerHTML = originalText;
-    });
-}
-
-function clearResponse() {
-    document.getElementById('generatedResponse').innerHTML = '';
-    document.getElementById('away_match_text').value = '';
-    document.getElementById('responseSection').style.display = 'none';
-    showToast('Response cleared.');
-}
-
-function copyGeneratedText() {
-    const responseElement = document.getElementById('generatedResponse');
-    const textToCopy = responseElement.textContent || responseElement.innerText;
-
-    if (navigator.clipboard && window.isSecureContext) {
-        // Use the modern clipboard API
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            showToast('Response text copied to clipboard!');
-        }).catch(err => {
-            console.error('Failed to copy: ', err);
-            fallbackCopyTextToClipboard(textToCopy);
-        });
-    } else {
-        // Use the fallback method
-        fallbackCopyTextToClipboard(textToCopy);
-        showToast('Response text copied to clipboard!');
-    }
-}
-
-function copyAndClose() {
-    copyGeneratedText();
-    // Close the modal after a brief delay
-    setTimeout(() => {
-        const modal = bootstrap.Modal.getInstance(document.getElementById('awayMatchModal'));
-        modal.hide();
-    }, 500);
-}
-
-function fallbackCopyTextToClipboard(text) {
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    textArea.style.top = '-999999px';
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-
-    try {
-        document.execCommand('copy');
-    } catch (err) {
-        console.error('Fallback: Oops, unable to copy', err);
-    } finally {
-        textArea.remove();
-    }
-}
-
-// Contact search functionality
-function filterContacts() {
-    const searchTerm = document.getElementById('contactSearch').value.toLowerCase().trim();
-    const contactGrid = document.getElementById('contactGrid');
-    const contactCards = contactGrid.querySelectorAll('.col-md-6');
-    let visibleCount = 0;
-
-    contactCards.forEach(card => {
-        const teamName = card.querySelector('h6.card-title').textContent.toLowerCase();
-        const contactName = card.querySelector('small.text-muted').textContent.toLowerCase();
-        const email = card.querySelector('.small code') ? card.querySelector('.small code').textContent.toLowerCase() : '';
-        const phone = card.querySelector('.small:not(code)') ? card.querySelector('.small:not(code)').textContent.toLowerCase() : '';
-
-        // Check if search term matches team name, contact name, email, or phone
-        const matchesSearch = searchTerm === '' ||
-            teamName.includes(searchTerm) ||
-            contactName.includes(searchTerm) ||
-            email.includes(searchTerm) ||
-            phone.includes(searchTerm);
-
-        if (matchesSearch) {
-            card.style.display = '';
-            visibleCount++;
-        } else {
-            card.style.display = 'none';
-        }
-    });
-
-    // Update search results status
-    updateSearchResults(searchTerm, visibleCount, contactCards.length);
-}
-
-function clearContactSearch() {
-    document.getElementById('contactSearch').value = '';
-    filterContacts();
-    document.getElementById('contactSearch').focus();
-}
-
-function updateSearchResults(searchTerm, visibleCount, totalCount) {
-    // Remove existing search results message
-    const existingMessage = document.getElementById('searchResultsMessage');
-    if (existingMessage) {
-        existingMessage.remove();
-    }
-
-    // Add search results message if searching
-    if (searchTerm && totalCount > 0) {
-        const messageDiv = document.createElement('div');
-        messageDiv.id = 'searchResultsMessage';
-        messageDiv.className = 'mb-3';
-
-        if (visibleCount === 0) {
-            messageDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> No contacts found matching "' + searchTerm + '"</div>';
-        } else if (visibleCount < totalCount) {
-            messageDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Showing ' + visibleCount + ' of ' + totalCount + ' contacts matching "' + searchTerm + '"</div>';
-        }
-
-        const searchContainer = document.querySelector('.input-group').parentNode;
-        searchContainer.appendChild(messageDiv);
-    }
-}
-</script>
-
-<script>
-function editPitch(pitchName) {
-    fetch('/settings/pitch/' + encodeURIComponent(pitchName))
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('HTTP error! status: ' + response.status);
-            }
-            return response.json();
-        })
-        .then(data => {
-            document.getElementById('pitchModalTitle').textContent = 'Edit Pitch';
-            document.getElementById('pitch_name').value = data.name || '';
-            document.getElementById('pitch_address').value = data.address || '';
-            document.getElementById('pitch_parking').value = data.parking || '';
-            document.getElementById('pitch_toilets').value = data.toilets || '';
-            document.getElementById('pitch_special').value = data.special_instructions || '';
-            document.getElementById('pitch_opening').value = data.opening_notes || '';
-            document.getElementById('pitch_warmup').value = data.warm_up_notes || '';
-            document.getElementById('pitch_map_image').value = data.map_image_url || '';
-            document.getElementById('pitch_google_maps').value = data.google_maps_link || '';
-            document.getElementById('parking_address').value = data.parking_address || '';
-
-            // Handle custom map display
-            if (data.custom_map_filename) {
-                document.getElementById('current_map_display').style.display = 'block';
-                document.getElementById('current_map_image').src = '/static/uploads/maps/' + data.custom_map_filename;
-            } else {
-                document.getElementById('current_map_display').style.display = 'none';
-            }
-
-            var modal = new bootstrap.Modal(document.getElementById('addPitchModal'));
-            modal.show();
-        })
-        .catch(error => {
-            alert('Error loading pitch data: ' + error.message);
-        });
-}
-
-function deletePitch(pitchName) {
-    if (confirm('Are you sure you want to delete the pitch configuration for "' + pitchName + '"?')) {
-        fetch('/settings/pitch/' + encodeURIComponent(pitchName), {
-            method: 'DELETE'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showToast('Pitch "' + pitchName + '" deleted successfully!');
-                setTimeout(function() {
-                    location.reload();
-                }, 1000);
-            } else {
-                alert('Error deleting pitch');
-            }
-        })
-        .catch(error => {
-            alert('Error deleting pitch');
-        });
-    }
-}
-
-// Reset modal when closing
-document.addEventListener('DOMContentLoaded', function() {
-    var addPitchModal = document.getElementById('addPitchModal');
-    if (addPitchModal) {
-        addPitchModal.addEventListener('hidden.bs.modal', function () {
-            document.getElementById('pitchModalTitle').textContent = 'Add New Pitch';
-            document.getElementById('pitchForm').reset();
-        });
-    }
-});
-
-function previewMap() {
-    var address = document.getElementById('pitch_address').value.trim();
-    var parkingAddress = document.getElementById('parking_address').value.trim();
-
-    if (!address) {
-        alert('Please enter an address first to preview the map.');
-        return;
-    }
-
-    // Show loading state
-    var previewDiv = document.getElementById('mapPreview');
-    var previewImage = document.getElementById('mapPreviewImage');
-    previewDiv.style.display = 'block';
-    previewImage.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkxvYWRpbmcgbWFwLi4uPC90ZXh0Pjwvc3ZnPg==';
-
-    // Generate map URLs
-    fetch('/api/generate-map-urls', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            address: address,
-            parking_address: parkingAddress
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            alert('Error generating map: ' + data.error);
-            previewDiv.style.display = 'none';
+    function deleteTeamCoach(teamName, coachName, coachId = '') {
+        if (!confirm(`Are you sure you want to remove ${coachName} from ${teamName}?`)) {
             return;
         }
 
-        // Update form fields with generated URLs (but preserve custom Google Drive URLs)
-        var currentMapUrl = document.getElementById('pitch_map_image').value;
-        if (data.map_image_url) {
-            // Only update if field is empty or doesn't contain a Google Drive URL
-            if (!currentMapUrl || !currentMapUrl.includes('drive.google.com')) {
-                document.getElementById('pitch_map_image').value = data.map_image_url;
+        const payload = coachId ? { coach_id: coachId } : { team_name: teamName, coach_name: coachName };
+        const csrfTokenInput = document.querySelector('#teamCoachForm input[name="csrf_token"]');
+        const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
+
+        fetch('/settings/coaches/delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            body: JSON.stringify(payload)
+        })
+            .then(response => response.json().then(data => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                if (ok && (data.success || data.status === 'success')) {
+                    loadTeamCoaches(teamName);
+                    showToast('Coach removed');
+                } else {
+                    throw new Error(data.message || data.error || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                alert('Error deleting coach: ' + error.message);
+                console.error('Error:', error);
+            });
+    }
+
+    function handleEditCoach(button) {
+        try {
+            const payload = JSON.parse(decodeURIComponent(button.getAttribute('data-coach')));
+            editTeamCoach(
+                payload.team,
+                payload.name,
+                payload.email,
+                payload.phone,
+                payload.role,
+                payload.notes,
+                payload.id
+            );
+        } catch (error) {
+            console.error('Failed to parse coach data for edit:', error);
+        }
+    }
+
+    function handleDeleteCoach(button) {
+        try {
+            const payload = JSON.parse(decodeURIComponent(button.getAttribute('data-coach')));
+            deleteTeamCoach(payload.team, payload.name, payload.id);
+        } catch (error) {
+            console.error('Failed to parse coach data for delete:', error);
+        }
+    }
+
+    function startNewCoachEntry() {
+        resetTeamCoachForm(true);
+        const nameInput = document.getElementById('team_coach_name');
+        if (nameInput) {
+            nameInput.focus();
+        }
+    }
+
+    function updateTeamCoachSummary(teamName, coaches) {
+        const summaryElement = document.querySelector(`.coach-summary[data-team="${escapeSelector(teamName)}"]`);
+        if (!summaryElement) {
+            return;
+        }
+
+        if (!coaches || coaches.length === 0) {
+            summaryElement.innerHTML = '<i class="fas fa-exclamation-triangle text-warning"></i> No coaches added';
+            return;
+        }
+
+        let html = '';
+        coaches.slice(0, 2).forEach(coach => {
+            const role = coach.role || 'Coach';
+            const name = coach.coach_name || '';
+            const shortenedName = name.length > 15 ? `${name.slice(0, 15)}...` : name;
+            html += `<div class="mb-1"><strong>${role}:</strong> ${shortenedName}</div>`;
+        });
+
+        if (coaches.length > 2) {
+            html += `<small class="text-muted">+ ${coaches.length - 2} more coaches</small>`;
+        }
+
+        summaryElement.innerHTML = html;
+    }
+
+    function escapeSelector(value) {
+        if (window.CSS && CSS.escape) {
+            return CSS.escape(value);
+        }
+        return value.replace(/([ #;?%&,.+*~\\':"!^$[\]()=>|\/@])/g, '\\$1');
+    }
+
+    function editTeamCoach(teamName, coachName, email = '', phone = '', role = 'Coach', notes = '', coachId = '') {
+        document.getElementById('team_coach_team_name').value = teamName;
+        document.getElementById('team_coach_id').value = coachId;
+        document.getElementById('team_coach_name').value = coachName;
+        document.getElementById('team_coach_email').value = email || '';
+        document.getElementById('team_coach_phone').value = phone || '';
+        document.getElementById('team_coach_role').value = role || 'Coach';
+        document.getElementById('team_coach_notes').value = notes || '';
+
+        const submitBtn = document.getElementById('teamCoachSubmitBtn');
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+        submitBtn.classList.remove('btn-danger');
+        submitBtn.classList.add('btn-success');
+
+        const cancelBtn = document.getElementById('teamCoachCancelEditBtn');
+        cancelBtn.classList.remove('d-none');
+    }
+
+    function resetTeamCoachForm(skipReload = false) {
+        const form = document.getElementById('teamCoachForm');
+        form.reset();
+        const teamName = document.getElementById('currentTeamName').textContent;
+        document.getElementById('team_coach_team_name').value = teamName;
+        document.getElementById('team_coach_id').value = '';
+        document.getElementById('team_coach_role').value = 'Coach';
+
+        const submitBtn = document.getElementById('teamCoachSubmitBtn');
+        submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Coach';
+        submitBtn.classList.add('btn-danger');
+        submitBtn.classList.remove('btn-success');
+
+        const cancelBtn = document.getElementById('teamCoachCancelEditBtn');
+        cancelBtn.classList.add('d-none');
+
+        if (!skipReload && teamName) {
+            loadTeamCoaches(teamName);
+        }
+    }
+
+    // Team Management Modal Functions
+    document.addEventListener('DOMContentLoaded', function () {
+        // Team management modal initialization
+        const teamManagementModal = document.getElementById('selectTeamsModal');
+        if (teamManagementModal) {
+            // Handle manage button click
+            document.getElementById('manageBtn').addEventListener('click', handleManageTeams);
+
+            // Handle archive button click
+            document.getElementById('archiveBtn').addEventListener('click', handleBulkArchive);
+
+            // Handle delete button click
+            document.getElementById('deleteBtn').addEventListener('click', handleBulkDelete);
+
+            // Handle checkbox changes to update selection summary
+            document.addEventListener('change', function (e) {
+                if (e.target.classList.contains('bulk-team-checkbox')) {
+                    updateSelectionSummary();
+                }
+            });
+
+            // Initialize modal state
+            teamManagementModal.addEventListener('show.bs.modal', function () {
+                updateSelectionSummary();
+            });
+        }
+    });
+
+    function updateSelectionSummaryOld() {
+        // Legacy function kept for compatibility - replaced by updateSelectionSummary()
+        updateSelectionSummary();
+    }
+
+    function handleManageTeams() {
+        const form = document.getElementById('teamManagementForm');
+        const formData = new FormData(form);
+
+        // Convert FormData to URLSearchParams for the POST request
+        const searchParams = new URLSearchParams(formData);
+
+        document.getElementById('manageBtn').disabled = true;
+        document.getElementById('manageBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+        fetch('/settings/teams', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: searchParams.toString()
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Team selections updated successfully!');
+                    bootstrap.Modal.getInstance(document.getElementById('selectTeamsModal')).hide();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    alert('Error updating team selections');
+                }
+            })
+            .catch(error => {
+                alert('Error updating team selections');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                document.getElementById('manageBtn').disabled = false;
+                document.getElementById('manageBtn').innerHTML = '<i class="fas fa-save"></i> Manage Selected';
+            });
+    }
+
+    function handleBulkDelete() {
+        const selectedTeams = Array.from(document.querySelectorAll('.bulk-team-checkbox:checked')).map(cb => cb.value);
+
+        if (selectedTeams.length === 0) {
+            alert('Please select at least one team to delete.');
+            return;
+        }
+
+        const confirmMessage = `⚠️ PERMANENTLY DELETE ${selectedTeams.length} TEAMS?\n\nTeams to delete: ${selectedTeams.join(', ')}\n\nThis will delete:\n• All teams\n• All fixtures and matches\n• All task assignments\n• All coach contacts\n\nThis action CANNOT be undone. Are you sure?`;
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        document.getElementById('deleteBtn').disabled = true;
+        document.getElementById('deleteBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+        fetch('/settings/teams/bulk-delete', {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ teams: selectedTeams })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(`Successfully deleted ${data.deleted_count} teams!`);
+                    bootstrap.Modal.getInstance(document.getElementById('selectTeamsModal')).hide();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    alert('Error deleting teams: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                alert('Error deleting teams');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                document.getElementById('deleteBtn').disabled = false;
+                document.getElementById('deleteBtn').innerHTML = '<i class="fas fa-trash"></i> Delete Selected';
+            });
+    }
+
+    // Away Match Text Generation Functions
+    function generateAwayMatchText() {
+        const textInput = document.getElementById('away_match_text').value.trim();
+
+        if (!textInput) {
+            alert('Please paste some match details first.');
+            return;
+        }
+
+        // Show loading state
+        const generateBtn = document.getElementById('generateBtn');
+        const originalText = generateBtn.innerHTML;
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+        // Call API to generate response text
+        fetch('/api/generate-away-match-response', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                input_text: textInput
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Hide input section and show output section
+                    document.getElementById('responseSection').style.display = 'block';
+
+                    // Scroll to response section
+                    document.getElementById('responseSection').scrollIntoView({ behavior: 'smooth' });
+
+                    // Populate the response text
+                    document.getElementById('generatedResponse').innerHTML = data.response_text;
+
+                    // Update button text
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = originalText;
+
+                    showToast('Response text generated successfully!');
+                } else {
+                    alert('Error: ' + (data.message || 'Failed to generate response text'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error generating response text: ' + error.message);
+            })
+            .finally(() => {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = originalText;
+            });
+    }
+
+    function clearResponse() {
+        document.getElementById('generatedResponse').innerHTML = '';
+        document.getElementById('away_match_text').value = '';
+        document.getElementById('responseSection').style.display = 'none';
+        showToast('Response cleared.');
+    }
+
+    function copyGeneratedText() {
+        const responseElement = document.getElementById('generatedResponse');
+        const textToCopy = responseElement.textContent || responseElement.innerText;
+
+        if (navigator.clipboard && window.isSecureContext) {
+            // Use the modern clipboard API
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                showToast('Response text copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                fallbackCopyTextToClipboard(textToCopy);
+            });
+        } else {
+            // Use the fallback method
+            fallbackCopyTextToClipboard(textToCopy);
+            showToast('Response text copied to clipboard!');
+        }
+    }
+
+    function copyAndClose() {
+        copyGeneratedText();
+        // Close the modal after a brief delay
+        setTimeout(() => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('awayMatchModal'));
+            modal.hide();
+        }, 500);
+    }
+
+    function fallbackCopyTextToClipboard(text) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+            document.execCommand('copy');
+        } catch (err) {
+            console.error('Fallback: Oops, unable to copy', err);
+        } finally {
+            textArea.remove();
+        }
+    }
+
+    // Contact search functionality
+    function filterContacts() {
+        const searchTerm = document.getElementById('contactSearch').value.toLowerCase().trim();
+        const contactGrid = document.getElementById('contactGrid');
+        const contactCards = contactGrid.querySelectorAll('.col-md-6');
+        let visibleCount = 0;
+
+        contactCards.forEach(card => {
+            const teamName = card.querySelector('h6.card-title').textContent.toLowerCase();
+            const contactName = card.querySelector('small.text-muted').textContent.toLowerCase();
+            const email = card.querySelector('.small code') ? card.querySelector('.small code').textContent.toLowerCase() : '';
+            const phone = card.querySelector('.small:not(code)') ? card.querySelector('.small:not(code)').textContent.toLowerCase() : '';
+
+            // Check if search term matches team name, contact name, email, or phone
+            const matchesSearch = searchTerm === '' ||
+                teamName.includes(searchTerm) ||
+                contactName.includes(searchTerm) ||
+                email.includes(searchTerm) ||
+                phone.includes(searchTerm);
+
+            if (matchesSearch) {
+                card.style.display = '';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
             }
-            previewImage.src = data.map_image_url;
-        } else {
-            previewImage.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzY2NzMzZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEFQSSBrZXkgY29uZmlndXJlZDwvdGV4dD48L3N2Zz4=';
+        });
+
+        // Update search results status
+        updateSearchResults(searchTerm, visibleCount, contactCards.length);
+    }
+
+    function clearContactSearch() {
+        document.getElementById('contactSearch').value = '';
+        filterContacts();
+        document.getElementById('contactSearch').focus();
+    }
+
+    function updateSearchResults(searchTerm, visibleCount, totalCount) {
+        // Remove existing search results message
+        const existingMessage = document.getElementById('searchResultsMessage');
+        if (existingMessage) {
+            existingMessage.remove();
         }
 
-        if (data.google_maps_link) {
-            document.getElementById('pitch_google_maps').value = data.google_maps_link;
-        }
+        // Add search results message if searching
+        if (searchTerm && totalCount > 0) {
+            const messageDiv = document.createElement('div');
+            messageDiv.id = 'searchResultsMessage';
+            messageDiv.className = 'mb-3';
 
-        // Handle parking map preview
-        var parkingMapCol = document.getElementById('parkingMapCol');
-        var parkingPreviewImage = document.getElementById('parkingMapPreviewImage');
+            if (visibleCount === 0) {
+                messageDiv.innerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle"></i> No contacts found matching "' + searchTerm + '"</div>';
+            } else if (visibleCount < totalCount) {
+                messageDiv.innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle"></i> Showing ' + visibleCount + ' of ' + totalCount + ' contacts matching "' + searchTerm + '"</div>';
+            }
 
-        if (data.parking_map_image_url) {
-            parkingMapCol.style.display = 'block';
-            parkingPreviewImage.src = data.parking_map_image_url;
-        } else {
-            parkingMapCol.style.display = 'none';
+            const searchContainer = document.querySelector('.input-group').parentNode;
+            searchContainer.appendChild(messageDiv);
         }
-    })
-    .catch(error => {
-        alert('Error generating map: ' + error.message);
-        previewDiv.style.display = 'none';
+    }
+</script>
+
+<script>
+    function editPitch(pitchName) {
+        fetch('/settings/pitch/' + encodeURIComponent(pitchName))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP error! status: ' + response.status);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('pitchModalTitle').textContent = 'Edit Pitch';
+                document.getElementById('pitch_name').value = data.name || '';
+                document.getElementById('pitch_address').value = data.address || '';
+                document.getElementById('pitch_parking').value = data.parking || '';
+                document.getElementById('pitch_toilets').value = data.toilets || '';
+                document.getElementById('pitch_special').value = data.special_instructions || '';
+                document.getElementById('pitch_opening').value = data.opening_notes || '';
+                document.getElementById('pitch_warmup').value = data.warm_up_notes || '';
+                document.getElementById('pitch_map_image').value = data.map_image_url || '';
+                document.getElementById('pitch_google_maps').value = data.google_maps_link || '';
+                document.getElementById('parking_address').value = data.parking_address || '';
+
+                // Handle custom map display
+                if (data.custom_map_filename) {
+                    document.getElementById('current_map_display').style.display = 'block';
+                    document.getElementById('current_map_image').src = '/static/uploads/maps/' + data.custom_map_filename;
+                } else {
+                    document.getElementById('current_map_display').style.display = 'none';
+                }
+
+                var modal = new bootstrap.Modal(document.getElementById('addPitchModal'));
+                modal.show();
+            })
+            .catch(error => {
+                alert('Error loading pitch data: ' + error.message);
+            });
+    }
+
+    function deletePitch(pitchName) {
+        if (confirm('Are you sure you want to delete the pitch configuration for "' + pitchName + '"?')) {
+            fetch('/settings/pitch/' + encodeURIComponent(pitchName), {
+                method: 'DELETE'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Pitch "' + pitchName + '" deleted successfully!');
+                        setTimeout(function () {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        alert('Error deleting pitch');
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting pitch');
+                });
+        }
+    }
+
+    // Reset modal when closing
+    document.addEventListener('DOMContentLoaded', function () {
+        var addPitchModal = document.getElementById('addPitchModal');
+        if (addPitchModal) {
+            addPitchModal.addEventListener('hidden.bs.modal', function () {
+                document.getElementById('pitchModalTitle').textContent = 'Add New Pitch';
+                document.getElementById('pitchForm').reset();
+            });
+        }
     });
-}
 
-// Handle Weekly Sheet URL form submission
-document.querySelector('form[action="/settings/weekly-sheet"]').addEventListener('submit', function(e) {
-    e.preventDefault();
+    function previewMap() {
+        var address = document.getElementById('pitch_address').value.trim();
+        var parkingAddress = document.getElementById('parking_address').value.trim();
 
-    const formData = new FormData(this);
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalBtnText = submitBtn.innerHTML;
-
-    // Disable button and show loading
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-
-    fetch('/settings/weekly-sheet', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Show success message
-            alert('Google Sheet URL saved successfully!');
-        } else {
-            alert('Error: ' + (data.error || 'Failed to save URL'));
+        if (!address) {
+            alert('Please enter an address first to preview the map.');
+            return;
         }
-    })
-    .catch(error => {
-        alert('Error saving URL: ' + error.message);
-    })
-    .finally(() => {
-        // Re-enable button
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalBtnText;
+
+        // Show loading state
+        var previewDiv = document.getElementById('mapPreview');
+        var previewImage = document.getElementById('mapPreviewImage');
+        previewDiv.style.display = 'block';
+        previewImage.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkxvYWRpbmcgbWFwLi4uPC90ZXh0Pjwvc3ZnPg==';
+
+        // Generate map URLs
+        fetch('/api/generate-map-urls', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                address: address,
+                parking_address: parkingAddress
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Error generating map: ' + data.error);
+                    previewDiv.style.display = 'none';
+                    return;
+                }
+
+                // Update form fields with generated URLs (but preserve custom Google Drive URLs)
+                var currentMapUrl = document.getElementById('pitch_map_image').value;
+                if (data.map_image_url) {
+                    // Only update if field is empty or doesn't contain a Google Drive URL
+                    if (!currentMapUrl || !currentMapUrl.includes('drive.google.com')) {
+                        document.getElementById('pitch_map_image').value = data.map_image_url;
+                    }
+                    previewImage.src = data.map_image_url;
+                } else {
+                    previewImage.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjQwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjhmOWZhIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNiIgZmlsbD0iIzY2NzMzZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEFQSSBrZXkgY29uZmlndXJlZDwvdGV4dD48L3N2Zz4=';
+                }
+
+                if (data.google_maps_link) {
+                    document.getElementById('pitch_google_maps').value = data.google_maps_link;
+                }
+
+                // Handle parking map preview
+                var parkingMapCol = document.getElementById('parkingMapCol');
+                var parkingPreviewImage = document.getElementById('parkingMapPreviewImage');
+
+                if (data.parking_map_image_url) {
+                    parkingMapCol.style.display = 'block';
+                    parkingPreviewImage.src = data.parking_map_image_url;
+                } else {
+                    parkingMapCol.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                alert('Error generating map: ' + error.message);
+                previewDiv.style.display = 'none';
+            });
+    }
+
+    // Handle Weekly Sheet URL form submission
+    document.querySelector('form[action="/settings/weekly-sheet"]').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+
+        // Disable button and show loading
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+        fetch('/settings/weekly-sheet', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    alert('Google Sheet URL saved successfully!');
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to save URL'));
+                }
+            })
+            .catch(error => {
+                alert('Error saving URL: ' + error.message);
+            })
+            .finally(() => {
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            });
     });
-});
 </script>
 {% endblock %}

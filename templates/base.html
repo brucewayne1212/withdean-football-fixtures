@@ -1,81 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}Withdean Youth FC Fixture Manager{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
 </head>
+
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-danger">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('dashboard.dashboard_view') }}">
-                <i class="fas fa-futbol"></i> Withdean Youth FC
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard.dashboard_view') }}">
+                <i class="fas fa-futbol me-2"></i>Withdean Youth FC
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard.dashboard_view') }}">
-                            <i class="fas fa-tachometer-alt"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('imports.import_fixtures') }}">
-                            <i class="fas fa-upload"></i> Import Fixtures
+                        <a class="nav-link active" href="{{ url_for('dashboard.dashboard_view') }}">
+                            <i class="fas fa-columns me-1"></i> Task Board
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('tasks.view_tasks') }}">
-                            <i class="fas fa-tasks"></i> Manage Tasks
+                            <i class="fas fa-list me-1"></i> All Tasks
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('settings.settings_view') }}">
-                            <i class="fas fa-cog"></i> Settings
+                        <a class="nav-link" href="{{ url_for('imports.import_fixtures') }}">
+                            <i class="fas fa-file-import me-1"></i> Import
                         </a>
                     </li>
                 </ul>
-                
-                <!-- User Menu -->
-                <ul class="navbar-nav">
-                    {% if current_user and current_user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            {% if current_user.picture %}
-                            <img src="{{ current_user.picture }}" alt="Profile" class="rounded-circle me-2" style="width: 24px; height: 24px;">
-                            {% else %}
-                            <i class="fas fa-user-circle me-2"></i>
-                            {% endif %}
-                            {{ current_user.name }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><span class="dropdown-item-text small text-muted">{{ current_user.email }}</span></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('settings.settings_view') }}"><i class="fas fa-cog me-2"></i>Settings</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-                        </ul>
-                    </li>
-                    {% endif %}
-                </ul>
+
+                <!-- Quick Actions & User Menu -->
+                <div class="d-flex align-items-center gap-3">
+                    <a href="{{ url_for('imports.parse_fixture') }}" class="btn btn-light btn-sm text-primary fw-bold">
+                        <i class="fas fa-plus me-1"></i> Quick Add
+                    </a>
+
+                    <ul class="navbar-nav">
+                        {% if current_user and current_user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#"
+                                id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                {% if current_user.picture %}
+                                <img src="{{ current_user.picture }}" alt="Profile"
+                                    class="rounded-circle me-2 border border-2 border-white"
+                                    style="width: 32px; height: 32px;">
+                                {% else %}
+                                <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center me-2"
+                                    style="width: 32px; height: 32px;">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                {% endif %}
+                                <span class="d-none d-md-inline">{{ current_user.name }}</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                <li><span class="dropdown-item-text small text-muted">{{ current_user.email }}</span>
+                                </li>
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+                                <li><a class="dropdown-item" href="{{ url_for('settings.settings_view') }}"><i
+                                            class="fas fa-cog me-2 text-secondary"></i>Settings</a></li>
+                                <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i
+                                            class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                            </ul>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
             </div>
         </div>
     </nav>
 
     <main class="container mt-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else 'warning' if category == 'warning' else 'success' }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else 'warning' if category == 'warning' else 'success' }} alert-dismissible fade show"
+            role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
         {% endwith %}
 
         {% block content %}{% endblock %}
@@ -84,7 +100,7 @@
     <footer class="bg-light mt-5 py-4">
         <div class="container text-center">
             <p class="text-muted mb-0">
-                <i class="fas fa-futbol text-danger"></i> 
+                <i class="fas fa-futbol text-danger"></i>
                 Withdean Youth FC Fixture Management System
             </p>
         </div>
@@ -94,4 +110,5 @@
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
+
 </html>
