@@ -23,7 +23,8 @@
 
             <div class="alert alert-info">
                 <i class="fas fa-info-circle"></i>
-                <strong>Template Tips:</strong> Use HTML for rich formatting. Merge fields are replaced with actual fixture data.
+                <strong>Template Tips:</strong> Use HTML for rich formatting. Merge fields are replaced with actual
+                fixture data.
                 The preview on the right shows how your template will render.
             </div>
         </div>
@@ -41,15 +42,16 @@
                 <div class="card-body">
                     <form method="POST">
                         <div class="mb-3">
-                            <label for="template_content" class="form-label fw-bold">Email Template (HTML)</label>
-                            <textarea class="form-control" id="template_content" name="template_content"
-                                      rows="15" required
-                                      style="font-family: 'Courier New', monospace; font-size: 13px;"
-                                      placeholder="Enter your email template HTML here...">{{ template_content }}</textarea>
-                            <div class="form-text small">
+                            <label for="editor-container" class="form-label fw-bold">Email Template (Rich Text)</label>
+                            <!-- Hidden input to store HTML for form submission -->
+                            <input type="hidden" id="template_content" name="template_content"
+                                value="{{ template_content }}">
+                            <!-- Quill Editor Container -->
+                            <div id="editor-container"></div>
+                            <div class="form-text small mt-2">
                                 <i class="fas fa-lightbulb me-1"></i>
-                                Use double curly braces for merge fields like <code>{{date_display}}</code>.
-                                Example: <code><h3>Match Details</h3></code> for headings.
+                                Use the toolbar to format text. Merge fields like <code>{{date_display}}</code> will be
+                                replaced automatically.
                             </div>
                         </div>
 
@@ -108,7 +110,7 @@
                                 <i class="fas fa-save"></i> Save Changes
                             </button>
                             <button type="submit" name="action" value="reset" class="btn btn-warning"
-                                    onclick="return confirm('Reset to default template? Your customizations will be lost.')">
+                                onclick="return confirm('Reset to default template? Your customizations will be lost.')">
                                 <i class="fas fa-undo"></i> Reset Default
                             </button>
                             <button type="button" class="btn btn-secondary" onclick="clearTemplate()">
@@ -135,10 +137,12 @@
                 <div class="card-body">
                     <div class="alert alert-light small">
                         <i class="fas fa-info-circle text-info"></i>
-                        <strong>Preview shows:</strong> How your template will look with sample fixture data. Real emails will use actual fixture information.
+                        <strong>Preview shows:</strong> How your template will look with sample fixture data. Real
+                        emails will use actual fixture information.
                     </div>
                     <div class="border rounded p-3 bg-white">
-                        <div id="template-preview" style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.5;">
+                        <div id="template-preview"
+                            style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.5;">
                             <div class="text-center text-muted">
                                 <i class="fas fa-spinner fa-spin me-2"></i>Loading preview...
                             </div>
@@ -162,16 +166,20 @@
                         <div class="col-md-6">
                             <h6 class="text-primary small fw-bold"><i class="fas fa-calendar-day"></i> Match Info</h6>
                             <div class="d-grid gap-1 mb-3">
-                                <button class="btn btn-outline-primary btn-sm merge-quick-btn" data-field="{{date_display}}">
+                                <button class="btn btn-outline-primary btn-sm merge-quick-btn"
+                                    data-field="{{date_display}}">
                                     Date
                                 </button>
-                                <button class="btn btn-outline-primary btn-sm merge-quick-btn" data-field="{{time_display}}">
+                                <button class="btn btn-outline-primary btn-sm merge-quick-btn"
+                                    data-field="{{time_display}}">
                                     Time
                                 </button>
-                                <button class="btn btn-outline-primary btn-sm merge-quick-btn" data-field="{{team_name}}">
+                                <button class="btn btn-outline-primary btn-sm merge-quick-btn"
+                                    data-field="{{team_name}}">
                                     Your Team
                                 </button>
-                                <button class="btn btn-outline-primary btn-sm merge-quick-btn" data-field="{{opposition_name}}">
+                                <button class="btn btn-outline-primary btn-sm merge-quick-btn"
+                                    data-field="{{opposition_name}}">
                                     Opposition
                                 </button>
                             </div>
@@ -181,33 +189,27 @@
                         <div class="col-md-6">
                             <h6 class="text-success small fw-bold"><i class="fas fa-map-marker-alt"></i> Venue</h6>
                             <div class="d-grid gap-1 mb-3">
-                                <button class="btn btn-outline-success btn-sm merge-quick-btn" data-field="{{pitch_name}}">
+                                <button class="btn btn-outline-success btn-sm merge-quick-btn"
+                                    data-field="{{pitch_name}}">
                                     Pitch Name
                                 </button>
-                                <button class="btn btn-outline-success btn-sm merge-quick-btn" data-field="{{pitch_address}}">
+                                <button class="btn btn-outline-success btn-sm merge-quick-btn"
+                                    data-field="{{pitch_address}}">
                                     Address
                                 </button>
-                                <button class="btn btn-outline-success btn-sm merge-quick-btn" data-field="{{pitch_parking}}">
+                                <button class="btn btn-outline-success btn-sm merge-quick-btn"
+                                    data-field="{{pitch_parking}}">
                                     Parking
                                 </button>
-                                <button class="btn btn-outline-success btn-sm merge-quick-btn" data-field="{{manager_name}}">
+                                <button class="btn btn-outline-success btn-sm merge-quick-btn"
+                                    data-field="{{manager_name}}">
                                     Manager
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- HTML Helpers -->
-                    <div class="mb-3">
-                        <h6 class="text-warning small fw-bold"><i class="fas fa-code"></i> HTML Formatting</h6>
-                        <div class="d-flex flex-wrap gap-1">
-                            <button class="btn btn-outline-warning btn-sm html-helper" data-html="<h3>Heading</h3>"><h3></button>
-                            <button class="btn btn-outline-warning btn-sm html-helper" data-html="<strong>Bold</strong>"><strong></button>
-                            <button class="btn btn-outline-warning btn-sm html-helper" data-html="<em>Italic</em>"><em></button>
-                            <button class="btn btn-outline-warning btn-sm html-helper" data-html="<u>Underline</u>"><u></button>
-                            <button class="btn btn-outline-warning btn-sm html-helper" data-html="<br>"><br></button>
-                        </div>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -216,137 +218,163 @@
 {% endblock %}
 
 {% block scripts %}
-<style>
-.merge-quick-btn {
-    font-size: 11px;
-    padding: 0.25rem 0.5rem;
-}
+<!-- Quill Editor CDN -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 
-.html-helper {
-    font-size: 10px;
-    padding: 0.2rem 0.4rem;
-}
+<style>
+    .merge-quick-btn {
+        font-size: 11px;
+        padding: 0.25rem 0.5rem;
+    }
+
+    .html-helper {
+        font-size: 10px;
+        padding: 0.2rem 0.4rem;
+    }
+
+    /* Quill Customization */
+    #editor-container {
+        height: 400px;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 14px;
+    }
+
+    .ql-editor {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-size: 14px;
+    }
 </style>
 
 <script>
-// Insert merge field at cursor position
-function insertAtCursor(textarea, text) {
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const currentValue = textarea.value;
-
-    textarea.value = currentValue.substring(0, start) + text + currentValue.substring(end);
-    textarea.selectionStart = textarea.selectionEnd = start + text.length;
-    textarea.focus();
-    updatePreview();
-}
-
-// Quick merge field buttons
-document.querySelectorAll('.merge-quick-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const field = this.dataset.field;
-        const textarea = document.getElementById('template_content');
-        insertAtCursor(textarea, field);
-    });
-});
-
-// HTML helper buttons
-document.querySelectorAll('.html-helper').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const html = this.dataset.html;
-        const textarea = document.getElementById('template_content');
-        insertAtCursor(textarea, html);
-    });
-});
-
-// Dropdown insert button
-document.getElementById('insert_merge_field').addEventListener('click', function() {
-    const selector = document.getElementById('merge_field_selector');
-    const field = selector.value;
-
-    if (!field) {
-        alert('Please select a merge field first.');
-        return;
-    }
-
-    const textarea = document.getElementById('template_content');
-    insertAtCursor(textarea, field);
-    selector.value = ''; // Reset dropdown
-});
-
-// Update preview as user types with debounce
-let previewTimer;
-document.getElementById('template_content').addEventListener('input', function() {
-    clearTimeout(previewTimer);
-    previewTimer = setTimeout(updatePreview, 300);
-});
-
-function updatePreview() {
-    const template = document.getElementById('template_content').value;
-    const preview = document.getElementById('template-preview');
-
-    if (!template.trim()) {
-        preview.innerHTML = '<div class="text-center text-muted"><i class="fas fa-code fa-2x mb-2"></i><p>Start typing your HTML template to see a preview here.</p><p class="small">Try pasting some HTML like: <h3>Match Details</h3></p></div>';
-        return;
-    }
-
-    // Replace merge fields with preview data - BOLD formatting makes it clear
-    let previewContent = template
-        .replace(/\{\{date_display\}\}/g, '<strong>Sunday 15 October 2023</strong>')
-        .replace(/\{\{time_display\}\}/g, '<strong>2:30pm</strong>')
-        .replace(/\{\{team_name\}\}/g, '<strong>U14 Blue</strong>')
-        .replace(/\{\{opposition_name\}\}/g, '<strong>Brighton Hawks</strong>')
-        .replace(/\{\{home_away\}\}/g, '<strong>Home</strong>')
-        .replace(/\{\{pitch_name\}\}/g, '<strong>Stanley Deason 3G</strong>')
-        .replace(/\{\{pitch_address\}\}/g, 'Stanley Deason Leisure Centre, 120 Wilson Avenue, BN2 5BP')
-        .replace(/\{\{pitch_parking\}\}/g, 'Ample free parking available at the leisure centre')
-        .replace(/\{\{pitch_toilets\}\}/g, 'Toilets available within the main building')
-        .replace(/\{\{pitch_opening_notes\}\}/g, '3G pitch opens at 9am. Please arrive in time to mark pitch.')
-        .replace(/\{\{pitch_warm_up_notes\}\}/g, '20 minutes warm-up allowed before kick-off')
-        .replace(/\{\{pitch_special_instructions\}\}/g, 'Strict footwear policy - flat soled boots only')
-        .replace(/\{\{pitch_google_maps_link\}\}/g, '<a href="#" class="text-decoration-none"><strong>View on Google Maps</strong></a>')
-        .replace(/\{\{pitch_map_section\}\}/g, '<em class="text-muted">[Map image would appear here]</em>')
-        .replace(/\{\{home_colours\}\}/g, 'Withdean Youth FC play in <strong>Blue and Black Shirts</strong>, <strong>Black Shorts</strong> and <strong>Blue and Black Hooped Socks</strong>')
-        .replace(/\{\{match_format\}\}/g, '<strong>9v9 - 60 minutes - 30 each way</strong>')
-        .replace(/\{\{referee_note\}\}/g, 'Referees have been requested but are TBC')
-        .replace(/\{\{manager_name\}\}/g, '<strong>John Smith</strong>')
-        .replace(/\{\{manager_email\}\}/g, '<em>john.smith@withdean.com</em>')
-        .replace(/\{\{manager_phone\}\}/g, '<em>07123 456789</em>')
-        .replace(/\{\{manager_contact\}\}/g, '<em>john.smith@withdean.com</em>')
-        .replace(/\{\{email_signature\}\}/g, '<strong>Many thanks<br>Withdean Youth FC</strong>')
-        .replace(/\{\{further_instructions_section\}\}/g, '<em class="text-muted">[Any additional instructions would appear here]</em>');
-
-    preview.innerHTML = '<div style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.4; max-width: none;">' + previewContent + '</div>';
-}
-
-function clearTemplate() {
-    if (confirm('Are you sure you want to clear all template content? This cannot be undone.')) {
-        document.getElementById('template_content').value = '';
-        updatePreview();
-    }
-}
-
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    updatePreview(); // Initial preview
-
-    // Auto-save draft in localStorage
-    const textarea = document.getElementById('template_content');
-    const originalContent = textarea.value;
-
-    textarea.addEventListener('input', function() {
-        const currentContent = this.value;
-        if (currentContent !== originalContent) {
-            localStorage.setItem('email_template_draft', currentContent);
+    // Initialize Quill
+    var quill = new Quill('#editor-container', {
+        theme: 'snow',
+        modules: {
+            toolbar: [
+                [{ 'header': [1, 2, 3, false] }],
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'color': [] }, { 'background': [] }],
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                ['link', 'clean'],
+                ['code-block'] // Allow viewing/editing raw HTML if needed (basic)
+            ]
         }
     });
 
-    // Load draft on page load
-    const draft = localStorage.getItem('email_template_draft');
-    if (draft && !originalContent) {
-        textarea.value = draft;
-        updatePreview();
+    // Set initial content
+    var initialContent = document.getElementById('template_content').value;
+    // If content is empty/null, don't set it to avoid "null" text
+    if (initialContent) {
+        // Check if it looks like HTML, if not wrap in p tags? Quill handles HTML string.
+        quill.clipboard.dangerouslyPasteHTML(0, initialContent);
     }
-});
+
+    // Sync Quill to Hidden Input on Change
+    quill.on('text-change', function () {
+        var html = quill.root.innerHTML;
+        document.getElementById('template_content').value = html;
+        updatePreview();
+
+        // Auto-save draft
+        localStorage.setItem('email_template_draft', html);
+    });
+
+    // Insert merge field at cursor position
+    function insertAtCursor(text) {
+        const range = quill.getSelection(true);
+        // Insert text with specific formatting if needed, or just text
+        // We want the merge field to be inserted as text
+        quill.insertText(range.index, text, 'bold', true); // Insert as bold for visibility
+        quill.setSelection(range.index + text.length);
+    }
+
+    // Quick merge field buttons
+    document.querySelectorAll('.merge-quick-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const field = this.dataset.field;
+            insertAtCursor(field);
+        });
+    });
+
+    // HTML helper buttons - For Quill these might be less useful but we can keep them
+    // Or maybe remove them since Quill handles formatting?
+    // Let's keep them but make them insert the HTML structure if possible, or just text?
+    // Actually, with Quill, "Bold" button in toolbar is better. 
+    // But let's keep them as "Quick Format" if user wants to insert raw HTML? 
+    // No, inserting raw HTML into Quill via insertText escapes it.
+    // We should probably hide the HTML helpers or make them use Quill formatting.
+    // For now, let's just make them insert the text representation which might be confusing.
+    // BETTER: Remove HTML helpers since Quill has a toolbar.
+    // I will hide the HTML helpers section in the template update below.
+
+    // Dropdown insert button
+    document.getElementById('insert_merge_field').addEventListener('click', function () {
+        const selector = document.getElementById('merge_field_selector');
+        const field = selector.value;
+
+        if (!field) {
+            alert('Please select a merge field first.');
+            return;
+        }
+
+        insertAtCursor(field);
+        selector.value = ''; // Reset dropdown
+    });
+
+    // Update preview
+    function updatePreview() {
+        const template = document.getElementById('template_content').value;
+        const preview = document.getElementById('template-preview');
+
+        if (!template.trim() || template === '<p><br></p>') {
+            preview.innerHTML = '<div class="text-center text-muted"><i class="fas fa-code fa-2x mb-2"></i><p>Start typing your HTML template to see a preview here.</p></div>';
+            return;
+        }
+
+        // Replace merge fields with preview data - BOLD formatting makes it clear
+        let previewContent = template
+            .replace(/\{\{date_display\}\}/g, '<strong>Sunday 15 October 2023</strong>')
+            .replace(/\{\{time_display\}\}/g, '<strong>2:30pm</strong>')
+            .replace(/\{\{team_name\}\}/g, '<strong>U14 Blue</strong>')
+            .replace(/\{\{opposition_name\}\}/g, '<strong>Brighton Hawks</strong>')
+            .replace(/\{\{home_away\}\}/g, '<strong>Home</strong>')
+            .replace(/\{\{pitch_name\}\}/g, '<strong>Stanley Deason 3G</strong>')
+            .replace(/\{\{pitch_address\}\}/g, 'Stanley Deason Leisure Centre, 120 Wilson Avenue, BN2 5BP')
+            .replace(/\{\{pitch_parking\}\}/g, 'Ample free parking available at the leisure centre')
+            .replace(/\{\{pitch_toilets\}\}/g, 'Toilets available within the main building')
+            .replace(/\{\{pitch_opening_notes\}\}/g, '3G pitch opens at 9am. Please arrive in time to mark pitch.')
+            .replace(/\{\{pitch_warm_up_notes\}\}/g, '20 minutes warm-up allowed before kick-off')
+            .replace(/\{\{pitch_special_instructions\}\}/g, 'Strict footwear policy - flat soled boots only')
+            .replace(/\{\{pitch_google_maps_link\}\}/g, '<a href="#" class="text-decoration-none"><strong>View on Google Maps</strong></a>')
+            .replace(/\{\{pitch_map_section\}\}/g, '<em class="text-muted">[Map image would appear here]</em>')
+            .replace(/\{\{home_colours\}\}/g, 'Withdean Youth FC play in <strong>Blue and Black Shirts</strong>, <strong>Black Shorts</strong> and <strong>Blue and Black Hooped Socks</strong>')
+            .replace(/\{\{match_format\}\}/g, '<strong>9v9 - 60 minutes - 30 each way</strong>')
+            .replace(/\{\{referee_note\}\}/g, 'Referees have been requested but are TBC')
+            .replace(/\{\{manager_name\}\}/g, '<strong>John Smith</strong>')
+            .replace(/\{\{manager_email\}\}/g, '<em>john.smith@withdean.com</em>')
+            .replace(/\{\{manager_phone\}\}/g, '<em>07123 456789</em>')
+            .replace(/\{\{manager_contact\}\}/g, '<em>john.smith@withdean.com</em>')
+            .replace(/\{\{email_signature\}\}/g, '<strong>Many thanks<br>Withdean Youth FC</strong>')
+            .replace(/\{\{further_instructions_section\}\}/g, '<em class="text-muted">[Any additional instructions would appear here]</em>');
+
+        preview.innerHTML = '<div style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.4; max-width: none;">' + previewContent + '</div>';
+    }
+
+    function clearTemplate() {
+        if (confirm('Are you sure you want to clear all template content? This cannot be undone.')) {
+            quill.setText('');
+            document.getElementById('template_content').value = '';
+            updatePreview();
+        }
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function () {
+        // Load draft if exists and original is empty (e.g. new template)
+        // But here we are editing existing template usually.
+        // Let's rely on server content first.
+        updatePreview();
+    });
 </script>
 {% endblock %}

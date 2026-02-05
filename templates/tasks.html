@@ -70,63 +70,6 @@
     </div>
 </div>
 
-<!-- Away Email Response Modal -->
-<div class="modal fade" id="awayEmailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-mail-bulk text-info"></i>
-                    Away Email Response - <span id="modalTeamName"></span>
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="loadingSection">
-                    <div class="text-center">
-                        <div class="spinner-border text-info" role="status">
-                            <span class="visually-hidden">Generating...</span>
-                        </div>
-                        <p class="mt-2">Generating email response...</p>
-                    </div>
-                </div>
-
-                <div id="contentSection" style="display: none;">
-                    <div class="alert alert-success">
-                        <strong><i class="fas fa-check-circle"></i> Ready to copy!</strong>
-                        Click the button below to copy the response to your clipboard.
-                    </div>
-
-                    <div class="card border-info">
-                        <div class="card-header bg-info text-white">
-                            <strong>Email Response Text</strong>
-                        </div>
-                        <div class="card-body">
-                            <pre id="awayResponseText" class="mb-0"
-                                style="white-space: pre-wrap; font-family: 'Courier New', monospace; background-color: #f8f9fa; padding: 15px; border-radius: 5px; font-size: 12px;"></pre>
-                        </div>
-                        <div class="card-footer">
-                            <button type="button" class="btn btn-success btn-lg w-100"
-                                onclick="copyAwayResponseAndMarkComplete()" id="copyAndCompleteBtn">
-                                <i class="fas fa-copy"></i> Copy & Mark Task Complete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="errorSection" style="display: none;">
-                    <div class="alert alert-danger">
-                        <strong><i class="fas fa-exclamation-triangle"></i> Error</strong>
-                        <p id="errorMessage"></p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Bulk Complete Modal -->
 <div class="modal fade" id="bulkCompleteModal" tabindex="-1">
@@ -399,6 +342,19 @@
             </div>
         </div>
         {% endif %}
+    </div>
+</div>
+<!-- Task Detail Modal Container -->
+<div class="modal fade" id="taskDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-0" id="taskDetailModalBody">
+                <!-- Content loaded via AJAX -->
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -799,468 +755,334 @@
         const row = button.closest('tr');
         const teamCell = row.querySelector('td:nth-child(2) strong');
 
-        if (teamCell) {
-            const teamName = teamCell.textContent.trim();
+        // ... rest of existing code ...
+    }
 
-            // Pre-populate the team selector
-            const teamSelector = document.getElementById('teamSelector');
+    // Task Detail Modal Logic
+    function openTaskModal(taskId) {
+        const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
+        const modalBody = document.getElementById('taskDetailModalBody');
 
-            // See if we can auto-select the team
-            const options = teamSelector.options;
-            let teamFound = false;
-            for (let i = 0; i < options.length; i++) {
-                if (options[i].text === teamName) {
-                    teamSelector.selectedIndex = i;
-                    teamFound = true;
-                    break;
+        // Show loading state
+        modalBody.innerHTML = `
+            <div class="text-center p-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading task details...</p>
+            </div>
+        `;
+
+        modal.show();
+
+        // Fetch content
+        fetch(`/task/${taskId}?modal=true`)
+            .then(response => response.text())
+            .then(html => {
+                modalBody.innerHTML = html;
+
+                // Re-execute scripts in the injected HTML
+                const scripts = modalBody.getElementsByTagName("script");
+                for (let i = 0; i < scripts.length; i++) {
+                    eval(scripts[i].innerText);
                 }
-            }
 
-            // Generate the response immediately if team was found
-            if (teamFound) {
-                setTimeout(() => generateResponseText(), 300);
-            }
-        }
+                // Hide "Back to Board" buttons in modal context
+                const backButtons = modalBody.querySelectorAll('.modal-hidden');
+                backButtons.forEach(btn => btn.style.display = 'none');
+            })
+            .catch(error => {
+                modalBody.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading task details.
+                    </div>
+                `;
+                console.error('Error:', error);
+            });
+    }
+</script>
+if (teamCell) {
+const teamName = teamCell.textContent.trim();
 
-        // Scroll to the section
-        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+// Pre-populate the team selector
+const teamSelector = document.getElementById('teamSelector');
+
+// See if we can auto-select the team
+const options = teamSelector.options;
+let teamFound = false;
+for (let i = 0; i < options.length; i++) { if (options[i].text===teamName) { teamSelector.selectedIndex=i;
+    teamFound=true; break; } } // Generate the response immediately if team was found if (teamFound) { setTimeout(()=>
+    generateResponseText(), 300);
+    }
+    }
+
+    // Scroll to the section
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function generateResponseText() {
-        const teamSelector = document.getElementById('teamSelector');
-        const generateBtn = document.getElementById('generateBtn');
-        const responseText = document.getElementById('responseText');
-        const responseSection = document.getElementById('responseTextSection');
+    const teamSelector = document.getElementById('teamSelector');
+    const generateBtn = document.getElementById('generateBtn');
+    const responseText = document.getElementById('responseText');
+    const responseSection = document.getElementById('responseTextSection');
 
-        const selectedTeam = teamSelector.value;
+    const selectedTeam = teamSelector.value;
 
-        if (!selectedTeam) {
-            alert('Please select a team first.');
-            return;
-        }
+    if (!selectedTeam) {
+    alert('Please select a team first.');
+    return;
+    }
 
-        // Show loading state
-        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-        generateBtn.disabled = true;
+    // Show loading state
+    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+    generateBtn.disabled = true;
 
-        fetch('/api/generate-away-match-response', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                team_name: selectedTeam
-            })
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    responseText.textContent = data.response_text;
-                    responseSection.style.display = 'block';
-                } else {
-                    alert('Error generating response: ' + (data.message || 'Unknown error'));
-                    responseSection.style.display = 'none';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error generating response text.');
-                responseSection.style.display = 'none';
-            })
-            .finally(() => {
-                generateBtn.innerHTML = '<i class="fas fa-magic"></i> Generate Response';
-                generateBtn.disabled = false;
-            });
+    fetch('/api/generate-away-match-response', {
+    method: 'POST',
+    headers: {
+    'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+    team_name: selectedTeam
+    })
+    })
+    .then(response => response.json())
+    .then(data => {
+    if (data.success) {
+    responseText.textContent = data.response_text;
+    responseSection.style.display = 'block';
+    } else {
+    alert('Error generating response: ' + (data.message || 'Unknown error'));
+    responseSection.style.display = 'none';
+    }
+    })
+    .catch(error => {
+    console.error('Error:', error);
+    alert('Error generating response text.');
+    responseSection.style.display = 'none';
+    })
+    .finally(() => {
+    generateBtn.innerHTML = '<i class="fas fa-magic"></i> Generate Response';
+    generateBtn.disabled = false;
+    });
     }
 
     function copyToClipboard() {
-        const responseText = document.getElementById('responseText');
-        const copyBtn = document.getElementById('copyBtn');
+    const responseText = document.getElementById('responseText');
+    const copyBtn = document.getElementById('copyBtn');
 
-        // Check if text is available
-        const textToCopy = responseText.textContent.trim();
-        if (!textToCopy) {
-            alert('No text to copy. Please generate a response first.');
-            return;
-        }
+    // Check if text is available
+    const textToCopy = responseText.textContent.trim();
+    if (!textToCopy) {
+    alert('No text to copy. Please generate a response first.');
+    return;
+    }
 
-        // Copy to clipboard
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                // Show success feedback
-                const originalHTML = copyBtn.innerHTML;
-                copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                copyBtn.classList.remove('btn-outline-primary');
-                copyBtn.classList.add('btn-outline-success');
+    // Copy to clipboard
+    if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(textToCopy).then(() => {
+    // Show success feedback
+    const originalHTML = copyBtn.innerHTML;
+    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    copyBtn.classList.remove('btn-outline-primary');
+    copyBtn.classList.add('btn-outline-success');
 
-                setTimeout(() => {
-                    copyBtn.innerHTML = originalHTML;
-                    copyBtn.classList.remove('btn-outline-success');
-                    copyBtn.classList.add('btn-outline-primary');
-                }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
-                fallbackCopy(textToCopy, copyBtn);
-            });
-        } else {
-            // Fallback for older browsers or non-HTTPS
-            fallbackCopy(textToCopy, copyBtn);
-        }
+    setTimeout(() => {
+    copyBtn.innerHTML = originalHTML;
+    copyBtn.classList.remove('btn-outline-success');
+    copyBtn.classList.add('btn-outline-primary');
+    }, 2000);
+    }).catch(err => {
+    console.error('Failed to copy: ', err);
+    fallbackCopy(textToCopy, copyBtn);
+    });
+    } else {
+    // Fallback for older browsers or non-HTTPS
+    fallbackCopy(textToCopy, copyBtn);
+    }
     }
 
     function fallbackCopy(text, copyBtn) {
-        // Create temporary textarea
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
-        document.body.appendChild(textArea);
+    // Create temporary textarea
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
 
-        textArea.focus();
-        textArea.select();
+    textArea.focus();
+    textArea.select();
 
-        try {
-            const successful = document.execCommand('copy');
-            if (successful) {
-                const originalHTML = copyBtn.innerHTML;
-                copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-                copyBtn.classList.remove('btn-outline-primary');
-                copyBtn.classList.add('btn-outline-success');
+    try {
+    const successful = document.execCommand('copy');
+    if (successful) {
+    const originalHTML = copyBtn.innerHTML;
+    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    copyBtn.classList.remove('btn-outline-primary');
+    copyBtn.classList.add('btn-outline-success');
 
-                setTimeout(() => {
-                    copyBtn.innerHTML = originalHTML;
-                    copyBtn.classList.remove('btn-outline-success');
-                    copyBtn.classList.add('btn-outline-primary');
-                }, 2000);
-            } else {
-                alert('Failed to copy to clipboard.');
-            }
-        } catch (err) {
-            alert('Failed to copy to clipboard.');
-        }
-
-        // Clean up
-        document.body.removeChild(textArea);
+    setTimeout(() => {
+    copyBtn.innerHTML = originalHTML;
+    copyBtn.classList.remove('btn-outline-success');
+    copyBtn.classList.add('btn-outline-primary');
+    }, 2000);
+    } else {
+    alert('Failed to copy to clipboard.');
+    }
+    } catch (err) {
+    alert('Failed to copy to clipboard.');
     }
 
-    // Handle clicking on away fixture rows
-    function generateAwayEmail(taskId, teamName) {
-        // Show the modal
-        const modal = new bootstrap.Modal(document.getElementById('awayEmailModal'));
-        modal.show();
-
-        // Set team name in modal title
-        document.getElementById('modalTeamName').textContent = teamName;
-
-        // Show loading state
-        document.getElementById('loadingSection').style.display = 'block';
-        document.getElementById('contentSection').style.display = 'none';
-        document.getElementById('errorSection').style.display = 'none';
-
-        // Store task ID for completion marking
-        document.getElementById('copyAndCompleteBtn').dataset.taskId = taskId;
-
-        // Generate the email response
-        fetch('/api/generate-away-match-response', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                team_name: teamName
-            })
-        })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('loadingSection').style.display = 'none';
-
-                if (data.success) {
-                    document.getElementById('awayResponseText').textContent = data.response_text;
-                    document.getElementById('contentSection').style.display = 'block';
-                } else {
-                    document.getElementById('errorMessage').textContent = data.message || 'Unknown error';
-                    document.getElementById('errorSection').style.display = 'block';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                document.getElementById('loadingSection').style.display = 'none';
-                document.getElementById('errorMessage').textContent = 'Network error: ' + error.message;
-                document.getElementById('errorSection').style.display = 'block';
-            });
+    // Clean up
+    document.body.removeChild(textArea);
     }
 
-    // Copy response text and mark task complete
-    function copyAwayResponseAndMarkComplete() {
-        const responseText = document.getElementById('awayResponseText').textContent.trim();
-        const taskId = document.getElementById('copyAndCompleteBtn').dataset.taskId;
-        const copyBtn = document.getElementById('copyAndCompleteBtn');
-
-        if (!responseText) {
-            alert('No response text to copy!');
-            return;
-        }
-
-        // Copy to clipboard first
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(responseText).then(() => {
-                // Show copy success briefly
-                const originalHTML = copyBtn.innerHTML;
-                copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied - Marking Complete...';
-                copyBtn.disabled = true;
-
-                // Mark task as completed
-                const csrfToken = document.querySelector('input[name="csrf_token"]').value;
-                return fetch(`/mark_completed/${taskId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-Token': csrfToken
-                    },
-                    body: JSON.stringify({
-                        notes: 'Away email response generated and sent to opposition'
-                    })
-                });
-            }).then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        copyBtn.innerHTML = '<i class="fas fa-check-double"></i> Done!';
-                        showToast('Response copied and task marked complete!');
-
-                        // Close modal after a delay
-                        setTimeout(() => {
-                            const modal = bootstrap.Modal.getInstance(document.getElementById('awayEmailModal'));
-                            modal.hide();
-                            // Reload page to update task status
-                            location.reload();
-                        }, 1500);
-                    } else {
-                        copyBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Copied but failed to complete task';
-                        alert('Response copied but failed to mark task as complete. Please try again.');
-                        copyBtn.disabled = false;
-                    }
-                }).catch(err => {
-                    console.error('Failed to copy: ', err);
-                    // Try fallback copy
-                    fallbackCopy(responseText, copyBtn, taskId);
-                });
-        } else {
-            // Use fallback method
-            fallbackCopy(responseText, copyBtn, taskId);
-        }
-    }
-
-    function fallbackCopy(text, copyBtn, taskId) {
-        // Create temporary textarea
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
-        document.body.appendChild(textArea);
-
-        textArea.focus();
-        textArea.select();
-
-        try {
-            const successful = document.execCommand('copy');
-            if (successful) {
-                const originalHTML = copyBtn.innerHTML;
-                copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied - Marking Complete...';
-                copyBtn.disabled = true;
-
-                // Mark task as completed
-                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="csrf_token"]')?.value || '{{ csrf_token() }}';
-                fetch(`/mark_completed/${taskId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({
-                        notes: 'Away email response generated and sent to opposition'
-                    })
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            copyBtn.innerHTML = '<i class="fas fa-check-double"></i> Done!';
-                            showToast('Response copied and task marked complete!');
-
-                            // Close modal after a delay
-                            setTimeout(() => {
-                                const modal = bootstrap.Modal.getInstance(document.getElementById('awayEmailModal'));
-                                modal.hide();
-                                // Reload page to update task status
-                                location.reload();
-                            }, 1500);
-                        } else {
-                            copyBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Copied but failed to complete task';
-                            alert('Response copied but failed to mark task as complete. Please try manually.');
-                            copyBtn.disabled = false;
-                        }
-                    })
-                    .catch(error => {
-                        copyBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Copied but failed to complete task';
-                        alert('Response copied but failed to mark task as complete. Please try manually.');
-                        copyBtn.disabled = false;
-                    });
-            } else {
-                alert('Failed to copy to clipboard.');
-            }
-        } catch (err) {
-            alert('Failed to copy to clipboard.');
-        } finally {
-            // Clean up
-            document.body.removeChild(textArea);
-        }
-    }
 
     function openEmailGenerator(taskId) {
-        if (!taskId) {
-            return;
-        }
-        window.location.href = `/generate_email/${taskId}`;
+    if (!taskId) {
+    return;
+    }
+    window.location.href = `/generate_email/${taskId}`;
     }
 
     // Initialize the team selector when page loads
     document.addEventListener('DOMContentLoaded', function () {
-        loadManagedTeams();
-        updateTemplateText(); // Initialize template text
+    loadManagedTeams();
+    updateTemplateText(); // Initialize template text
     });
 
     function loadManagedTeams() {
-        fetch('/api/managed-teams')
-            .then(response => response.json())
-            .then(data => {
-                const selector = document.getElementById('teamSelector');
-                if (data.teams) {
-                    data.teams.forEach(team => {
-                        const option = document.createElement('option');
-                        option.value = team.name;
-                        option.textContent = team.name;
-                        selector.appendChild(option);
-                    });
-                }
-                // Initialize template text after teams are loaded
-                updateTemplateText();
-            })
-            .catch(error => {
-                console.error('Error loading teams:', error);
-            });
+    fetch('/api/managed-teams')
+    .then(response => response.json())
+    .then(data => {
+    const selector = document.getElementById('teamSelector');
+    if (data.teams) {
+    data.teams.forEach(team => {
+    const option = document.createElement('option');
+    option.value = team.name;
+    option.textContent = team.name;
+    selector.appendChild(option);
+    });
+    }
+    // Initialize template text after teams are loaded
+    updateTemplateText();
+    })
+    .catch(error => {
+    console.error('Error loading teams:', error);
+    });
     }
 
     // Template generation functions
     function updateTemplateText() {
-        const teamSelector = document.getElementById('teamSelector');
-        const templateTextArea = document.getElementById('templateText');
+    const teamSelector = document.getElementById('teamSelector');
+    const templateTextArea = document.getElementById('templateText');
 
-        const selectedTeam = teamSelector.value.trim();
+    const selectedTeam = teamSelector.value.trim();
 
-        if (!selectedTeam) {
-            templateTextArea.textContent = 'Please select a team to generate the email template...';
-            return;
-        }
+    if (!selectedTeam) {
+    templateTextArea.textContent = 'Please select a team to generate the email template...';
+    return;
+    }
 
-        // Generate template using the API
-        fetch('/api/generate-away-match-response', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                team_name: selectedTeam
-            })
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    templateTextArea.textContent = data.response_text;
-                } else {
-                    templateTextArea.textContent = 'Error generating template: ' + (data.message || 'Unknown error');
-                }
-            })
-            .catch(error => {
-                console.error('Error generating template:', error);
-                templateTextArea.textContent = 'Error loading template. Please try again.';
-            });
+    // Generate template using the API
+    fetch('/api/generate-away-match-response', {
+    method: 'POST',
+    headers: {
+    'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+    team_name: selectedTeam
+    })
+    })
+    .then(response => response.json())
+    .then(data => {
+    if (data.success) {
+    templateTextArea.textContent = data.response_text;
+    } else {
+    templateTextArea.textContent = 'Error generating template: ' + (data.message || 'Unknown error');
+    }
+    })
+    .catch(error => {
+    console.error('Error generating template:', error);
+    templateTextArea.textContent = 'Error loading template. Please try again.';
+    });
     }
 
     function copyTemplateText() {
-        const templateText = document.getElementById('templateText').textContent.trim();
-        const copyBtn = document.getElementById('copyTemplateBtn');
-        const copyStatus = document.getElementById('copyStatus');
+    const templateText = document.getElementById('templateText').textContent.trim();
+    const copyBtn = document.getElementById('copyTemplateBtn');
+    const copyStatus = document.getElementById('copyStatus');
 
-        if (!templateText || templateText.startsWith('Please select') || templateText.startsWith('Error')) {
-            alert('Please select a team and generate a valid template first.');
-            return;
-        }
+    if (!templateText || templateText.startsWith('Please select') || templateText.startsWith('Error')) {
+    alert('Please select a team and generate a valid template first.');
+    return;
+    }
 
-        // Copy to clipboard
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(templateText).then(() => {
-                // Show success feedback
-                showCopySuccess(copyBtn, copyStatus);
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
-                fallbackCopyTemplate(templateText, copyBtn, copyStatus);
-            });
-        } else {
-            // Fallback for older browsers or non-HTTPS
-            fallbackCopyTemplate(templateText, copyBtn, copyStatus);
-        }
+    // Copy to clipboard
+    if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(templateText).then(() => {
+    // Show success feedback
+    showCopySuccess(copyBtn, copyStatus);
+    }).catch(err => {
+    console.error('Failed to copy: ', err);
+    fallbackCopyTemplate(templateText, copyBtn, copyStatus);
+    });
+    } else {
+    // Fallback for older browsers or non-HTTPS
+    fallbackCopyTemplate(templateText, copyBtn, copyStatus);
+    }
     }
 
     function showCopySuccess(copyBtn, copyStatus) {
-        const originalHTML = copyBtn.innerHTML;
-        copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-        copyBtn.classList.remove('btn-success');
-        copyBtn.classList.add('btn-outline-success');
-        copyStatus.textContent = 'Copied to clipboard!';
-        copyStatus.className = 'text-success ms-2';
+    const originalHTML = copyBtn.innerHTML;
+    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    copyBtn.classList.remove('btn-success');
+    copyBtn.classList.add('btn-outline-success');
+    copyStatus.textContent = 'Copied to clipboard!';
+    copyStatus.className = 'text-success ms-2';
 
-        setTimeout(() => {
-            copyBtn.innerHTML = originalHTML;
-            copyBtn.classList.remove('btn-outline-success');
-            copyBtn.classList.add('btn-success');
-            copyStatus.textContent = '';
-        }, 2000);
+    setTimeout(() => {
+    copyBtn.innerHTML = originalHTML;
+    copyBtn.classList.remove('btn-outline-success');
+    copyBtn.classList.add('btn-success');
+    copyStatus.textContent = '';
+    }, 2000);
     }
 
     function fallbackCopyTemplate(text, copyBtn, copyStatus) {
-        // Create temporary textarea
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
-        document.body.appendChild(textArea);
+    // Create temporary textarea
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
 
-        textArea.focus();
-        textArea.select();
+    textArea.focus();
+    textArea.select();
 
-        try {
-            const successful = document.execCommand('copy');
-            if (successful) {
-                showCopySuccess(copyBtn, copyStatus);
-            } else {
-                copyStatus.textContent = 'Failed to copy to clipboard.';
-                copyStatus.className = 'text-danger ms-2';
-                setTimeout(() => {
-                    copyStatus.textContent = '';
-                }, 3000);
-            }
-        } catch (err) {
-            copyStatus.textContent = 'Failed to copy to clipboard.';
-            copyStatus.className = 'text-danger ms-2';
-            setTimeout(() => {
-                copyStatus.textContent = '';
-            }, 3000);
-        }
-
-        // Clean up
-        document.body.removeChild(textArea);
+    try {
+    const successful = document.execCommand('copy');
+    if (successful) {
+    showCopySuccess(copyBtn, copyStatus);
+    } else {
+    copyStatus.textContent = 'Failed to copy to clipboard.';
+    copyStatus.className = 'text-danger ms-2';
+    setTimeout(() => {
+    copyStatus.textContent = '';
+    }, 3000);
     }
-</script>
-{% endblock %}
+    } catch (err) {
+    copyStatus.textContent = 'Failed to copy to clipboard.';
+    copyStatus.className = 'text-danger ms-2';
+    setTimeout(() => {
+    copyStatus.textContent = '';
+    }, 3000);
+    }
+
+    // Clean up
+    document.body.removeChild(textArea);
+    }
+    </script>
+    {% endblock %}

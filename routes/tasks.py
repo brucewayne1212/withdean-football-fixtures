@@ -187,7 +187,9 @@ def view_task(task_id):
         # Get available pitches for editing
         pitches = session.query(Pitch).filter_by(organization_id=org.id).all()
 
-        return render_template('task_detail.html',
+        template = '_task_detail_content.html' if request.args.get('modal') else 'task_detail.html'
+
+        return render_template(template,
             task=task,
             user_name=current_user.name,
             pitches=pitches,
@@ -718,12 +720,31 @@ def generate_email_route(task_id):
         # Get pitch information from the relationship
         pitch = fixture.pitch
 
+        # Debug pitch information
+        pitch_debug = {
+            'pitch_name': fixture.pitch.name if fixture.pitch else 'TBC',
+            'pitch_address': fixture.pitch.address if fixture.pitch else 'TBC',
+            'pitch_parking': fixture.pitch.parking_info if fixture.pitch else 'TBC',
+            'pitch_toilets': fixture.pitch.toilet_info if fixture.pitch else 'TBC',
+            'pitch_opening_notes': fixture.pitch.opening_notes if fixture.pitch else 'TBC',
+        } if fixture.pitch else {}
+        print(f"DEBUG: Pitch info for email: {pitch_debug}")
+
         # Get email template
         email_template = session.query(EmailTemplate).filter_by(
             organization_id=org.id,
             template_type='default',
             is_active=True
         ).first()
+
+        # Debug fixture data
+        debug_fixture_data = {
+            'fixture_id': fixture.id,
+            'kickoff_time_text': fixture.kickoff_time_text,
+            'match_format': fixture.match_format,
+            'fixture_length': fixture.fixture_length,
+        }
+        print(f"DEBUG: Fixture data for email generation: {debug_fixture_data}")
 
         # Get team coach/manager for this team
         team_coach = session.query(TeamCoach).filter_by(

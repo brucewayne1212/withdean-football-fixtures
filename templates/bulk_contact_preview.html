@@ -6,7 +6,7 @@
 <div class="row">
     <div class="col-12">
         <h1 class="mb-4">
-            <i class="fas fa-eye text-danger"></i> 
+            <i class="fas fa-eye text-danger"></i>
             Preview Bulk Contact Import
         </h1>
         <nav aria-label="breadcrumb">
@@ -22,8 +22,8 @@
 <div class="row">
     <div class="col-12">
         <div class="alert alert-info">
-            <i class="fas fa-info-circle"></i> 
-            <strong>Review the detected contacts below.</strong> You can edit any information before importing. 
+            <i class="fas fa-info-circle"></i>
+            <strong>Review the detected contacts below.</strong> You can edit any information before importing.
             Uncheck contacts you don't want to import.
         </div>
 
@@ -47,9 +47,9 @@
                     <div class="card">
                         <div class="card-header">
                             <div class="form-check">
-                                <input class="form-check-input contact-checkbox" type="checkbox" 
-                                       id="import_{{ loop.index0 }}" name="import_{{ loop.index0 }}" 
-                                       {{ 'checked' if contact.team_name or contact.contact_name or contact.email }}>
+                                <input class="form-check-input contact-checkbox" type="checkbox"
+                                    id="import_{{ loop.index0 }}" name="import_{{ loop.index0 }}" {{ 'checked' if
+                                    contact.team_name or contact.contact_name or contact.email }}>
                                 <label class="form-check-label fw-bold" for="import_{{ loop.index0 }}">
                                     Contact {{ loop.index }}
                                     {% if contact.team_name %}
@@ -60,43 +60,49 @@
                         </div>
                         <div class="card-body">
                             <div class="mb-2">
-                                <label for="team_name_{{ loop.index0 }}" class="form-label small fw-bold">Team Name *</label>
-                                <input type="text" class="form-control form-control-sm" 
-                                       id="team_name_{{ loop.index0 }}" name="team_name_{{ loop.index0 }}" 
-                                       value="{{ contact.team_name }}" required>
+                                <label for="team_name_{{ loop.index0 }}" class="form-label small fw-bold">Team Name
+                                    *</label>
+                                <input type="text" class="form-control form-control-sm" id="team_name_{{ loop.index0 }}"
+                                    name="team_name_{{ loop.index0 }}" value="{{ contact.team_name }}" required>
                             </div>
-                            
+
                             <div class="mb-2">
-                                <label for="contact_name_{{ loop.index0 }}" class="form-label small fw-bold">Contact Name</label>
-                                <input type="text" class="form-control form-control-sm" 
-                                       id="contact_name_{{ loop.index0 }}" name="contact_name_{{ loop.index0 }}" 
-                                       value="{{ contact.contact_name }}">
+                                <label for="contact_name_{{ loop.index0 }}" class="form-label small fw-bold">Contact
+                                    Name</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    id="contact_name_{{ loop.index0 }}" name="contact_name_{{ loop.index0 }}"
+                                    value="{{ contact.contact_name }}">
                             </div>
-                            
+
+                            <div class="mb-2">
+                                <label for="role_{{ loop.index0 }}" class="form-label small fw-bold">Role</label>
+                                <input type="text" class="form-control form-control-sm" id="role_{{ loop.index0 }}"
+                                    name="role_{{ loop.index0 }}" value="{{ contact.role }}"
+                                    placeholder="e.g. Manager, Fixture Secretary">
+                            </div>
+
                             <div class="mb-2">
                                 <label for="email_{{ loop.index0 }}" class="form-label small fw-bold">Email</label>
-                                <input type="email" class="form-control form-control-sm" 
-                                       id="email_{{ loop.index0 }}" name="email_{{ loop.index0 }}" 
-                                       value="{{ contact.email }}">
+                                <input type="email" class="form-control form-control-sm" id="email_{{ loop.index0 }}"
+                                    name="email_{{ loop.index0 }}" value="{{ contact.email }}">
                             </div>
-                            
+
                             <div class="mb-2">
                                 <label for="phone_{{ loop.index0 }}" class="form-label small fw-bold">Phone</label>
-                                <input type="tel" class="form-control form-control-sm" 
-                                       id="phone_{{ loop.index0 }}" name="phone_{{ loop.index0 }}" 
-                                       value="{{ contact.phone }}">
+                                <input type="tel" class="form-control form-control-sm" id="phone_{{ loop.index0 }}"
+                                    name="phone_{{ loop.index0 }}" value="{{ contact.phone }}">
                             </div>
-                            
+
                             <div class="mb-2">
                                 <label for="notes_{{ loop.index0 }}" class="form-label small fw-bold">Notes</label>
-                                <textarea class="form-control form-control-sm" rows="2" 
-                                          id="notes_{{ loop.index0 }}" name="notes_{{ loop.index0 }}">{{ contact.notes }}</textarea>
+                                <textarea class="form-control form-control-sm" rows="2" id="notes_{{ loop.index0 }}"
+                                    name="notes_{{ loop.index0 }}">{{ contact.notes }}</textarea>
                             </div>
-                            
+
                             {% if contact.original_text %}
                             <div class="mt-2">
-                                <button type="button" class="btn btn-sm btn-outline-info" 
-                                        data-bs-toggle="collapse" data-bs-target="#original_{{ loop.index0 }}">
+                                <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="collapse"
+                                    data-bs-target="#original_{{ loop.index0 }}">
                                     <i class="fas fa-code"></i> Show Original Text
                                 </button>
                                 <div class="collapse mt-2" id="original_{{ loop.index0 }}">
@@ -127,7 +133,7 @@
 
         {% else %}
         <div class="alert alert-warning">
-            <i class="fas fa-exclamation-triangle"></i> 
+            <i class="fas fa-exclamation-triangle"></i>
             No contacts found to preview. Please go back and try uploading again.
         </div>
         <a href="{{ url_for('bulk_contact_upload') }}" class="btn btn-primary">
@@ -140,49 +146,49 @@
 
 {% block scripts %}
 <script>
-function selectAll() {
-    document.querySelectorAll('.contact-checkbox').forEach(checkbox => {
-        checkbox.checked = true;
-    });
-}
-
-function selectNone() {
-    document.querySelectorAll('.contact-checkbox').forEach(checkbox => {
-        checkbox.checked = false;
-    });
-}
-
-// Auto-check checkbox when user enters team name
-document.querySelectorAll('[id^="team_name_"]').forEach(input => {
-    input.addEventListener('input', function() {
-        const index = this.id.split('_')[2];
-        const checkbox = document.getElementById(`import_${index}`);
-        if (this.value.trim() && !checkbox.checked) {
+    function selectAll() {
+        document.querySelectorAll('.contact-checkbox').forEach(checkbox => {
             checkbox.checked = true;
-        }
-    });
-});
-
-// Show validation for required team names
-document.querySelector('form').addEventListener('submit', function(e) {
-    let hasError = false;
-    
-    document.querySelectorAll('.contact-checkbox:checked').forEach(checkbox => {
-        const index = checkbox.id.split('_')[1];
-        const teamNameInput = document.getElementById(`team_name_${index}`);
-        
-        if (!teamNameInput.value.trim()) {
-            teamNameInput.classList.add('is-invalid');
-            hasError = true;
-        } else {
-            teamNameInput.classList.remove('is-invalid');
-        }
-    });
-    
-    if (hasError) {
-        e.preventDefault();
-        alert('Please provide team names for all selected contacts.');
+        });
     }
-});
+
+    function selectNone() {
+        document.querySelectorAll('.contact-checkbox').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    }
+
+    // Auto-check checkbox when user enters team name
+    document.querySelectorAll('[id^="team_name_"]').forEach(input => {
+        input.addEventListener('input', function () {
+            const index = this.id.split('_')[2];
+            const checkbox = document.getElementById(`import_${index}`);
+            if (this.value.trim() && !checkbox.checked) {
+                checkbox.checked = true;
+            }
+        });
+    });
+
+    // Show validation for required team names
+    document.querySelector('form').addEventListener('submit', function (e) {
+        let hasError = false;
+
+        document.querySelectorAll('.contact-checkbox:checked').forEach(checkbox => {
+            const index = checkbox.id.split('_')[1];
+            const teamNameInput = document.getElementById(`team_name_${index}`);
+
+            if (!teamNameInput.value.trim()) {
+                teamNameInput.classList.add('is-invalid');
+                hasError = true;
+            } else {
+                teamNameInput.classList.remove('is-invalid');
+            }
+        });
+
+        if (hasError) {
+            e.preventDefault();
+            alert('Please provide team names for all selected contacts.');
+        }
+    });
 </script>
 {% endblock %}

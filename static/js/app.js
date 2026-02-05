@@ -253,6 +253,191 @@ document.addEventListener('keydown', function (e) {
     }
 });
 
+// Away Email Response Generator Functions
+function generateAwayEmail(taskId, teamName) {
+    console.log(`[generateAwayEmail] Triggered for Task: ${taskId}, Team: ${teamName}`);
+
+    // Show the modal - it should be defined in the main template
+    const modalElement = document.getElementById('awayEmailModal');
+    if (!modalElement) {
+        console.error('[generateAwayEmail] awayEmailModal not found in DOM');
+        alert('Internal Error: awayEmailModal not found. Please refresh the page.');
+        return;
+    }
+
+    // Use getOrCreateInstance for robustness
+    let modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    console.log('[generateAwayEmail] Showing modal...');
+    modal.show();
+
+    // Set team name in modal title
+    const modalTeamName = document.getElementById('modalTeamName');
+    if (modalTeamName) modalTeamName.textContent = teamName;
+
+    // Show loading state
+    const loadingSection = document.getElementById('loadingSection');
+    const contentSection = document.getElementById('contentSection');
+    const errorSection = document.getElementById('errorSection');
+
+    if (loadingSection) loadingSection.style.display = 'block';
+    if (contentSection) contentSection.style.display = 'none';
+    if (errorSection) errorSection.style.display = 'none';
+
+    // Store task ID for completion marking
+    const copyBtn = document.getElementById('copyAndCompleteBtn');
+    if (copyBtn) {
+        copyBtn.dataset.taskId = taskId;
+        copyBtn.disabled = false; // Reset button state
+        copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy & Mark Task Complete';
+    }
+
+    // Get CSRF token from meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    if (!csrfToken) {
+        console.warn('[generateAwayEmail] CSRF token not found in meta tag');
+    }
+
+    // Generate the email response
+    fetch('/api/generate-away-match-response', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            team_name: teamName
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (loadingSection) loadingSection.style.display = 'none';
+
+            if (data.success) {
+                const responseText = document.getElementById('awayResponseText');
+                if (responseText) responseText.textContent = data.response_text;
+                if (contentSection) contentSection.style.display = 'block';
+            } else {
+                const errorMessage = document.getElementById('errorMessage');
+                if (errorMessage) errorMessage.textContent = data.message || 'Unknown error';
+                if (errorSection) errorSection.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error generating away email:', error);
+            if (loadingSection) loadingSection.style.display = 'none';
+            const errorMessage = document.getElementById('errorMessage');
+            if (errorMessage) errorMessage.textContent = 'Network error: ' + error.message;
+            if (errorSection) errorSection.style.display = 'block';
+        });
+}
+
+// Copy response text and mark task complete
+function copyAwayResponseAndMarkComplete() {
+    const responseTextElement = document.getElementById('awayResponseText');
+    const responseText = responseTextElement ? responseTextElement.textContent.trim() : '';
+    const copyBtn = document.getElementById('copyAndCompleteBtn');
+    const taskId = copyBtn ? copyBtn.dataset.taskId : null;
+
+    if (!responseText) {
+        alert('No response text to copy!');
+        return;
+    }
+
+    if (!taskId) {
+        alert('Task ID missing!');
+        return;
+    }
+
+    // Copy to clipboard first
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(responseText).then(() => {
+            handleCopySuccess(copyBtn, taskId);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            fallbackCopyAwayResponse(responseText, copyBtn, taskId);
+        });
+    } else {
+        fallbackCopyAwayResponse(responseText, copyBtn, taskId);
+    }
+}
+
+function handleCopySuccess(copyBtn, taskId) {
+    // Show copy success briefly
+    const originalHTML = copyBtn.innerHTML;
+    copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied - Marking Complete...';
+    copyBtn.disabled = true;
+
+    // Get CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    // Mark task as completed
+    fetch(`/mark_completed/${taskId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            notes: 'Away email response generated and sent to opposition'
+        })
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                copyBtn.innerHTML = '<i class="fas fa-check-double"></i> Done!';
+                showToast('Response copied and task marked complete!');
+
+                // Close modal after a delay
+                setTimeout(() => {
+                    const modalElement = document.getElementById('awayEmailModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) {
+                        console.log('[handleCopySuccess] Hiding awayEmailModal');
+                        modal.hide();
+                    }
+                    // Reload page to update task status
+                    location.reload();
+                }, 1000);
+            } else {
+                copyBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Copied but failed to complete task';
+                alert('Response copied but failed to mark task as complete: ' + (data.error || 'Unknown error'));
+                copyBtn.disabled = false;
+                copyBtn.innerHTML = originalHTML;
+            }
+        })
+        .catch(error => {
+            console.error('Error marking task complete:', error);
+            alert('Response copied but network error marking task as complete.');
+            copyBtn.disabled = false;
+            copyBtn.innerHTML = originalHTML;
+        });
+}
+
+function fallbackCopyAwayResponse(text, copyBtn, taskId) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            handleCopySuccess(copyBtn, taskId);
+        } else {
+            alert('Failed to copy to clipboard.');
+        }
+    } catch (err) {
+        alert('Failed to copy to clipboard.');
+    }
+
+    document.body.removeChild(textArea);
+}
+
 // Add keyboard shortcut hints to footer
 document.addEventListener('DOMContentLoaded', function () {
     const footer = document.querySelector('footer p');

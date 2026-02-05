@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Review Fixture Import{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="fas fa-clipboard-check text-primary me-2"></i>Review Fixtures</h2>
+        <p class="text-muted">Review the fixtures from the Google Sheet before saving. Match any unknown pitches below.
+        </p>
+    </div>
+</div>
+
+<form action="{{ url_for('imports.save_refreshed_fixtures') }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- Pass the raw sheet URL to re-fetch or use cache if implemented (for now we might need to re-fetch or pass data hidden) -->
+    <!-- Better approach: Pass the data as hidden JSON or rely on re-fetching if sheet is public/fast -->
+    <!-- Given the complexity, we'll store the analyzed data in hidden inputs -->
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Date/Time</th>
+                            <th>Match</th>
+                            <th>Sheet Pitch</th>
+                            <th>Database Pitch Match</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in preview_data %}
+                        <tr>
+                            <td>
+                                <div class="fw-bold">{{ item.date }}</div>
+                                <small class="text-muted">{{ item.time }}</small>
+                                <input type="hidden" name="fixture_{{ loop.index0 }}_data"
+                                    value="{{ item.fixture_json }}">
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-primary me-2">{{ item.home_away }}</span>
+                                    <div>
+                                        <div>{{ item.team }}</div>
+                                        <div class="text-muted small">vs {{ item.opposition }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if item.sheet_pitch %}
+                                <span class="badge bg-light text-dark border">{{ item.sheet_pitch }}</span>
+                                <input type="hidden" name="fixture_{{ loop.index0 }}_sheet_pitch"
+                                    value="{{ item.sheet_pitch }}">
+                                {% else %}
+                                <span class="text-muted fst-italic">Not specified</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex flex-column gap-2">
+                                    <select class="form-select form-select-sm"
+                                        name="fixture_{{ loop.index0 }}_pitch_id">
+                                        <option value="">-- Select Pitch --</option>
+                                        {% for p in pitches %}
+                                        <option value="{{ p.id }}" {% if item.suggested_pitch_id==p.id %}selected{%
+                                            endif %}>
+                                            {{ p.name }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+
+                                    {% if item.sheet_pitch and not item.is_exact_match %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                            name="fixture_{{ loop.index0 }}_save_alias" value="1"
+                                            id="alias_{{ loop.index0 }}" {% if item.match_type=='alias' %}checked
+                                            disabled{% endif %}>
+                                        <label class="form-check-label small text-muted" for="alias_{{ loop.index0 }}">
+                                            Save "{{ item.sheet_pitch }}" as alias
+                                        </label>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if item.match_type == 'exact' %}
+                                <span class="badge bg-success">Exact Match</span>
+                                {% elif item.match_type == 'alias' %}
+                                <span class="badge bg-info text-dark">Alias Match</span>
+                                {% elif item.match_type == 'partial' %}
+                                <span class="badge bg-warning text-dark">Partial Match</span>
+                                {% elif item.match_type == 'fuzzy' %}
+                                <span class="badge bg-warning text-dark">Fuzzy Match</span>
+                                {% elif item.sheet_pitch %}
+                                <span class="badge bg-danger">No Match</span>
+                                {% else %}
+                                <span class="badge bg-secondary">No Pitch</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-light d-flex justify-content-between align-items-center p-3">
+            <div class="text-muted small">
+                <i class="fas fa-info-circle me-1"></i>
+                Check "Save as alias" to automatically map this pitch name in future imports.
+            </div>
+            <div>
+                <a href="{{ url_for('dashboard.dashboard_view') }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Confirm & Import
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+{% endblock %}

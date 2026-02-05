@@ -110,9 +110,6 @@ def parse_fixture_from_row(row: Dict[str, str]) -> Optional[Dict]:
     # Try to extract key fields (case-insensitive matching)
     fixture = {}
 
-    # Set date to next Sunday
-    fixture['date'] = get_next_sunday()
-
     # Find team name (could be 'Team', 'Team Name', 'Your Team', etc.)
     # Also check for empty string key (first column with no header)
     team_keys = ['team', 'team name', 'your team', 'home team', 'our team', '']
@@ -142,9 +139,15 @@ def parse_fixture_from_row(row: Dict[str, str]) -> Optional[Dict]:
             break
 
     # Find pitch/venue
-    pitch_keys = ['pitch', 'venue', 'location', 'ground', 'pitch']
+    pitch_keys = ['pitch', 'venue', 'location', 'ground', 'field', 'stadium']
     for key in row.keys():
-        if key.lower().strip() in pitch_keys and 'type' not in key.lower():
+        key_lower = key.lower().strip()
+        # Check for exact matches first
+        if key_lower in pitch_keys and 'type' not in key_lower:
+            fixture['pitch'] = row[key].strip()
+            break
+        # Check for substring matches (e.g. "Pitch Name", "Venue Location")
+        if any(pk in key_lower for pk in pitch_keys) and 'type' not in key_lower and 'fee' not in key_lower and 'cost' not in key_lower:
             fixture['pitch'] = row[key].strip()
             break
 
@@ -215,17 +218,31 @@ def refresh_weekly_fixtures(sheet_url: str) -> tuple[List[Dict], List[str]]:
     try:
         # Fetch the sheet
         rows = fetch_google_sheet_csv(sheet_url)
+        print(f"DEBUG: Fetched {len(rows)} rows from Google Sheet")
 
         # Get column names from first row
         column_names = list(rows[0].keys()) if rows else []
+        print(f"DEBUG: Sheet columns: {column_names}")
+
+        # Initialize last_seen_date with next Sunday as default
+        last_seen_date = get_next_sunday()
 
         # Parse each row
         for i, row in enumerate(rows, start=2):  # Start at 2 (row 1 is header)
             try:
                 fixture = parse_fixture_from_row(row)
                 if fixture:
+                    # Forward filling logic for date
+                    if fixture.get('date'):
+                        last_seen_date = fixture['date']
+                    else:
+                        fixture['date'] = last_seen_date
+                        
                     fixtures.append(fixture)
+                else:
+                    print(f"DEBUG: Row {i} skipped - could not parse fixture. Row data: {row}")
             except Exception as e:
+                print(f"DEBUG: Error parsing row {i}: {e}")
                 errors.append(f"Row {i}: {str(e)}")
 
         if not fixtures and not errors:

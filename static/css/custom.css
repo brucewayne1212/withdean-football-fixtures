@@ -6,6 +6,21 @@
     --withdean-black: #212529;
     --kanban-bg: #f4f5f7;
     --kanban-col-width: 350px;
+
+    /* Kit Color Palette */
+    --kit-red: #dc3545;
+    --kit-blue: #0d6efd;
+    --kit-navy: #0a043c;
+    --kit-black: #212529;
+    --kit-white: #ffffff;
+    --kit-yellow: #ffc107;
+    --kit-green: #198754;
+    --kit-sky: #87ceeb;
+    --kit-maroon: #800000;
+    --kit-orange: #fd7e14;
+    --kit-purple: #6f42c1;
+    --kit-grey: #6c757d;
+    --kit-gold: #ffd700;
 }
 
 body {
@@ -60,7 +75,7 @@ body {
 .kanban-card {
     background: white;
     border-radius: 6px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
     padding: 1rem;
     margin-bottom: 0.5rem;
     cursor: pointer;
@@ -69,13 +84,21 @@ body {
 }
 
 .kanban-card:hover {
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     transform: translateY(-1px);
 }
 
-.kanban-card.priority-high { border-left-color: #dc3545; }
-.kanban-card.priority-medium { border-left-color: #ffc107; }
-.kanban-card.priority-low { border-left-color: #28a745; }
+.kanban-card.priority-high {
+    border-left-color: #dc3545;
+}
+
+.kanban-card.priority-medium {
+    border-left-color: #ffc107;
+}
+
+.kanban-card.priority-low {
+    border-left-color: #28a745;
+}
 
 .card-meta {
     font-size: 0.85rem;
@@ -93,9 +116,17 @@ body {
 }
 
 /* Status Colors */
-.status-pending .kanban-header { border-top: 3px solid #ffc107; }
-.status-waiting .kanban-header { border-top: 3px solid #17a2b8; }
-.status-completed .kanban-header { border-top: 3px solid #28a745; }
+.status-pending .kanban-header {
+    border-top: 3px solid #ffc107;
+}
+
+.status-waiting .kanban-header {
+    border-top: 3px solid #17a2b8;
+}
+
+.status-completed .kanban-header {
+    border-top: 3px solid #28a745;
+}
 
 /* Overrides */
 .btn-primary {
@@ -118,11 +149,11 @@ body {
 }
 
 .kanban-body::-webkit-scrollbar-track {
-    background: rgba(0,0,0,0.05);
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .kanban-body::-webkit-scrollbar-thumb {
-    background: rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.2);
     border-radius: 3px;
 }
 
@@ -146,4 +177,216 @@ body {
     border-radius: 0.5rem;
     text-align: center;
     max-width: 400px;
+}
+
+/* Minimalist Kit Badge Styles */
+.kit-icon-container {
+    display: inline-flex;
+    position: relative;
+    width: 32px;
+    height: 32px;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.kit-icon-container:hover {
+    transform: scale(1.1);
+}
+
+.kit-badge {
+    display: flex;
+    flex-direction: column;
+    width: 14px;
+    height: 26px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.kit-segment {
+    flex: 1;
+    width: 100%;
+    background-color: #dee2e6;
+    /* Default gray if no color */
+    border-bottom: 0.5px solid rgba(255, 255, 255, 0.3);
+}
+
+.kit-segment:last-child {
+    border-bottom: none;
+}
+
+/* Tooltip custom styling */
+.tooltip-inner {
+    max-width: 250px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    background-color: rgba(33, 37, 41, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Common Football Colors Mapping */
+.color-red {
+    background-color: var(--kit-red) !important;
+}
+
+.color-blue {
+    background-color: var(--kit-blue) !important;
+}
+
+.color-navy {
+    background-color: var(--kit-navy) !important;
+}
+
+.color-black {
+    background-color: var(--kit-black) !important;
+}
+
+.color-white {
+    background-color: var(--kit-white) !important;
+}
+
+.color-yellow {
+    background-color: var(--kit-yellow) !important;
+}
+
+.color-green {
+    background-color: var(--kit-green) !important;
+}
+
+.color-sky {
+    background-color: var(--kit-sky) !important;
+}
+
+.color-maroon {
+    background-color: var(--kit-maroon) !important;
+}
+
+.color-orange {
+    background-color: var(--kit-orange) !important;
+}
+
+.color-purple {
+    background-color: var(--kit-purple) !important;
+}
+
+.color-grey {
+    background-color: var(--kit-grey) !important;
+}
+
+.color-gold {
+    background-color: var(--kit-gold) !important;
+}
+
+/* Stripe support */
+.striped {
+    background: linear-gradient(to right, var(--color-1) 50%, var(--color-2) 50%) !important;
+}
+
+/* Predefined popular stripe combos */
+.color-red-black {
+    --color-1: var(--kit-red);
+    --color-2: var(--kit-black);
+}
+
+.color-blue-white {
+    --color-1: var(--kit-blue);
+    --color-2: var(--kit-white);
+}
+
+.color-black-white {
+    --color-1: var(--kit-black);
+    --color-2: var(--kit-white);
+}
+
+.color-yellow-black {
+    --color-1: var(--kit-yellow);
+    --color-2: var(--kit-black);
+}
+
+/* Email Editor Redesign Styles */
+.btn-pill {
+    border-radius: 50px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-width: 1.5px;
+}
+
+.btn-pill:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.uppercase-label {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.x-small {
+    font-size: 0.7rem;
+}
+
+.shadow-inner {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.sticky-top {
+    z-index: 1020;
+}
+
+/* Dashboard Mini Kit & Status Styles */
+.kit-badge-mini {
+    display: inline-flex;
+    flex-direction: column;
+    width: 6px;
+    height: 14px;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-right: 4px;
+    vertical-align: middle;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.kit-badge-mini .kit-segment {
+    flex: 1;
+    width: 100%;
+}
+
+.status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-left: 5px;
+    vertical-align: middle;
+}
+
+.status-dot.action_needed {
+    background-color: #ffc107;
+}
+
+.status-dot.in_progress {
+    background-color: #17a2b8;
+}
+
+.status-dot.complete {
+    background-color: #28a745;
+}
+
+.status-dot.no_fixtures {
+    background-color: #dee2e6;
+}
+
+.team-status-badge {
+    transition: all 0.2s ease;
+}
+
+.team-status-badge:hover {
+    background-color: #f0f0f0 !important;
+    border-color: var(--withdean-primary) !important;
 }

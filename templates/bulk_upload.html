@@ -52,68 +52,82 @@
                 </h5>
             </div>
             <div class="card-body">
-                {% if preview_data.errors %}
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <strong>{{ preview_data.errors|length }} rows had errors and will be skipped:</strong>
-                    <ul class="mb-0 mt-2">
-                        {% for error in preview_data.errors[:5] %}
-                        <li>Row {{ error.row }}: {{ error.message }}</li>
-                        {% endfor %}
-                        {% if preview_data.errors|length > 5 %}
-                        <li>... and {{ preview_data.errors|length - 5 }} more errors</li>
-                        {% endif %}
-                    </ul>
-                </div>
-                {% endif %}
-
-                <div class="table-responsive">
-                    <table class="table table-sm table-striped">
-                        <thead>
-                            <tr>
-                                <th>Team</th>
-                                {% if upload_type == 'coaches' %}
-                                <th>Coach Name</th>
-                                {% else %}
-                                <th>Contact Name</th>
-                                {% endif %}
-                                <th>Email</th>
-                                <th>Phone</th>
-                                {% if upload_type == 'coaches' %}
-                                <th>Role</th>
-                                {% endif %}
-                                <th>Notes</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% set items = preview_data.coaches if upload_type == 'coaches' else preview_data.contacts
-                            %}
-                            {% for item in items[:10] %}
-                            <tr>
-                                <td><strong>{{ item.team_name }}</strong></td>
-                                <td>{{ item.coach_name if upload_type == 'coaches' else item.contact_name }}</td>
-                                <td>{{ item.email or '-' }}</td>
-                                <td>{{ item.phone or '-' }}</td>
-                                {% if upload_type == 'coaches' %}
-                                <td>{{ item.role }}</td>
-                                {% endif %}
-                                <td>{{ item.notes[:30] }}{% if item.notes and item.notes|length > 30 %}...{% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                            {% if items|length > 10 %}
-                            <tr>
-                                <td colspan="{{ 6 if upload_type == 'coaches' else 5 }}" class="text-center text-muted">
-                                    ... and {{ items|length - 10 }} more {{ upload_type }}
-                                </td>
-                            </tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
-                </div>
-
                 <form method="POST">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    {% if preview_data.errors %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>{{ preview_data.errors|length }} rows had errors and will be skipped:</strong>
+                        <ul class="mb-0 mt-2">
+                            {% for error in preview_data.errors[:5] %}
+                            <li>Row {{ error.row }}: {{ error.message }}</li>
+                            {% endfor %}
+                            {% if preview_data.errors|length > 5 %}
+                            <li>... and {{ preview_data.errors|length - 5 }} more errors</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text"><i class="fas fa-filter"></i> Filter by Role</span>
+                                <input type="text" class="form-control" id="roleFilter"
+                                    placeholder="e.g. Manager, Secretary..." onkeyup="filterTable()">
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="badge bg-primary" id="selectionCount">0 selected</span>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped" id="previewTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;">
+                                        <input type="checkbox" class="form-check-input" id="selectAll" checked
+                                            onchange="toggleAll(this)">
+                                    </th>
+                                    <th>Team</th>
+                                    {% if upload_type == 'coaches' %}
+                                    <th>Coach Name</th>
+                                    {% else %}
+                                    <th>Contact Name</th>
+                                    {% endif %}
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Role</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set items = preview_data.coaches if upload_type == 'coaches' else
+                                preview_data.contacts
+                                %}
+                                {% for item in items %}
+                                <tr class="data-row">
+                                    <td>
+                                        <input type="checkbox" class="form-check-input item-select"
+                                            name="selected_indices" value="{{ loop.index0 }}" checked
+                                            onchange="updateCount()">
+                                    </td>
+                                    <td><strong>{{ item.team_name }}</strong></td>
+                                    <td>{{ item.coach_name if upload_type == 'coaches' else item.contact_name }}</td>
+                                    <td>{{ item.email or '-' }}</td>
+                                    <td>{{ item.phone or '-' }}</td>
+                                    <td class="role-cell">{{ item.role or '-' }}</td>
+                                    <td>{{ item.notes[:30] }}{% if item.notes and item.notes|length > 30 %}...{% endif
+                                        %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
                     <textarea name="csv_data" style="display: none;">{{ csv_data }}</textarea>
                     <input type="hidden" name="confirm_save" value="true">
                     {% if update_existing %}
@@ -125,9 +139,11 @@
 
                     <div class="d-flex gap-2 mt-3">
                         <button type="submit" class="btn btn-success btn-lg">
-                            <i class="fas fa-save"></i> Save {{ preview_data.coaches|length }} Coaches
+                            <i class="fas fa-save"></i> Save {{ (preview_data.coaches if upload_type == 'coaches' else
+                            preview_data.contacts)|length }} {{ upload_type|title }}
                         </button>
-                        <a href="{{ url_for('imports.bulk_coach_upload') }}" class="btn btn-secondary">
+                        <a href="{{ url_for('imports.bulk_coach_upload' if upload_type == 'coaches' else 'imports.bulk_contact_upload') }}"
+                            class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i> Start Over
                         </a>
                     </div>
@@ -151,9 +167,9 @@
                 <p><strong>Rows with errors:</strong> {{ preview_data.errors|length }}</p>
                 {% endif %}
                 {% if update_existing %}
-                <p><strong>Update mode:</strong> Existing coaches will be updated</p>
+                <p><strong>Update mode:</strong> Existing {{ upload_type }} will be updated</p>
                 {% else %}
-                <p><strong>Create mode:</strong> Only new coaches will be added</p>
+                <p><strong>Create mode:</strong> Only new {{ upload_type }} will be added</p>
                 {% endif %}
 
                 <hr>
@@ -248,12 +264,10 @@
                                                 %}selected{% endif %}>
                                                 Phone
                                             </option>
-                                            {% if upload_type == 'coaches' %}
                                             <option value="role" {% if analysis.suggested_mapping.get(header)=='role'
                                                 %}selected{% endif %}>
                                                 Role
                                             </option>
-                                            {% endif %}
                                             <option value="notes" {% if analysis.suggested_mapping.get(header)=='notes'
                                                 %}selected{% endif %}>
                                                 Notes
@@ -335,7 +349,7 @@
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="fas fa-file-csv"></i> Upload Coach Data
+                    <i class="fas fa-file-csv"></i> Upload {{ upload_type|title }} Data
                 </h5>
             </div>
             <div class="card-body">
@@ -407,9 +421,7 @@
                 <ul class="small">
                     <li><code>email</code> - Email address</li>
                     <li><code>phone</code> - Phone number</li>
-                    {% if upload_type == 'coaches' %}
-                    <li><code>role</code> - Coach, Manager, Assistant, etc.</li>
-                    {% endif %}
+                    <li><code>role</code> - Role/Position</li>
                     <li><code>notes</code> - Additional notes</li>
                 </ul>
             </div>
@@ -429,10 +441,10 @@
                     Withdean Youth U14 White,Jane Doe,jane@email.com,07987654321,Assistant Coach
                     Withdean Youth U13 Red,Mike Johnson,mike@email.com,,Manager
                     {% else %}
-                    team_name,contact_name,email,phone,notes
-                    Mile Oak Youth U7 Orange,Tony Boland,tnyblnd@gmail.com,07739 396004,Manager
-                    Eastbourne Town Youth U9 Green,Ben Lewis,benlewis@5wayssoccer.co.uk,7971254817,
-                    Fishersgate Flyers Youth U9,Ashley Harrocks,ashleyharrocks90@icloud.com,,
+                    team_name,contact_name,email,phone,role,notes
+                    Mile Oak Youth U7 Orange,Tony Boland,tnyblnd@gmail.com,07739 396004,Manager,
+                    Eastbourne Town Youth U9 Green,Ben Lewis,benlewis@5wayssoccer.co.uk,7971254817,Secretary,
+                    Fishersgate Flyers Youth U9,Ashley Harrocks,ashleyharrocks90@icloud.com,,,
                     {% endif %}
                 </small>
                 <div class="mt-2">
@@ -467,6 +479,203 @@
 
 {% endif %}
 
+{% else %}
+<!-- Other upload types (contacts, etc.) -->
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            This feature is coming soon! You'll be able to upload multiple {{ upload_type }} via CSV file.
+        </div>
+
+        <a href="{{ url_for('settings.settings_view') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Settings
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if upload_type in ['coaches', 'contacts'] %}
+<script>
+    // Use var or let with a check to avoid redeclaration issues in some contexts, though template logic usually prevents this.
+    // Ideally, we just define it once.
+    if (typeof UPLOAD_TYPE === 'undefined') {
+        var UPLOAD_TYPE = '{{ upload_type }}';
+    }
+
+    function filterTable() {
+        const input = document.getElementById('roleFilter');
+        const filter = input.value.toLowerCase();
+        const rows = document.querySelectorAll('.data-row');
+
+        rows.forEach(row => {
+            const roleCell = row.querySelector('.role-cell');
+            const roleText = roleCell ? roleCell.textContent.toLowerCase() : '';
+            const checkbox = row.querySelector('.item-select');
+
+            if (roleText.includes(filter)) {
+                row.style.display = '';
+                // Optional: Auto-select visible rows? No, let user decide.
+            } else {
+                row.style.display = 'none';
+                // Optional: Uncheck hidden rows?
+                // checkbox.checked = false; 
+            }
+        });
+        updateCount();
+    }
+
+    function toggleAll(source) {
+        const checkboxes = document.querySelectorAll('.item-select');
+        const rows = document.querySelectorAll('.data-row');
+
+        rows.forEach(row => {
+            if (row.style.display !== 'none') {
+                const checkbox = row.querySelector('.item-select');
+                checkbox.checked = source.checked;
+            }
+        });
+        updateCount();
+    }
+
+    function updateCount() {
+        const checkboxes = document.querySelectorAll('.item-select:checked');
+        const countSpan = document.getElementById('selectionCount');
+        countSpan.textContent = `${checkboxes.length} selected`;
+
+        // Update save button text
+        const saveBtn = document.querySelector('button[type="submit"]');
+        if (saveBtn) {
+            const typeTitle = UPLOAD_TYPE.charAt(0).toUpperCase() + UPLOAD_TYPE.slice(1);
+            saveBtn.innerHTML = `<i class="fas fa-save"></i> Save ${checkboxes.length} ${typeTitle}`;
+            saveBtn.disabled = checkboxes.length === 0;
+        }
+    }
+
+    // Initialize count on load
+    document.addEventListener('DOMContentLoaded', function () {
+        updateCount();
+    });
+
+    function validateMapping() {
+        const selects = document.querySelectorAll('select[name^="mapping_"]');
+        const mappedFields = new Set();
+        let hasTeamName = false;
+        let hasCoachName = false;
+        let hasContactName = false;
+
+        // Check what fields are mapped
+        selects.forEach(select => {
+            const value = select.value;
+            if (value) {
+                if (mappedFields.has(value)) {
+                    // Duplicate mapping detected
+                    showMappingError(`Multiple columns mapped to "${value}". Each field can only be mapped once.`);
+                    return;
+                }
+                mappedFields.add(value);
+
+                if (value === 'team_name') hasTeamName = true;
+                if (value === 'coach_name') hasCoachName = true;
+                if (value === 'contact_name') hasContactName = true;
+            }
+        });
+
+        const proceedBtn = document.getElementById('proceed-btn');
+        const validationMessage = document.getElementById('validation-message');
+
+        if (hasTeamName && (hasCoachName || hasContactName)) {
+            proceedBtn.disabled = false;
+            validationMessage.innerHTML = '✅ Ready to proceed! Required fields are mapped.';
+            document.getElementById('mapping-validation').className = 'alert alert-success mt-3';
+        } else {
+            proceedBtn.disabled = true;
+            const missing = [];
+            if (!hasTeamName) missing.push('Team Name');
+            if (UPLOAD_TYPE === 'coaches' && !hasCoachName) missing.push('Coach Name');
+            if (UPLOAD_TYPE === 'contacts' && !hasContactName) missing.push('Contact Name');
+            validationMessage.innerHTML = `❌ Missing required fields: ${missing.join(', ')}`;
+            document.getElementById('mapping-validation').className = 'alert alert-warning mt-3';
+        }
+    }
+
+    function showMappingError(message) {
+        const validationMessage = document.getElementById('validation-message');
+        validationMessage.innerHTML = `❌ ${message}`;
+        document.getElementById('mapping-validation').className = 'alert alert-danger mt-3';
+        document.getElementById('proceed-btn').disabled = true;
+    }
+
+    // Run validation on page load
+    document.addEventListener('DOMContentLoaded', function () {
+        validateMapping();
+    });
+
+    function validateForm() {
+        const fileInput = document.getElementById('contact_file');
+        const previewText = document.getElementById('preview_text').value.trim();
+
+        if (!fileInput.files.length && !previewText) {
+            alert('Please either upload a CSV/Excel file or paste CSV data in the preview area.');
+            return false;
+        }
+
+        return true;
+    }
+
+    function validatePreview() {
+        const previewText = document.getElementById('preview_text').value.trim();
+        if (!previewText) {
+            alert('Please paste CSV data in the preview area first.');
+            return;
+        }
+
+        // Basic CSV validation
+        const lines = previewText.split('\n').filter(line => line.trim());
+        if (lines.length < 2) {
+            alert('CSV data should have at least a header row and one data row.');
+            return;
+        }
+
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const requiredHeaders = UPLOAD_TYPE === 'coaches' ? ['team_name', 'coach_name'] : ['team_name', 'contact_name'];
+        const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+
+        if (missingHeaders.length > 0) {
+            alert(`Missing required columns: ${missingHeaders.join(', ')}`);
+            return;
+        }
+
+        alert(`✅ Validation passed!\n\nFound ${lines.length - 1} ${UPLOAD_TYPE} records with required columns.\nHeaders: ${headers.join(', ')}`);
+    }
+
+    function downloadSample() {
+        let csvContent = '';
+        if (UPLOAD_TYPE === 'coaches') {
+            csvContent = `team_name,coach_name,email,phone,role
+Withdean Youth U14 White,John Smith,john@email.com,07123456789,Head Coach
+Withdean Youth U14 White,Jane Doe,jane@email.com,07987654321,Assistant Coach
+Withdean Youth U13 Red,Mike Johnson,mike@email.com,,Manager`;
+        } else {
+            csvContent = `team_name,contact_name,email,phone,role,notes
+Mile Oak Youth U7 Orange,Tony Boland,tnyblnd@gmail.com,07739 396004,Manager,
+Eastbourne Town Youth U9 Green,Ben Lewis,benlewis@5wayssoccer.co.uk,7971254817,Secretary,
+Fishersgate Flyers Youth U9,Ashley Harrocks,ashleyharrocks90@icloud.com,,,`;
+        }
+
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${UPLOAD_TYPE}_sample.csv`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    }
+</script>
 {% else %}
 <!-- Other upload types (contacts, etc.) -->
 <div class="row">

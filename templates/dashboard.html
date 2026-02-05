@@ -3,6 +3,7 @@
 {% block title %}Task Board - Withdean Youth FC{% endblock %}
 
 {% block content %}
+{% from "macros.html" import get_kit_style %}
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
 <!-- Header Section -->
@@ -13,18 +14,31 @@
                 <i class="fas fa-columns text-primary me-2"></i>Task Board
             </h2>
             <p class="text-muted mb-0">Manage your fixture communications</p>
-            <div class="mt-2">
+            <div class="mt-2" id="team-status-badges">
                 <small class="text-muted me-1">Managing:</small>
                 {% for item in team_status_data %}
-                <span class="badge bg-light text-dark border me-1">{{ item.team.name }}</span>
+                <a href="{{ url_for('imports.import_fixtures', method='manual', team=item.team.name) }}"
+                    class="text-decoration-none" title="Coach: {{ item.coach_names }}" data-bs-toggle="tooltip">
+                    <span
+                        class="badge bg-light text-dark border me-1 team-status-badge d-inline-flex align-items-center"
+                        data-team-name="{{ item.team.name }}" style="cursor: pointer;">
+                        <div class="kit-badge-mini">
+                            <div {{ get_kit_style(item.team.home_shirt) }}></div>
+                            <div {{ get_kit_style(item.team.home_shorts) }}></div>
+                            <div {{ get_kit_style(item.team.home_socks) }}></div>
+                        </div>
+                        {{ item.team.name }}
+                        <span class="status-dot {{ item.overall_status }}"></span>
+                    </span>
+                </a>
                 {% endfor %}
             </div>
         </div>
         <div class="d-flex gap-2">
             {% if weekly_sheet_url %}
-            <button id="refreshFixturesBtn" class="btn btn-outline-primary">
+            <a href="{{ url_for('imports.refresh_fixtures') }}" class="btn btn-outline-primary" id="refreshFixturesBtn">
                 <i class="fas fa-sync-alt me-1"></i> Refresh Fixtures
-            </button>
+            </a>
             {% else %}
             <button id="loadFixturesBtn" class="btn btn-success" data-bs-toggle="modal"
                 data-bs-target="#googleSheetModal">
@@ -42,16 +56,23 @@
 <div class="kanban-container">
 
     <!-- Column 1: Pending (Action Needed) -->
-    <div class="kanban-column status-pending">
-        <div class="kanban-header">
-            <span><i class="fas fa-clock me-2 text-warning"></i>To Do</span>
-            <span class="badge bg-secondary rounded-pill">{{ pending_tasks|length }}</span>
+    <div class="kanban-column status-pending" id="col-pending">
+        <div class="kanban-header d-flex justify-content-between align-items-center"
+            onclick="toggleColumn('col-pending')">
+            <div>
+                <i class="fas fa-chevron-down collapse-icon me-2"></i>
+                <span><i class="fas fa-clock me-2 text-warning"></i>To Do</span>
+            </div>
+            <span class="badge bg-secondary rounded-pill count-badge">{{ pending_tasks|length }}</span>
         </div>
-        <div class="kanban-body">
+        <div class="kanban-body" ondrop="drop(event, 'pending')" ondragover="allowDrop(event)">
             {% for task in pending_tasks %}
-            {% include '_task_card.html' %}
+            <div class="draggable-task" draggable="true" ondragstart="drag(event)" id="task-{{ task.id }}"
+                data-task-id="{{ task.id }}" data-team-name="{{ task.team }}">
+                {% include '_task_card.html' %}
+            </div>
             {% else %}
-            <div class="text-center p-4 text-muted">
+            <div class="empty-state text-center p-4 text-muted">
                 <i class="fas fa-check-circle fa-2x mb-2 opacity-25"></i>
                 <p class="small">No pending tasks!</p>
             </div>
@@ -60,21 +81,32 @@
     </div>
 
     <!-- Column 2: In Progress / Waiting -->
-    <div class="kanban-column status-waiting">
-        <div class="kanban-header">
-            <span><i class="fas fa-spinner me-2 text-info"></i>In Progress / Waiting</span>
-            <span class="badge bg-secondary rounded-pill">{{ waiting_tasks|length + in_progress_tasks|length }}</span>
+    <div class="kanban-column status-waiting" id="col-waiting">
+        <div class="kanban-header d-flex justify-content-between align-items-center"
+            onclick="toggleColumn('col-waiting')">
+            <div>
+                <i class="fas fa-chevron-down collapse-icon me-2"></i>
+                <span><i class="fas fa-spinner me-2 text-info"></i>In Progress</span>
+            </div>
+            <span class="badge bg-secondary rounded-pill count-badge">{{ waiting_tasks|length + in_progress_tasks|length
+                }}</span>
         </div>
-        <div class="kanban-body">
+        <div class="kanban-body" ondrop="drop(event, 'in_progress')" ondragover="allowDrop(event)">
             {% for task in in_progress_tasks %}
-            {% include '_task_card.html' %}
+            <div class="draggable-task" draggable="true" ondragstart="drag(event)" id="task-{{ task.id }}"
+                data-task-id="{{ task.id }}" data-team-name="{{ task.team }}">
+                {% include '_task_card.html' %}
+            </div>
             {% endfor %}
             {% for task in waiting_tasks %}
-            {% include '_task_card.html' %}
+            <div class="draggable-task" draggable="true" ondragstart="drag(event)" id="task-{{ task.id }}"
+                data-task-id="{{ task.id }}" data-team-name="{{ task.team }}">
+                {% include '_task_card.html' %}
+            </div>
             {% endfor %}
 
             {% if (waiting_tasks|length + in_progress_tasks|length) == 0 %}
-            <div class="text-center p-4 text-muted">
+            <div class="empty-state text-center p-4 text-muted">
                 <i class="fas fa-hourglass fa-2x mb-2 opacity-25"></i>
                 <p class="small">Nothing in progress</p>
             </div>
@@ -83,16 +115,23 @@
     </div>
 
     <!-- Column 3: Completed -->
-    <div class="kanban-column status-completed">
-        <div class="kanban-header">
-            <span><i class="fas fa-check-circle me-2 text-success"></i>Completed</span>
-            <span class="badge bg-secondary rounded-pill">{{ completed_tasks|length }}</span>
+    <div class="kanban-column status-completed" id="col-completed">
+        <div class="kanban-header d-flex justify-content-between align-items-center"
+            onclick="toggleColumn('col-completed')">
+            <div>
+                <i class="fas fa-chevron-down collapse-icon me-2"></i>
+                <span><i class="fas fa-check-circle me-2 text-success"></i>Completed</span>
+            </div>
+            <span class="badge bg-secondary rounded-pill count-badge">{{ completed_tasks|length }}</span>
         </div>
-        <div class="kanban-body">
+        <div class="kanban-body" ondrop="drop(event, 'completed')" ondragover="allowDrop(event)">
             {% for task in completed_tasks %}
-            {% include '_task_card.html' %}
+            <div class="draggable-task" draggable="true" ondragstart="drag(event)" id="task-{{ task.id }}"
+                data-task-id="{{ task.id }}" data-team-name="{{ task.team }}">
+                {% include '_task_card.html' %}
+            </div>
             {% else %}
-            <div class="text-center p-4 text-muted">
+            <div class="empty-state text-center p-4 text-muted">
                 <p class="small">Completed tasks will appear here</p>
             </div>
             {% endfor %}
@@ -130,17 +169,251 @@
 {% endblock %}
 
 {% block scripts %}
+<style>
+    .kanban-header {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .kanban-column.collapsed .kanban-body {
+        display: none;
+    }
+
+    .kanban-column.collapsed .collapse-icon {
+        transform: rotate(-90deg);
+    }
+
+    .collapse-icon {
+        transition: transform 0.2s ease;
+    }
+
+    .draggable-task {
+        cursor: grab;
+    }
+
+    .draggable-task:active {
+        cursor: grabbing;
+    }
+
+    .kanban-body.drag-over {
+        background-color: rgba(0, 0, 0, 0.05);
+        border: 2px dashed #ccc;
+    }
+</style>
+
 <script>
-    // Re-implement refresh button logic
-    const refreshBtn = document.getElementById('refreshFixturesBtn');
-    if (refreshBtn) {
-        refreshBtn.addEventListener('click', function () {
-            if (confirm('Refresh fixtures from the linked Google Sheet?')) {
-                this.disabled = true;
-                this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Refreshing...';
-                window.location.href = "{{ url_for('imports.refresh_fixtures') }}";
+
+    // Collapsible Columns
+    function toggleColumn(columnId) {
+        const column = document.getElementById(columnId);
+        column.classList.toggle('collapsed');
+
+        // Save state to localStorage
+        const isCollapsed = column.classList.contains('collapsed');
+        localStorage.setItem(`kanban_${columnId}_collapsed`, isCollapsed);
+    }
+
+    // Restore column states
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize Bootstrap tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+        ['col-pending', 'col-waiting', 'col-completed'].forEach(id => {
+            const isCollapsed = localStorage.getItem(`kanban_${id}_collapsed`) === 'true';
+            if (isCollapsed) {
+                document.getElementById(id).classList.add('collapsed');
+            }
+        });
+    });
+
+    // Drag and Drop Logic
+    function allowDrop(ev) {
+        ev.preventDefault();
+        ev.currentTarget.classList.add('drag-over');
+    }
+
+    function drag(ev) {
+        const taskElement = ev.target.closest('.draggable-task');
+        if (!taskElement) return;
+        ev.dataTransfer.setData("text/plain", taskElement.id);
+        ev.dataTransfer.setData("task-id", taskElement.dataset.taskId);
+        taskElement.style.opacity = '0.5';
+    }
+
+    function drop(ev, newStatus) {
+        ev.preventDefault();
+        const columnBody = ev.currentTarget;
+        columnBody.classList.remove('drag-over');
+
+        const elementId = ev.dataTransfer.getData("text/plain");
+        const taskId = ev.dataTransfer.getData("task-id");
+        const draggedElement = document.getElementById(elementId);
+
+        if (!draggedElement) return;
+
+        // Reset opacity
+        draggedElement.style.opacity = '1';
+
+        // Optimistic UI update: Move element immediately
+        // Remove empty state if present
+        const emptyState = columnBody.querySelector('.empty-state');
+        if (emptyState) emptyState.style.display = 'none';
+
+        columnBody.appendChild(draggedElement);
+
+        // Update counts (simple version - reload handles full sync)
+        updateCounts();
+
+        // Send API request
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+        fetch('/update_task_status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: `task_id=${taskId}&status=${newStatus}&csrf_token=${csrfToken}`
+        })
+            .then(response => {
+                if (response.ok) {
+                    // Success - maybe show a toast
+                    showToast(`Task moved to ${newStatus.replace('_', ' ')}`);
+                } else {
+                    // Revert on failure
+                    alert('Failed to update task status');
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Network error updating task');
+                location.reload();
+            });
+    }
+
+    // Helper to update badge counts and team status ticks locally
+    function updateCounts() {
+        ['col-pending', 'col-waiting', 'col-completed'].forEach(colId => {
+            const col = document.getElementById(colId);
+            const count = col.querySelectorAll('.draggable-task').length;
+            col.querySelector('.count-badge').textContent = count;
+
+            // Show/hide empty state
+            const emptyState = col.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.style.display = count === 0 ? 'block' : 'none';
+            }
+        });
+
+        // Update team status badges in the header
+        const teamBadges = document.querySelectorAll('.team-status-badge');
+        const allTasks = document.querySelectorAll('.draggable-task');
+
+        teamBadges.forEach(badge => {
+            const teamName = badge.dataset.teamName;
+            const teamTasks = Array.from(allTasks).filter(t => t.dataset.teamName === teamName);
+
+            if (teamTasks.length > 0) {
+                // A team is "complete" if all its visible tasks are in the completed column
+                const allComplete = teamTasks.every(t => {
+                    const column = t.closest('.kanban-column');
+                    return column && column.id === 'col-completed';
+                });
+
+                const tick = badge.querySelector('.completion-tick');
+                if (allComplete) {
+                    tick.classList.remove('d-none');
+                } else {
+                    tick.classList.add('d-none');
+                }
             }
         });
     }
+
+    // Add dragleave to remove styling
+    document.querySelectorAll('.kanban-body').forEach(body => {
+        body.addEventListener('dragleave', function (e) {
+            this.classList.remove('drag-over');
+        });
+    });
+
+    function showToast(message) {
+        // Simple toast implementation if not already available
+        const toast = document.createElement('div');
+        toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed bottom-0 end-0 m-3';
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+    }
+
+    // Task Detail Modal Logic
+    function openTaskModal(taskId) {
+        console.log(`[openTaskModal] Opening Task: ${taskId}`);
+        const modalElement = document.getElementById('taskDetailModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        const modalBody = document.getElementById('taskDetailModalBody');
+
+        // Show loading state
+        modalBody.innerHTML = `
+            <div class="text-center p-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2 text-muted">Loading task details...</p>
+            </div>
+        `;
+
+        modal.show();
+
+        // Fetch content
+        fetch(`/task/${taskId}?modal=true`)
+            .then(response => response.text())
+            .then(html => {
+                modalBody.innerHTML = html;
+
+                // Re-execute scripts in the injected HTML
+                const scripts = modalBody.getElementsByTagName("script");
+                for (let i = 0; i < scripts.length; i++) {
+                    eval(scripts[i].innerText);
+                }
+
+                // Hide "Back to Board" buttons in modal context
+                const backButtons = modalBody.querySelectorAll('.modal-hidden');
+                backButtons.forEach(btn => btn.style.display = 'none');
+            })
+            .catch(error => {
+                modalBody.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error loading task details.
+                    </div>
+                `;
+                console.error('Error:', error);
+            });
+    }
 </script>
+
+<!-- Task Detail Modal Container -->
+<div class="modal fade" id="taskDetailModal" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-0" id="taskDetailModalBody">
+                <!-- Content loaded via AJAX -->
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

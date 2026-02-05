@@ -1,0 +1,24 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/football-fixtures', '.']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$PROJECT_ID/football-fixtures']
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'gcloud'
+  args:
+  - 'run'
+  - 'deploy'
+  - 'football-fixtures'
+  - '--image'
+  - 'gcr.io/$PROJECT_ID/football-fixtures'
+  - '--region'
+  - 'europe-west2'
+  - '--platform'
+  - 'managed'
+  - '--allow-unauthenticated'
+  - '--memory'
+  - '2Gi'
+  - '--set-env-vars'
+  - 'FLASK_ENV=production,DATABASE_URL=postgresql://neondb_owner:npg_V1zDyIcxCOv9@ep-falling-shape-abr14uib-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require,SECRET_KEY=d5604e88275166a21a2c8ee16f3fd58bd172be311bc8a722cf4909c77c69afa9709h9sde_FnfWuQeBLs_2l9FAf58hE793bQggFGH9-E,GOOGLE_OAUTH_CLIENT_ID=233242605158-665qdtmlupffkra34bgc1ba3fr9rmdbs.apps.googleusercontent.com,GOOGLE_OAUTH_CLIENT_SECRET=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'
+images:
+- 'gcr.io/$PROJECT_ID/football-fixtures'

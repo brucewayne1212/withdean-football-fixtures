@@ -1,7 +1,7 @@
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import os
 import tempfile
 import io
@@ -20,11 +20,64 @@ from fixture_parser import FixtureParser
 from fa_fixture_parser import FAFixtureParser
 from text_fixture_parser import parse_fixture_text, TextFixtureParser
 from google_sheets_helper import GoogleSheetsImporter
+from services.pitch_matcher import PitchMatcher
+import json
 
 # Setup logger
 logger = logging.getLogger(__name__)
 
 imports_bp = Blueprint('imports', __name__)
+
+# Helper to get the next Sunday's date
+def get_next_sunday():
+    today = datetime.now().date()
+    # Calculate days until next Sunday (Sunday is 6 in weekday())
+    days_until_sunday = (6 - today.weekday() + 7) % 7
+    if days_until_sunday == 0: # If today is Sunday, get next Sunday
+        days_until_sunday = 7
+    return today + timedelta(days=days_until_sunday)
+
+# Helper to parse generic tab-separated spreadsheet lines into fixture dicts
+def parse_generic_spreadsheet_text(text):
+    """Parse raw spreadsheet lines (tab-separated) into a list of fixture dicts.
+    Expected columns order:
+    Team, Competition, Coach, Manager, Opposition, Home/Away, Pitch, Time, Notes
+    """
+    rows = []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        parts = line.split('\t')
+        if len(parts) < 9:
+            # Not enough columns, skip
+            continue
+        team, competition, coach, manager, opposition, home_away, pitch, time, notes = parts[:9]
+        # Use next Sunday as the fixture date
+        from datetime import timedelta
+        fixture_date = get_next_sunday().strftime('%Y-%m-%d')
+        rows.append({
+            'team': team.strip(),
+            'opposition': opposition.strip(),
+            'home_away': home_away.strip(),
+            'date': fixture_date,
+            'time': time.strip(),
+            'pitch': pitch.strip(),
+            'notes': notes.strip()
+        })
+    return rows
+
+# Helper to convert list of fixture dicts to CSV string compatible with existing parser
+def convert_generic_fixtures_to_csv(fixtures):
+    """Convert generic fixture dict list to CSV format expected by parse_fixture_text.
+    Columns: team, opposition, home_away, date, time, pitch, notes
+    """
+    output = io.StringIO()
+    fieldnames = ['team', 'opposition', 'home_away', 'date', 'time', 'pitch', 'notes']
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
+    for f in fixtures:
+        writer.writerow(f)
+    return output.getvalue()
 
 def _analyze_column_content(column_name, sample_rows):
     """
@@ -99,6 +152,7 @@ def analyze_csv_columns(csv_data, mode='coaches'):
                 'contact_name': ['contact_name', 'contact', 'name', 'manager', 'full_name', 'fullname', 'contact person'],
                 'email': ['email', 'email_address', 'e-mail', 'mail', 'contact_email'],
                 'phone': ['phone', 'phone_number', 'mobile', 'cell', 'telephone', 'contact_number'],
+                'role': ['role', 'position', 'title', 'job_title', 'responsibility'],
                 'notes': ['notes', 'comments', 'description', 'additional_info', 'remarks']
             }
         else:
@@ -188,7 +242,7 @@ def analyze_csv_columns(csv_data, mode='coaches'):
             'needs_manual_mapping': True
         }
 
-def process_coach_csv(session, organization_id, csv_data, update_existing=False, column_mapping=None):
+def process_coach_csv(session, organization_id, csv_data, update_existing=False, column_mapping=None, selected_indices=None):
     """
     Process CSV data for bulk coach upload
 
@@ -235,7 +289,15 @@ def process_coach_csv(session, organization_id, csv_data, update_existing=False,
         referenced_teams = set()
 
         # Process each row
-        for row_num, row in enumerate(reader, start=2):  # Start at 2 since row 1 is headers
+        # Convert reader to list to handle indexing if needed
+        rows = list(reader)
+        for row_num, row in enumerate(rows):
+            actual_row_num = row_num + 2 # 1-based + header
+            
+            # Skip if not in selected_indices (if provided)
+            if selected_indices is not None and row_num not in selected_indices:
+                continue
+                
             try:
                 # Extract fields using column mapping
                 team_name = ''
@@ -263,7 +325,7 @@ def process_coach_csv(session, organization_id, csv_data, update_existing=False,
 
                 if not team_name or not coach_name:
                     result['errors'].append({
-                        'row': row_num,
+                        'row': actual_row_num,
                         'message': 'Missing required fields: team_name and coach_name are required'
                     })
                     continue
@@ -274,7 +336,7 @@ def process_coach_csv(session, organization_id, csv_data, update_existing=False,
 
                 if not team:
                     result['errors'].append({
-                        'row': row_num,
+                        'row': actual_row_num,
                         'message': f'Team "{team_name}" not found. Make sure it matches exactly.'
                     })
                     continue
@@ -299,7 +361,7 @@ def process_coach_csv(session, organization_id, csv_data, update_existing=False,
                         result['updated'] += 1
                     else:
                         result['errors'].append({
-                            'row': row_num,
+                            'row': actual_row_num,
                             'message': f'Coach "{coach_name}" already exists for team "{team_name}". Check "Update existing" to modify.'
                         })
                         continue
@@ -321,7 +383,7 @@ def process_coach_csv(session, organization_id, csv_data, update_existing=False,
 
             except Exception as e:
                 result['errors'].append({
-                    'row': row_num,
+                    'row': actual_row_num,
                     'message': f'Error processing row: {str(e)}'
                 })
                 continue
@@ -643,7 +705,8 @@ def handle_manual_import(session, org, managed_team_names):
         pitch_id=pitch.id if pitch else None
     )
     session.add(fixture)
-    
+    session.flush()  # Get the fixture ID
+
     # Create task
     task_type = 'home_email' if manual_home_away == 'Home' else 'away_email'
     task_status = 'pending' if manual_home_away == 'Home' else 'waiting'
@@ -821,10 +884,49 @@ def handle_csv_import(session, org, managed_team_names):
     """Handle CSV/Excel file import"""
     return upload_file_internal(session, org, managed_team_names)
 
-def handle_paste_import_internal(session, org, managed_team_names, text):
-    """Internal handler for paste import"""
+def handle_paste_import_internal(session, org, managed_team_names, fa_fixture_text):
+    """Handle pasted fixture data import, supporting FA format and generic tab-separated format.
+    """
     fa_parser = FAFixtureParser()
-    parsed_fixtures = fa_parser.parse_fa_fixture_lines(text)
+    parsed_fixtures = fa_parser.parse_fa_fixture_lines(fa_fixture_text)
+    
+    # Determine which parsing succeeded
+    used_generic = False
+    if not parsed_fixtures:
+        # Attempt generic parsing of tab-separated lines
+        parsed_fixtures = parse_generic_spreadsheet_text(fa_fixture_text)
+        used_generic = True
+    
+    if not parsed_fixtures:
+        flash('No valid fixtures found in the provided text', 'error')
+        return redirect(url_for('imports.import_fixtures'))
+    
+    # Convert to CSV format expected by parse_fixture_text
+    if used_generic:
+        csv_data = convert_generic_fixtures_to_csv(parsed_fixtures)
+    else:
+        csv_data = fa_parser.convert_to_standard_format(parsed_fixtures)
+    
+    results = parse_fixture_text(csv_data, session, org)
+    
+    created_count = sum(1 for r in results if r.get('status') == 'success')
+    error_count = len(results) - created_count
+    
+    if created_count > 0:
+        flash(f'Successfully imported {created_count} fixture(s)!', 'success')
+    if error_count > 0:
+        flash(f'{error_count} fixture(s) could not be imported', 'warning')
+    
+    return redirect(url_for('imports.import_fixtures'))
+    """Handle pasted FA data import, with fallback for generic spreadsheet format.
+    """
+    fa_parser = FAFixtureParser()
+    parsed_fixtures = fa_parser.parse_fa_fixture_lines(fa_fixture_text)
+    
+    # If FA parser yields no fixtures, try generic spreadsheet parsing
+    if not parsed_fixtures:
+        # Attempt generic parsing of tab-separated lines
+        parsed_fixtures = parse_generic_spreadsheet_text(fa_fixture_text)
     
     if not parsed_fixtures:
         flash('No valid fixtures found in the provided text', 'error')
@@ -843,6 +945,68 @@ def handle_paste_import_internal(session, org, managed_team_names, text):
     
     return redirect(url_for('imports.import_fixtures'))
 
+def parse_flexible_date(date_str):
+    """
+    Parse date string handling various formats including:
+    - YYYY-MM-DD
+    - DD/MM/YYYY
+    - Day DDth Month (e.g. Sun 26th Nov)
+    """
+    if not date_str:
+        return None
+        
+    date_str = str(date_str).strip()
+    
+    # Try ISO format first
+    if 'T' in date_str:
+        try:
+            return datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+        except:
+            pass
+
+    # Try standard formats
+    for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d-%m-%Y']:
+        try:
+            return datetime.strptime(date_str, fmt).replace(tzinfo=timezone.utc)
+        except:
+            continue
+            
+    # Try "Sun 26th Nov" style
+    # Remove day name prefix if present (Sun, Mon, etc)
+    clean_date = date_str
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+            'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    
+    # Sort by length descending to match full names first
+    days.sort(key=len, reverse=True)
+    
+    for day in days:
+        if clean_date.lower().startswith(day.lower()):
+            clean_date = clean_date[len(day):].strip()
+            break
+            
+    # Remove ordinal suffixes (st, nd, rd, th)
+    # Regex to replace 1st, 2nd, 3rd, 4th with 1, 2, 3, 4
+    # But be careful not to break month names like August (though Aug is usually used)
+    # Safer to just remove st, nd, rd, th if they follow a digit
+    clean_date = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', clean_date)
+    
+    # Try parsing "26 Nov" or "26 November"
+    # We need a year. If not present, assume current year or next occurrence?
+    # Usually these sheets are for the current season.
+    # Let's try adding current year
+    current_year = datetime.now().year
+    
+    for fmt in ['%d %b', '%d %B']:
+        try:
+            # Parse with current year
+            dt = datetime.strptime(f"{clean_date} {current_year}", f"{fmt} %Y")
+            return dt.replace(tzinfo=timezone.utc)
+        except:
+            continue
+            
+    return None
+
 def process_sheet_fixtures(session, org, fixtures_data):
     """Process fixtures from weekly sheet refresher"""
     new_fixtures = 0
@@ -854,6 +1018,7 @@ def process_sheet_fixtures(session, org, fixtures_data):
         try:
             team_name = fixture_data.get('team', '').strip()
             if not team_name:
+                print(f"DEBUG: Skipping fixture - no team name: {fixture_data}")
                 skipped_count += 1
                 continue
             
@@ -863,26 +1028,14 @@ def process_sheet_fixtures(session, org, fixtures_data):
             # Parse date
             fixture_date = fixture_data.get('date')
             if not fixture_date:
+                print(f"DEBUG: Skipping fixture - no date: {fixture_data}")
                 skipped_count += 1
                 continue
                 
-            kickoff_datetime = None
-            try:
-                # Try ISO format first
-                if 'T' in fixture_date:
-                    kickoff_datetime = datetime.fromisoformat(fixture_date.replace('Z', '+00:00'))
-                else:
-                    # Try common formats
-                    for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d-%m-%Y']:
-                        try:
-                            kickoff_datetime = datetime.strptime(fixture_date, fmt).replace(tzinfo=timezone.utc)
-                            break
-                        except:
-                            continue
-            except:
-                pass
+            kickoff_datetime = parse_flexible_date(fixture_date)
                 
             if not kickoff_datetime:
+                print(f"DEBUG: Skipping fixture - invalid date format: {fixture_date}")
                 skipped_count += 1
                 continue
             
@@ -1227,10 +1380,17 @@ def bulk_coach_upload():
                     if db_field:
                         mappings[csv_column] = db_field
 
+            # Get selected indices if present
+            selected_indices = request.form.getlist('selected_indices')
+            if selected_indices:
+                selected_indices = [int(i) for i in selected_indices]
+            else:
+                selected_indices = None
+
             # Process CSV with mappings
             update_existing = 'update_existing' in request.form
             org = get_user_organization()
-            result = process_coach_csv(session, org.id, csv_data, update_existing, mappings)
+            result = process_coach_csv(session, org.id, csv_data, update_existing, mappings, selected_indices)
 
             if result['errors']:
                 for error in result['errors']:
@@ -1444,7 +1604,14 @@ def bulk_contact_upload():
                     original_header = key.replace('mapping_', '')
                     mapping[original_header] = value
             
-            result = process_team_contact_csv(session, org.id, csv_data, update_existing, mapping)
+            # Get selected indices if present
+            selected_indices = request.form.getlist('selected_indices')
+            if selected_indices:
+                selected_indices = [int(i) for i in selected_indices]
+            else:
+                selected_indices = None
+            
+            result = process_team_contact_csv(session, org.id, csv_data, update_existing, mapping, selected_indices)
             
             if result['success']:
                 flash(f"Successfully imported {result['created']} new contacts and updated {result['updated']}.", 'success')
@@ -1506,7 +1673,10 @@ def refresh_fixtures():
             return redirect(url_for('auth.logout'))
             
         # Get saved sheet URL from settings
-        sheet_url = org.settings.get('google_sheet_url') if org.settings else None
+        # Try 'weekly_sheet_url' first (new standard), then 'google_sheet_url' (legacy)
+        sheet_url = None
+        if org.settings:
+            sheet_url = org.settings.get('weekly_sheet_url') or org.settings.get('google_sheet_url')
         
         if not sheet_url:
             # If no URL saved, try to find one from previous usage or prompt user
@@ -1522,17 +1692,175 @@ def refresh_fixtures():
             if not fixtures_data:
                 return redirect(url_for('dashboard.dashboard_view'))
         
-        # Process fixtures using shared helper
-        new_fixtures, updated_fixtures, new_tasks, skipped_count = process_sheet_fixtures(session, org, fixtures_data)
+        # Initialize PitchMatcher
+        matcher = PitchMatcher(session, org.id)
         
-        session.commit()
+        # Prepare preview data
+        preview_data = []
+        pitches = session.query(Pitch).filter_by(organization_id=org.id).order_by(Pitch.name).all()
         
-        flash(f'Refreshed fixtures: {new_fixtures} new, {updated_fixtures} updated.', 'success')
-        return redirect(url_for('dashboard.dashboard_view'))
+        for fixture in fixtures_data:
+            sheet_pitch = fixture.get('pitch', '').strip()
+            pitch_obj, match_type, confidence = matcher.match_pitch(sheet_pitch)
+            
+            # If no pitch specified but it's a home game, try default home pitch
+            if not sheet_pitch and fixture.get('home_away') == 'Home':
+                default_pitch = matcher.find_default_home_pitch()
+                if default_pitch:
+                    pitch_obj = default_pitch
+                    match_type = 'default'
+            
+            preview_data.append({
+                'date': fixture.get('date'),
+                'time': fixture.get('time'),
+                'team': fixture.get('team'),
+                'opposition': fixture.get('opposition'),
+                'home_away': fixture.get('home_away'),
+                'sheet_pitch': sheet_pitch,
+                'suggested_pitch_id': pitch_obj.id if pitch_obj else None,
+                'match_type': match_type,
+                'is_exact_match': match_type == 'exact',
+                'fixture_json': json.dumps(fixture)
+            })
+            
+        return render_template('fixture_import_preview.html', 
+                             preview_data=preview_data,
+                             pitches=pitches)
         
     except Exception as e:
         session.rollback()
         flash(f'Error refreshing fixtures: {str(e)}', 'error')
+        return redirect(url_for('dashboard.dashboard_view'))
+    finally:
+        session.close()
+
+@imports_bp.route('/save_refreshed_fixtures', methods=['POST'])
+@login_required
+def save_refreshed_fixtures():
+    """Save fixtures after review"""
+    session = db_manager.get_session()
+    try:
+        org = get_user_organization()
+        if not org:
+            flash('No organization found.', 'error')
+            return redirect(url_for('auth.logout'))
+            
+        # Process form data
+        fixtures_to_save = []
+        
+        # Iterate through form keys to find fixtures
+        # We expect keys like fixture_0_data, fixture_0_pitch_id, etc.
+        # Find max index
+        max_index = -1
+        for key in request.form:
+            if key.startswith('fixture_') and '_data' in key:
+                try:
+                    idx = int(key.split('_')[1])
+                    if idx > max_index:
+                        max_index = idx
+                except:
+                    pass
+        
+        new_fixtures = 0
+        updated_fixtures = 0
+        new_tasks = 0
+        
+        from models import PitchAlias
+        # parse_flexible_date is defined in this module
+        
+        for i in range(max_index + 1):
+            fixture_json = request.form.get(f'fixture_{i}_data')
+            if not fixture_json:
+                continue
+                
+            fixture_data = json.loads(fixture_json)
+            pitch_id = request.form.get(f'fixture_{i}_pitch_id')
+            save_alias = request.form.get(f'fixture_{i}_save_alias')
+            sheet_pitch = request.form.get(f'fixture_{i}_sheet_pitch')
+            
+            # Handle Alias Saving
+            if save_alias and sheet_pitch and pitch_id:
+                # Check if alias exists
+                existing_alias = session.query(PitchAlias).filter(
+                    PitchAlias.organization_id == org.id,
+                    PitchAlias.alias == sheet_pitch
+                ).first()
+                
+                if not existing_alias:
+                    new_alias = PitchAlias(
+                        organization_id=org.id,
+                        pitch_id=pitch_id,
+                        alias=sheet_pitch
+                    )
+                    session.add(new_alias)
+            
+            # Save Fixture
+            team_name = fixture_data.get('team', '').strip()
+            if not team_name:
+                continue
+                
+            team = get_or_create_team(session, org.id, team_name)
+            
+            fixture_date = fixture_data.get('date')
+            kickoff_datetime = parse_flexible_date(fixture_date)
+            
+            if not kickoff_datetime:
+                continue
+                
+            home_away = fixture_data.get('home_away', 'Home').capitalize()
+            if home_away not in ['Home', 'Away']:
+                home_away = 'Home'
+                
+            # Check if fixture exists
+            existing = session.query(Fixture).filter(
+                Fixture.organization_id == org.id,
+                Fixture.team_id == team.id,
+                Fixture.kickoff_datetime == kickoff_datetime
+            ).first()
+            
+            if existing:
+                existing.opposition_name = fixture_data.get('opposition', existing.opposition_name) or 'TBC'
+                existing.home_away = home_away
+                existing.kickoff_time_text = fixture_data.get('time', existing.kickoff_time_text) or 'TBC'
+                if pitch_id:
+                    existing.pitch_id = pitch_id
+                updated_fixtures += 1
+                fixture = existing
+            else:
+                fixture = Fixture(
+                    organization_id=org.id,
+                    team_id=team.id,
+                    opposition_name=fixture_data.get('opposition', 'TBC') or 'TBC',
+                    home_away=home_away,
+                    kickoff_datetime=kickoff_datetime,
+                    kickoff_time_text=fixture_data.get('time', 'TBC') or 'TBC',
+                    pitch_id=pitch_id if pitch_id else None
+                )
+                session.add(fixture)
+                session.flush()
+                new_fixtures += 1
+            
+            # Create task if doesn't exist
+            existing_task = session.query(Task).filter_by(fixture_id=fixture.id).first()
+            if not existing_task:
+                task_type = 'home_email' if home_away == 'Home' else 'away_email'
+                task_status = 'pending' if home_away == 'Home' else 'waiting'
+                task = Task(
+                    organization_id=org.id,
+                    fixture_id=fixture.id,
+                    task_type=task_type,
+                    status=task_status
+                )
+                session.add(task)
+                new_tasks += 1
+                
+        session.commit()
+        flash(f'Successfully processed fixtures: {new_fixtures} new, {updated_fixtures} updated.', 'success')
+        return redirect(url_for('dashboard.dashboard_view'))
+        
+    except Exception as e:
+        session.rollback()
+        flash(f'Error saving fixtures: {str(e)}', 'error')
         return redirect(url_for('dashboard.dashboard_view'))
     finally:
         session.close()
@@ -1645,6 +1973,146 @@ def bulk_team_upload():
         session.close()
 
 
+def process_team_contact_csv(session, organization_id, csv_data, update_existing=False, mapping=None, selected_indices=None):
+    """
+    Process CSV data for team contacts
+    """
+    try:
+        # Parse CSV
+        if isinstance(csv_data, str):
+            df = pd.read_csv(io.StringIO(csv_data), dtype=str)
+        else:
+            df = csv_data
+            
+        # Apply mapping if provided
+        if mapping:
+            # Invert mapping to rename columns: {csv_col: db_field} -> rename(columns={csv_col: db_field})
+            # But we need to be careful if multiple csv cols map to same db field (not allowed in UI but possible)
+            df = df.rename(columns=mapping)
+            
+        # Normalize columns
+        df.columns = [c.lower().strip() for c in df.columns]
+        
+        created_count = 0
+        updated_count = 0
+        errors = []
+        
+        # Iterate rows
+        for index, row in df.iterrows():
+            # Skip if not in selected_indices (if provided)
+            if selected_indices is not None and index not in selected_indices:
+                continue
+                
+            try:
+                # Get team name
+                team_name = None
+                if 'team_name' in row:
+                    team_name = str(row['team_name']).strip()
+                elif 'team' in row:
+                    team_name = str(row['team']).strip()
+                    
+                if not team_name or pd.isna(team_name) or team_name.lower() == 'nan':
+                    # Try to find a column that looks like a team name
+                    for key in row.keys():
+                        if key and ('team' in key.lower() or 'name' in key.lower()):
+                            val = str(row[key]).strip()
+                            if val and val.lower() != 'nan':
+                                team_name = val
+                                break
+                    
+                    if not team_name:
+                        continue
+
+                # Get or create team
+                team = session.query(Team).filter_by(
+                    organization_id=organization_id, 
+                    name=team_name
+                ).first()
+                
+                if not team:
+                    team = Team(
+                        organization_id=organization_id,
+                        name=team_name,
+                        is_managed=False
+                    )
+                    session.add(team)
+                    session.flush() # Get ID
+                
+                # Get contact details
+                contact_name = row.get('contact_name') or row.get('name') or row.get('contact') or ''
+                email = row.get('email') or row.get('email_address') or ''
+                phone = row.get('phone') or row.get('phone_number') or row.get('mobile') or ''
+                role = row.get('role') or row.get('position') or row.get('title') or ''
+                notes = row.get('notes') or row.get('comments') or ''
+                
+                # Clean up data
+                if pd.isna(contact_name): contact_name = ''
+                if pd.isna(email): email = ''
+                if pd.isna(phone): phone = ''
+                if pd.isna(role): role = ''
+                if pd.isna(notes): notes = ''
+                
+                contact_name = str(contact_name).strip()
+                email = str(email).strip()
+                phone = str(phone).strip()
+                role = str(role).strip()
+                notes = str(notes).strip()
+                
+                if not contact_name and not email:
+                    continue
+                    
+                # Check for existing contact
+                contact = session.query(TeamContact).filter_by(
+                    organization_id=organization_id,
+                    team_id=team.id
+                ).first()
+                
+                if contact:
+                    if update_existing:
+                        contact.contact_name = contact_name or contact.contact_name
+                        contact.email = email or contact.email
+                        contact.phone = phone or contact.phone
+                        contact.role = role or contact.role
+                        contact.notes = notes or contact.notes
+                        updated_count += 1
+                else:
+                    contact = TeamContact(
+                        organization_id=organization_id,
+                        team_id=team.id,
+                        contact_name=contact_name,
+                        email=email,
+                        phone=phone,
+                        role=role,
+                        notes=notes
+                    )
+                    session.add(contact)
+                    created_count += 1
+                    
+            except Exception as e:
+                errors.append({
+                    'row': index + 2, # 1-based + header
+                    'message': str(e)
+                })
+                
+        session.commit()
+        
+        return {
+            'success': True,
+            'created': created_count,
+            'updated': updated_count,
+            'errors': errors
+        }
+        
+    except Exception as e:
+        session.rollback()
+        return {
+            'success': False,
+            'message': str(e),
+            'created': 0,
+            'updated': 0,
+            'errors': []
+        }
+                    
 def process_team_csv(session, organization_id, csv_data, column_mapping=None):
     """Process CSV data for bulk team upload"""
     result = {

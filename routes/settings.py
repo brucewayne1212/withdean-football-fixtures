@@ -562,6 +562,48 @@ def add_or_update_pitch():
             )
             session.add(new_pitch)
 
+        # Handle Aliases
+        aliases_str = request.form.get('aliases', '').strip()
+        
+        # Determine which pitch object we are working with
+        target_pitch = existing_pitch if existing_pitch else new_pitch
+        
+        # If it's a new pitch, we need to add it to session and flush to get an ID
+        if not existing_pitch:
+            session.add(new_pitch)
+            session.flush()
+            
+        # Clear existing aliases
+        from models import PitchAlias
+        session.query(PitchAlias).filter_by(
+            organization_id=org.id,
+            pitch_id=target_pitch.id
+        ).delete()
+        
+        # Add new aliases
+        if aliases_str:
+            alias_list = [a.strip() for a in aliases_str.split(',') if a.strip()]
+            for alias_name in alias_list:
+                # Check for duplicates to avoid unique constraint errors
+                existing_alias = session.query(PitchAlias).filter_by(
+                    organization_id=org.id,
+                    alias=alias_name
+                ).first()
+                
+                if existing_alias:
+                    # If alias exists for another pitch, we might want to warn or overwrite
+                    # For now, we'll skip to avoid errors, or maybe reassign?
+                    # Let's reassign if it belongs to a different pitch
+                    if existing_alias.pitch_id != target_pitch.id:
+                        existing_alias.pitch_id = target_pitch.id
+                else:
+                    new_alias = PitchAlias(
+                        organization_id=org.id,
+                        pitch_id=target_pitch.id,
+                        alias=alias_name
+                    )
+                    session.add(new_alias)
+
         session.commit()
         flash(f'Pitch configuration for "{pitch_name}" saved successfully!', 'success')
 
@@ -591,8 +633,17 @@ def get_pitch_config(pitch_name):
         if not pitch:
             return jsonify({'error': 'Pitch not found'}), 404
 
+        # Get aliases
+        from models import PitchAlias
+        aliases = session.query(PitchAlias).filter_by(
+            organization_id=org.id,
+            pitch_id=pitch.id
+        ).all()
+        alias_list = [a.alias for a in aliases]
+
         return jsonify({
             'name': pitch.name,
+            'aliases': alias_list,
             'address': pitch.address or '',
             'parking_address': pitch.parking_address or '',
             'parking': pitch.parking_info or '',
@@ -973,23 +1024,56 @@ def save_weekly_sheet_url():
             return jsonify({'error': 'No organization found'}), 404
 
         weekly_sheet_url = request.form.get('weekly_sheet_url', '').strip()
+        print(f"DEBUG: Received weekly_sheet_url: '{weekly_sheet_url}'")
 
         if not weekly_sheet_url:
+            print("DEBUG: URL is empty")
             return jsonify({'error': 'URL is required'}), 400
 
-        # Update organization settings
-        if org.settings is None:
-            org.settings = {}
+        # Update organization settings - handle JSONB properly
+        # Get current settings as a dict
+        current_settings = {}
+        if org.settings:
+            print(f"DEBUG: Current settings type: {type(org.settings)}")
+            print(f"DEBUG: Current settings value: {org.settings}")
+            if isinstance(org.settings, dict):
+                current_settings = dict(org.settings)
+            else:
+                # Handle JSONB type - convert to dict
+                try:
+                    current_settings = dict(org.settings)
+                except (TypeError, ValueError):
+                    # If it's a string or other type, try to parse it
+                    try:
+                        import json
+                        if isinstance(org.settings, str):
+                            current_settings = json.loads(org.settings)
+                        else:
+                            current_settings = {}
+                    except:
+                        current_settings = {}
+        
+        print(f"DEBUG: Settings before update: {current_settings}")
+        # Update the settings
+        current_settings['weekly_sheet_url'] = weekly_sheet_url
+        
+        # Set the updated settings back to the org
+        org.settings = current_settings
+        print(f"DEBUG: Settings assigned to org: {org.settings}")
 
-        org.settings['weekly_sheet_url'] = weekly_sheet_url
-
-        # Force SQLAlchemy to recognize the JSON field was updated
+        # Force flag modified just in case
         from sqlalchemy.orm.attributes import flag_modified
         flag_modified(org, 'settings')
 
         session.commit()
+        print("DEBUG: Session committed")
+        
+        # Verify persistence
+        session.refresh(org)
+        print(f"DEBUG: Settings after refresh: {org.settings}")
 
-        return jsonify({'success': True, 'message': 'URL saved successfully'})
+        flash('Google Sheet URL saved successfully.', 'success')
+        return redirect(url_for('settings.settings_view'))
 
     except Exception as e:
         session.rollback()
@@ -1468,60 +1552,87 @@ def refresh_weekly_fixtures_route():
                 # Get pitch if specified - use improved fuzzy matching logic
                 pitch = None
                 pitch_name = fixture_data.get('pitch', '').strip()
-                if pitch_name:
-                    # Enhanced pitch matching with fuzzy logic
-                    pitches = session.query(Pitch).filter_by(organization_id=org.id).all()
-                    exact_match = None
-                    partial_match = None
-                    fuzzy_matches = []
 
-                    # Clean the pitch name for better matching
-                    pitch_lower = pitch_name.lower().strip()
-
-                    for p in pitches:
-                        pitch_db_lower = p.name.lower().strip()
-
-                        # Exact match (case-insensitive, whitespace normalized)
-                        if pitch_db_lower == pitch_lower:
-                            exact_match = p
+                # Special handling for home games - try to assign a default "Withdean" pitch
+                home_away = fixture_data.get('home_away', 'Home')
+                if home_away.lower() == 'home' and not pitch_name:
+                    # Look for common Withdean/3G pitches for home games
+                    default_pitches = ['3g', 'withdean', 'stanley deason', 'balfour', 'dorothy stringer', 'varndean']
+                    for dp in default_pitches:
+                        default_pitch = session.query(Pitch).filter(
+                            Pitch.organization_id == org.id,
+                            Pitch.name.ilike(f'%{dp}%')
+                        ).first()
+                        if default_pitch:
+                            pitch = default_pitch
                             break
 
-                        # Partial match - one name contains the other
-                        elif pitch_db_lower in pitch_lower or pitch_lower in pitch_db_lower:
-                            partial_match = p
-                            continue
+                if pitch_name:
+                    # 1. Check for Alias Match first
+                    from models import PitchAlias
+                    alias_match = session.query(PitchAlias).filter(
+                        PitchAlias.organization_id == org.id,
+                        func.lower(PitchAlias.alias) == pitch_name.lower().strip()
+                    ).first()
+                    
+                    if alias_match:
+                        pitch = session.query(Pitch).get(alias_match.pitch_id)
+                    
+                    # 2. If no alias, try standard matching
+                    if not pitch:
+                        # Enhanced pitch matching with fuzzy logic
+                        pitches = session.query(Pitch).filter_by(organization_id=org.id).all()
+                        
+                        exact_match = None
+                        partial_match = None
+                        fuzzy_matches = []
+    
+                        # Clean the pitch name for better matching
+                        pitch_lower = pitch_name.lower().strip()
+    
+                        for p in pitches:
+                            pitch_db_lower = p.name.lower().strip()
+    
+                            # Exact match (case-insensitive, whitespace normalized)
+                            if pitch_db_lower == pitch_lower:
+                                exact_match = p
+                                break
+    
+                            # Partial match - one name contains the other
+                            elif pitch_db_lower in pitch_lower or pitch_lower in pitch_db_lower:
+                                partial_match = p
+                                continue
+    
+                            # Fuzzy matching for common variations
+                            p_words = set(pitch_db_lower.split())
+                            fixture_words = set(pitch_lower.split())
+                            word_intersect = p_words.intersection(fixture_words)
+    
+                            # If we have at least 1 common word and reasonable word overlap
+                            if word_intersect and len(word_intersect) >= max(1, min(len(p_words), len(fixture_words)) * 0.5):
+                                fuzzy_matches.append((p, len(word_intersect)))
+                        
+                        # Select best match
+                        if exact_match:
+                            pitch = exact_match
+                        elif partial_match:
+                            pitch = partial_match
+                        elif fuzzy_matches:
+                            # Sort by number of matching words (descending)
+                            fuzzy_matches.sort(key=lambda x: x[1], reverse=True)
+                            pitch = fuzzy_matches[0][0]
 
-                        # Fuzzy matching for common variations
-                        p_words = set(pitch_db_lower.split())
-                        fixture_words = set(pitch_lower.split())
-                        word_intersect = p_words.intersection(fixture_words)
-
-                        # If we have at least 1 common word and reasonable word overlap
-                        if word_intersect and len(word_intersect) >= max(1, min(len(p_words), len(fixture_words)) * 0.5):
-                            fuzzy_matches.append((p, len(word_intersect)))
-
-                        # Special case: check for common abbreviations
-                        # "3G" might be written as "3G", "3g", etc.
-                        if "3g" in pitch_lower and "3g" in pitch_db_lower:
-                            partial_match = p
-                        # "College" might be written as "Coll", "Col", etc.
-                        if any(word in pitch_lower for word in ["college", "coll", "col"]) and \
-                           any(word in pitch_db_lower for word in ["college", "coll", "col"]):
-                            partial_match = p
-
-                    # Prioritize matches: exact > partial > fuzzy
-                    if exact_match:
-                        pitch = exact_match
-                    elif partial_match:
-                        pitch = partial_match
-                    elif fuzzy_matches:
-                        # Choose the fuzzy match with most word overlap
-                        pitch = max(fuzzy_matches, key=lambda x: x[1])[0]
 
                     # If still no match found, we'll log it for user notification
                     if not pitch:
                         # We'll collect unmatched pitches for later reporting
                         unmatched_pitches.add(pitch_name)
+                        logger.warning(f"Pitch matching failed for: '{pitch_name}'")
+                else:
+                    # Pitch name is empty/None
+                    logger.warning(f"No pitch name found for fixture: {fixture_data.get('team', 'Unknown')} vs {fixture_data.get('opposition', 'Unknown')}")
+                    # Try to log available keys to debug parsing issues
+                    logger.debug(f"Fixture keys available: {list(fixture_data.keys())}")
 
                     # print(f"DEBUG: Pitch matching for '{pitch_name}' -> Found: {'Yes' if pitch else 'No'} {'(' + pitch.name + ')' if pitch else ''}")
 
@@ -1585,9 +1696,12 @@ def refresh_weekly_fixtures_route():
                     ).first()
 
                 if existing_fixture:
-                    # Update existing fixture
+                    # Update ALL existing fixture fields with new data from spreadsheet
+                    existing_fixture.opposition_team_id = opposition_team.id
+                    existing_fixture.opposition_name = opp_name
                     existing_fixture.home_away = fixture_data.get('home_away', 'Home')
                     existing_fixture.pitch_id = pitch.id if pitch else None
+                    existing_fixture.kickoff_datetime = kickoff_datetime
                     existing_fixture.kickoff_time_text = time_str
                     existing_fixture.match_format = fixture_data.get('match_format', '')
                     existing_fixture.fixture_length = fixture_data.get('fixture_length', '')
@@ -1601,6 +1715,11 @@ def refresh_weekly_fixtures_route():
                     existing_fixture.contact_2 = fixture_data.get('contact_2', '')
                     existing_fixture.contact_3 = fixture_data.get('contact_3', '')
                     existing_fixture.contact_5 = fixture_data.get('contact_5', '')
+
+                    # Also un-archive the fixture if it was archived
+                    existing_fixture.is_archived = False
+                    existing_fixture.archived_at = None
+
                     updated_count += 1
                 else:
                     # Create new fixture
@@ -1651,6 +1770,13 @@ def refresh_weekly_fixtures_route():
         if unmatched_pitches:
             pitch_warning = f"Unmatched pitches found in sheet that don't exist in your settings: {', '.join(sorted(unmatched_pitches))}. These fixture will have no pitch assigned. Please check your pitch settings or add these pitches if they are new venues."
             processing_errors.append(pitch_warning)
+            
+            # Log to file for debugging
+            try:
+                with open('unmatched_pitches.log', 'a') as f:
+                    f.write(f"[{datetime.now()}] Unmatched pitches: {', '.join(sorted(unmatched_pitches))}\n")
+            except Exception as e:
+                logger.error(f"Failed to write to unmatched_pitches.log: {e}")
 
         session.commit()
 

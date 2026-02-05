@@ -27,7 +27,20 @@ class TemplateManager:
                 'custom_map_filename': self.pitch_obj.custom_map_filename or ''
             }
         else:
-            return {'name': pitch_name}
+            # Return default configuration for unknown/unassigned pitches
+            # This ensures merge fields are not just empty strings
+            return {
+                'name': pitch_name,
+                'address': 'Please contact the club for address details',
+                'parking': 'Please contact the club for parking information',
+                'toilets': 'Please contact the club for toilet facilities information',
+                'special_instructions': 'Please contact the club for specific pitch information',
+                'opening_notes': '',
+                'warm_up_notes': '',
+                'map_image_url': '',
+                'google_maps_link': '',
+                'custom_map_filename': ''
+            }
 
     def get_team_kit_colours(self, team_name):
         """Return stored kit colours for the team in context"""

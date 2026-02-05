@@ -1,0 +1,319 @@
+<div class="task-detail-container">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-info-circle text-danger"></i>
+                Task Details: {{ task.team }} vs {{ task.opposition if task.opposition and task.opposition != 'nan' else
+                'TBC' }}
+            </h1>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Fixture Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th>Team:</th>
+                                    <td><strong>{{ task.team }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Opposition:</th>
+                                    <td>{{ task.opposition if task.opposition and task.opposition != 'nan' else 'TBC' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Home/Away:</th>
+                                    <td>
+                                        {% if task.home_away.lower() == 'home' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-home"></i> Home
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-plane"></i> Away
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th>Pitch:</th>
+                                    <td>{{ task.pitch if task.pitch and task.pitch != 'nan' else 'TBC' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Kick-off Time:</th>
+                                    <td>{{ task.kickoff_time if task.kickoff_time and task.kickoff_time != 'nan' else
+                                        'TBC'
+                                        }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Task Type:</th>
+                                    <td>
+                                        {% if task.task_type.value == 'home_email' %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-envelope"></i> Send Email to Opposition
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-forward"></i> Forward Opposition Email
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Task Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th>Current Status:</th>
+                                    <td>
+                                        {% if task.status.value == 'pending' %}
+                                        <span class="badge bg-warning fs-6">
+                                            <i class="fas fa-clock"></i> Pending
+                                        </span>
+                                        {% elif task.status.value == 'waiting' %}
+                                        <span class="badge bg-info fs-6">
+                                            <i class="fas fa-hourglass-half"></i> Waiting
+                                        </span>
+                                        {% elif task.status.value == 'in_progress' %}
+                                        <span class="badge bg-primary fs-6">
+                                            <i class="fas fa-spinner"></i> In Progress
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-success fs-6">
+                                            <i class="fas fa-check"></i> Completed
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Created:</th>
+                                    <td>{{ task.created_date[:19].replace('T', ' ') }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                {% if task.completed_date %}
+                                <tr>
+                                    <th>Completed:</th>
+                                    <td>{{ task.completed_date[:19].replace('T', ' ') }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if task.notes %}
+                                <tr>
+                                    <th>Notes:</th>
+                                    <td>{{ task.notes }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">Actions</h6>
+                </div>
+                <div class="card-body">
+                    <!-- Fixture Editing -->
+                    <a href="{{ url_for('tasks.edit_fixture', task_id=task.id) }}" class="btn btn-info w-100 mb-2">
+                        <i class="fas fa-edit"></i> Edit Fixture Details
+                    </a>
+
+                    {% if task.status.value != 'completed' %}
+                    {% if task.task_type.value == 'home_email' %}
+                    <a href="{{ url_for('tasks.generate_email_route', task_id=task.id) }}"
+                        class="btn btn-warning w-100 mb-2">
+                        <i class="fas fa-envelope"></i> Generate Email
+                    </a>
+                    {% else %}
+                    <button type="button" class="btn btn-info w-100 mb-2"
+                        onclick="generateAwayEmail('{{ task.id }}', '{{ task.team|escapejs }}')">
+                        <i class="fas fa-mail-bulk"></i> Generate Away Response
+                    </button>
+                    {% endif %}
+
+                    {% if task.status.value == 'pending' or task.status.value == 'waiting' %}
+                    <button class="btn btn-primary w-100 mb-2" onclick="markInProgress()">
+                        <i class="fas fa-play"></i> Mark In Progress
+                    </button>
+                    {% endif %}
+
+                    <button class="btn btn-success w-100 mb-2" onclick="showCompleteModal()">
+                        <i class="fas fa-check"></i> Mark Completed
+                    </button>
+                    {% else %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> This task has been completed!
+                    </div>
+
+                    <!-- Regenerate Email for completed tasks -->
+                    {% if task.task_type.value == 'home_email' %}
+                    <a href="{{ url_for('tasks.regenerate_email', task_id=task.id) }}"
+                        class="btn btn-outline-warning w-100 mb-2">
+                        <i class="fas fa-sync-alt"></i> Regenerate Email
+                    </a>
+                    {% endif %}
+                    {% endif %}
+
+                    <!-- Navigation buttons hidden in modal -->
+                    <div class="d-none d-md-block modal-hidden">
+                        <a href="{{ url_for('dashboard.dashboard_view') }}" class="btn btn-secondary w-100 mb-2">
+                            <i class="fas fa-columns"></i> Back to Board
+                        </a>
+                        <a href="{{ url_for('tasks.view_tasks') }}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-list"></i> Back to All Tasks
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+
+            {% if task.task_type.value == 'home_email' %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-home"></i> Home Game Process
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li>Generate the email using the button above</li>
+                        <li>Copy the subject and content</li>
+                        <li>Send via your shared inbox to the opposition</li>
+                        <li>Mark this task as completed</li>
+                    </ol>
+                </div>
+            </div>
+            {% else %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-plane"></i> Away Game Process
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ol class="small mb-0">
+                        <li>Wait for opposition to send fixture details</li>
+                        <li>Check your shared inbox regularly</li>
+                        <li>Forward the details to your team managers</li>
+                        <li>Mark this task as completed</li>
+                    </ol>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Complete Task Modal -->
+    <div class="modal fade" id="completeModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Mark Task as Completed</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="completeForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notes (optional):</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3"
+                                placeholder="e.g., Email sent to opposition at 2:30pm on Tuesday"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check"></i> Mark Completed
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function markInProgress() {
+        if (confirm('Mark this task as in progress?')) {
+            fetch(`/mark_in_progress/{{ task.id }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error marking task as in progress');
+                    }
+                })
+                .catch(error => {
+                    alert('Error marking task as in progress');
+                });
+        }
+    }
+
+    function showCompleteModal() {
+        const modal = new bootstrap.Modal(document.getElementById('completeModal'));
+        modal.show();
+    }
+
+    // Attach event listener if form exists
+    const completeForm = document.getElementById('completeForm');
+    if (completeForm) {
+        completeForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const notes = document.getElementById('notes').value;
+
+            fetch(`/mark_completed/{{ task.id }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ notes: notes })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error marking task as completed');
+                    }
+                })
+                .catch(error => {
+                    alert('Error marking task as completed');
+                });
+        });
+    }
+
+</script>

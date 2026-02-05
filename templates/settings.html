@@ -497,36 +497,37 @@
                                 </div>
                             </div>
 
-                            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
-                                <div>
-                                    <h6 class="mb-0">Email Templates</h6>
-                                    <small class="text-muted">Customize your automatic email templates</small>
-                                </div>
-                                <div class="btn-group" role="group">
-                                    <a href="{{ url_for('settings.manage_email_template') }}"
-                                        class="btn btn-outline-danger btn-sm">
-                                        <i class="fas fa-edit"></i> Edit Templates
-                                    </a>
-                                    <form method="POST" action="/settings/weekly-sheet" class="d-inline ms-2">
-                                        <label for="weekly_sheet_url_small" class="form-label small mb-1">Fixture Sheet
-                                            URL</label>
-                                        <input type="url" class="form-control form-control-sm d-inline-block me-1"
-                                            id="weekly_sheet_url_small" name="weekly_sheet_url"
-                                            value="{{ org_settings.get('weekly_sheet_url', '') }}" style="width: 250px;"
-                                            placeholder="Google Sheet URL">
-                                        <button type="submit" class="btn btn-outline-primary btn-sm">
-                                            <i class="fas fa-save"></i> Save
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-
                             <div class="mt-3">
                                 <button type="submit" class="btn btn-danger">
                                     <i class="fas fa-save"></i> Save All Preferences
                                 </button>
                             </div>
                         </form>
+
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                            <div>
+                                <h6 class="mb-0">Email Templates</h6>
+                                <small class="text-muted">Customize your automatic email templates</small>
+                            </div>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('settings.manage_email_template') }}"
+                                    class="btn btn-outline-danger btn-sm">
+                                    <i class="fas fa-edit"></i> Edit Templates
+                                </a>
+                                <form method="POST" action="/settings/weekly-sheet" class="d-inline ms-2">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <label for="weekly_sheet_url_small" class="form-label small mb-1 me-1">Fixture Sheet
+                                        URL</label>
+                                    <input type="url" class="form-control form-control-sm d-inline-block me-1"
+                                        id="weekly_sheet_url_small" name="weekly_sheet_url"
+                                        value="{{ org_settings.get('weekly_sheet_url', '') }}" style="width: 250px;"
+                                        placeholder="Google Sheet URL">
+                                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-save"></i> Save
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -694,12 +695,22 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="pitchForm" method="POST" action="/settings/pitch" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="pitch_name" class="form-label">Pitch Name *</label>
                                 <input type="text" class="form-control" id="pitch_name" name="name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="pitch_aliases" class="form-label">
+                                    <i class="fas fa-tags"></i> Aliases
+                                    <small class="text-muted">(comma separated)</small>
+                                </label>
+                                <input type="text" class="form-control" id="pitch_aliases" name="aliases"
+                                    placeholder="e.g. Varndean Lower, Varndean School">
+                                <div class="form-text">Alternative names used in spreadsheets</div>
                             </div>
                             <div class="mb-3">
                                 <label for="pitch_address" class="form-label">Pitch Address</label>
@@ -2487,6 +2498,7 @@
                 document.getElementById('pitchModalTitle').textContent = 'Edit Pitch';
                 document.getElementById('pitch_name').value = data.name || '';
                 document.getElementById('pitch_address').value = data.address || '';
+                document.getElementById('pitch_aliases').value = (data.aliases || []).join(', ');
                 document.getElementById('pitch_parking').value = data.parking || '';
                 document.getElementById('pitch_toilets').value = data.toilets || '';
                 document.getElementById('pitch_special').value = data.special_instructions || '';

@@ -156,6 +156,27 @@ class Pitch(Base):
     def __repr__(self):
         return f"<Pitch(name='{self.name}')>"
 
+class PitchAlias(Base):
+    """Pitch Alias model for mapping external names to internal pitches"""
+    __tablename__ = 'pitch_aliases'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey('organizations.id'), nullable=False)
+    pitch_id = Column(UUID(as_uuid=True), ForeignKey('pitches.id'), nullable=False)
+    alias = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    __table_args__ = (
+        UniqueConstraint('organization_id', 'alias'),
+    )
+    
+    # Relationships
+    organization = relationship("Organization")
+    pitch = relationship("Pitch")
+    
+    def __repr__(self):
+        return f"<PitchAlias(alias='{self.alias}', pitch_id='{self.pitch_id}')>"
+
 class Fixture(Base):
     """Fixture model"""
     __tablename__ = 'fixtures'
@@ -247,6 +268,7 @@ class TeamContact(Base):
     contact_name = Column(String(255))
     email = Column(String(255))
     phone = Column(String(50))
+    role = Column(String(100))  # e.g. Manager, Fixture Secretary
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
