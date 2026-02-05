@@ -179,6 +179,15 @@ body {
     max-width: 400px;
 }
 
+/* Stacked Modal Fix: Ensure awayEmailModal is on top */
+#awayEmailModal {
+    z-index: 1060;
+}
+
+#awayEmailModal+.modal-backdrop {
+    z-index: 1059;
+}
+
 /* Minimalist Kit Badge Styles */
 .kit-icon-container {
     display: inline-flex;

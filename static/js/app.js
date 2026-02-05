@@ -268,6 +268,9 @@ function generateAwayEmail(taskId, teamName) {
     // Use getOrCreateInstance for robustness
     let modal = bootstrap.Modal.getOrCreateInstance(modalElement);
     console.log('[generateAwayEmail] Showing modal...');
+
+    // If we're already inside a modal (like Task Detail), this will stack on top
+    // The CSS z-index fix handles the visibility.
     modal.show();
 
     // Set team name in modal title

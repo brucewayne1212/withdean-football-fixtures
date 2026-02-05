@@ -345,7 +345,7 @@
     </div>
 </div>
 <!-- Task Detail Modal Container -->
-<div class="modal fade" id="taskDetailModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="taskDetailModal" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
             <div class="modal-header border-bottom-0 pb-0">
@@ -760,7 +760,9 @@
 
     // Task Detail Modal Logic
     function openTaskModal(taskId) {
-        const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
+        console.log(`[openTaskModal] Opening Task: ${taskId}`);
+        const modalElement = document.getElementById('taskDetailModal');
+        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
         const modalBody = document.getElementById('taskDetailModalBody');
 
         // Show loading state

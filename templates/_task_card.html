@@ -32,7 +32,7 @@
             {% else %}
             <div class="d-flex gap-1">
                 <button type="button" class="btn btn-sm btn-info text-white flex-grow-1"
-                    onclick="generateAwayEmail('{{ task.id }}', '{{ task.team|escapejs }}')">
+                    onclick="event.stopPropagation(); generateAwayEmail('{{ task.id }}', '{{ task.team|escapejs }}')">
                     <i class="fas fa-mail-bulk me-1"></i> Response
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-primary"
