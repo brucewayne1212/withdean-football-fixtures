@@ -40,7 +40,8 @@
                     </h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST">
+                    <form method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="mb-3">
                             <label for="editor-container" class="form-label fw-bold">Email Template (Rich Text)</label>
                             <!-- Hidden input to store HTML for form submission -->
@@ -61,39 +62,39 @@
                                 <select class="form-select" id="merge_field_selector">
                                     <option value="">-- Click to select merge field --</option>
                                     <optgroup label="📅 Match Details">
-                                        <option value="{{date_display}}">Date Display</option>
-                                        <option value="{{time_display}}">Kick-off Time</option>
-                                        <option value="{{team_name}}">Your Team Name</option>
-                                        <option value="{{opposition_name}}">Opposition Team</option>
-                                        <option value="{{match_format}}">Match Format (e.g., 9v9)</option>
-                                        <option value="{{home_away}}">Home/Away</option>
+                                        <option value="date_display">Date Display</option>
+                                        <option value="time_display">Kick-off Time</option>
+                                        <option value="team_name">Your Team Name</option>
+                                        <option value="opposition_name">Opposition Team</option>
+                                        <option value="match_format">Match Format (e.g., 9v9)</option>
+                                        <option value="home_away">Home/Away</option>
                                     </optgroup>
                                     <optgroup label="📍 Venue Information">
-                                        <option value="{{pitch_name}}">Pitch/Venue Name</option>
-                                        <option value="{{pitch_address}}">Venue Address</option>
-                                        <option value="{{pitch_parking}}">Parking Details</option>
-                                        <option value="{{pitch_toilets}}">Toilet Facilities</option>
-                                        <option value="{{pitch_opening_notes}}">Setup Notes</option>
-                                        <option value="{{pitch_warm_up_notes}}">Warm-up Instructions</option>
-                                        <option value="{{pitch_special_instructions}}">Special Instructions</option>
+                                        <option value="pitch_name">Pitch/Venue Name</option>
+                                        <option value="pitch_address">Venue Address</option>
+                                        <option value="pitch_parking">Parking Details</option>
+                                        <option value="pitch_toilets">Toilet Facilities</option>
+                                        <option value="pitch_opening_notes">Setup Notes</option>
+                                        <option value="pitch_warm_up_notes">Warm-up Instructions</option>
+                                        <option value="pitch_special_instructions">Special Instructions</option>
                                     </optgroup>
                                     <optgroup label="🗺️ Maps & Links">
-                                        <option value="{{pitch_google_maps_link}}">Google Maps Link</option>
-                                        <option value="{{pitch_map_section}}">Map Image Section</option>
+                                        <option value="pitch_google_maps_link">Google Maps Link</option>
+                                        <option value="pitch_map_section">Map Image Section</option>
                                     </optgroup>
                                     <optgroup label="🏆 Colors & Contacts">
-                                        <option value="{{home_colours}}">Team Colors</option>
-                                        <option value="{{referee_note}}">Referee Information</option>
+                                        <option value="home_colours">Team Colors</option>
+                                        <option value="referee_note">Referee Information</option>
                                     </optgroup>
                                     <optgroup label="👤 Manager Information">
-                                        <option value="{{manager_name}}">Manager Name</option>
-                                        <option value="{{manager_email}}">Manager Email</option>
-                                        <option value="{{manager_phone}}">Manager Phone</option>
-                                        <option value="{{manager_contact}}">Manager Contact (fallback)</option>
-                                        <option value="{{email_signature}}">Your Email Signature</option>
+                                        <option value="manager_name">Manager Name</option>
+                                        <option value="manager_email">Manager Email</option>
+                                        <option value="manager_phone">Manager Phone</option>
+                                        <option value="manager_contact">Manager Contact (fallback)</option>
+                                        <option value="email_signature">Your Email Signature</option>
                                     </optgroup>
                                     <optgroup label="📝 Content Sections">
-                                        <option value="{{further_instructions_section}}">Further Instructions</option>
+                                        <option value="further_instructions_section">Further Instructions</option>
                                     </optgroup>
                                 </select>
                                 <button type="button" class="btn btn-success" id="insert_merge_field">
@@ -116,6 +117,12 @@
                             <button type="button" class="btn btn-secondary" onclick="clearTemplate()">
                                 <i class="fas fa-trash"></i> Clear All
                             </button>
+                            <button type="button" class="btn btn-outline-dark"
+                                onclick="document.getElementById('image_upload').click()">
+                                <i class="fas fa-image"></i> Insert Image
+                            </button>
+                            <input type="file" id="image_upload" accept="image/*" style="display: none;"
+                                onchange="uploadImage(this)">
                         </div>
                     </form>
                 </div>
@@ -140,7 +147,7 @@
                         <strong>Preview shows:</strong> How your template will look with sample fixture data. Real
                         emails will use actual fixture information.
                     </div>
-                    <div class="border rounded p-3 bg-white">
+                    <div class="border rounded p-3 bg-white" style="max-height: 600px; overflow-y: auto;">
                         <div id="template-preview"
                             style="font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.5;">
                             <div class="text-center text-muted">
@@ -158,58 +165,77 @@
                         <i class="fas fa-magic"></i> Quick Insert Buttons
                     </h6>
                 </div>
-                <div class="card-body">
-                    <p class="small text-muted mb-3">Click any button below to instantly insert that merge field:</p>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-3">Click any button below to instantly insert that merge field:</p>
 
-                    <div class="row g-2">
-                        <!-- Match Info -->
-                        <div class="col-md-6">
-                            <h6 class="text-primary small fw-bold"><i class="fas fa-calendar-day"></i> Match Info</h6>
-                            <div class="d-grid gap-1 mb-3">
-                                <button class="btn btn-outline-primary btn-sm merge-quick-btn"
-                                    data-field="{{date_display}}">
-                                    Date
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm merge-quick-btn"
-                                    data-field="{{time_display}}">
-                                    Time
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm merge-quick-btn"
-                                    data-field="{{team_name}}">
-                                    Your Team
-                                </button>
-                                <button class="btn btn-outline-primary btn-sm merge-quick-btn"
-                                    data-field="{{opposition_name}}">
-                                    Opposition
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Location Info -->
-                        <div class="col-md-6">
-                            <h6 class="text-success small fw-bold"><i class="fas fa-map-marker-alt"></i> Venue</h6>
-                            <div class="d-grid gap-1 mb-3">
-                                <button class="btn btn-outline-success btn-sm merge-quick-btn"
-                                    data-field="{{pitch_name}}">
-                                    Pitch Name
-                                </button>
-                                <button class="btn btn-outline-success btn-sm merge-quick-btn"
-                                    data-field="{{pitch_address}}">
-                                    Address
-                                </button>
-                                <button class="btn btn-outline-success btn-sm merge-quick-btn"
-                                    data-field="{{pitch_parking}}">
-                                    Parking
-                                </button>
-                                <button class="btn btn-outline-success btn-sm merge-quick-btn"
-                                    data-field="{{manager_name}}">
-                                    Manager
-                                </button>
-                            </div>
+                <div class="row g-2">
+                    <!-- Match Info -->
+                    <div class="col-md-6">
+                        <h6 class="text-primary small fw-bold"><i class="fas fa-calendar-day"></i> Match Info</h6>
+                        <div class="d-grid gap-1 mb-3">
+                            <button class="btn btn-outline-primary btn-sm merge-quick-btn" data-field="date_display">
+                                Date
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm merge-quick-btn" data-field="time_display">
+                                Time
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm merge-quick-btn" data-field="team_name">
+                                Your Team
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm merge-quick-btn" data-field="opposition_name">
+                                Opposition
+                            </button>
                         </div>
                     </div>
 
+                    <!-- Location Info -->
+                    <div class="col-md-6">
+                        <h6 class="text-success small fw-bold"><i class="fas fa-map-marker-alt"></i> Venue</h6>
+                        <div class="d-grid gap-1 mb-3">
+                            <button class="btn btn-outline-success btn-sm merge-quick-btn" data-field="pitch_name">
+                                Pitch Name
+                            </button>
+                            <button class="btn btn-outline-success btn-sm merge-quick-btn" data-field="pitch_address">
+                                Address
+                            </button>
+                            <button class="btn btn-outline-success btn-sm merge-quick-btn" data-field="pitch_parking">
+                                Parking
+                            </button>
+                            <button class="btn btn-outline-success btn-sm merge-quick-btn" data-field="manager_name">
+                                Manager
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
+                <div class="row g-2 mt-2">
+                    <!-- Colors & Contacts -->
+                    <div class="col-md-6">
+                        <h6 class="text-warning small fw-bold"><i class="fas fa-tshirt"></i> Colors & Contacts</h6>
+                        <div class="d-grid gap-1 mb-3">
+                            <button class="btn btn-outline-warning btn-sm merge-quick-btn" data-field="home_colours">
+                                Team Colors
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm merge-quick-btn" data-field="referee_note">
+                                Referee Info
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Maps & Links -->
+                    <div class="col-md-6">
+                        <h6 class="text-info small fw-bold"><i class="fas fa-map"></i> Maps & Links</h6>
+                        <div class="d-grid gap-1 mb-3">
+                            <button class="btn btn-outline-info btn-sm merge-quick-btn"
+                                data-field="pitch_google_maps_link">
+                                Google Maps Link
+                            </button>
+                            <button class="btn btn-outline-info btn-sm merge-quick-btn" data-field="pitch_map_section">
+                                Map Image Section
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -247,6 +273,21 @@
 </style>
 
 <script>
+    // Override Quill's Link sanitizer BEFORE initializing Quill
+    // Quill 1.3.6 sanitizes href values and strips anything that doesn't
+    // look like http/https/mailto — this breaks merge fields like
+    // {{pitch_google_maps_link}} in href attributes, turning them into "about:blank".
+    var Link = Quill.import('formats/link');
+    var originalSanitize = Link.sanitize;
+    Link.sanitize = function (url) {
+        // Allow merge field patterns ({{...}} or URL-encoded %7B%7B...%7D%7D)
+        if (url && (url.indexOf('{{') !== -1 || url.indexOf('%7B%7B') !== -1)) {
+            return url; // Preserve merge fields as-is
+        }
+        // Fall back to default sanitization for normal URLs
+        return originalSanitize.call(this, url);
+    };
+
     // Initialize Quill
     var quill = new Quill('#editor-container', {
         theme: 'snow',
@@ -282,11 +323,35 @@
 
     // Insert merge field at cursor position
     function insertAtCursor(text) {
-        const range = quill.getSelection(true);
+        // Ensure editor has focus or we have a range
+        quill.focus();
+        let range = quill.getSelection();
+
+        if (!range) {
+            // If still no range, append to end
+            range = { index: quill.getLength(), length: 0 };
+        }
+
+        // Special handling for Google Maps link — insert as a proper <a href> link
+        if (text === 'pitch_google_maps_link') {
+            // Insert the pitch name merge field as clickable link text
+            // e.g. "Dorothy Stringer Google Maps" with the URL embedded
+            const linkText = '{{pitch_name}} Google Maps';
+            quill.insertText(range.index, linkText, {
+                'link': '{{pitch_google_maps_link}}',
+                'bold': true
+            });
+            quill.setSelection(range.index + linkText.length);
+            return;
+        }
+
+        // Wrap text in double curly braces if not already wrapped
+        const fieldText = text.startsWith('{{') ? text : '{{' + text + '}}';
+
         // Insert text with specific formatting if needed, or just text
         // We want the merge field to be inserted as text
-        quill.insertText(range.index, text, 'bold', true); // Insert as bold for visibility
-        quill.setSelection(range.index + text.length);
+        quill.insertText(range.index, fieldText, 'bold', true); // Insert as bold for visibility
+        quill.setSelection(range.index + fieldText.length);
     }
 
     // Quick merge field buttons
@@ -322,6 +387,42 @@
         selector.value = ''; // Reset dropdown
     });
 
+    // Image Upload Function
+    function uploadImage(input) {
+        if (input.files && input.files[0]) {
+            const formData = new FormData();
+            formData.append('image', input.files[0]);
+            formData.append('csrf_token', document.querySelector('input[name="csrf_token"]').value);
+
+            // Show loading
+            const editorContainer = document.getElementById('editor-container');
+            editorContainer.style.opacity = '0.5';
+
+            fetch('/api/upload-image', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.url) {
+                        const range = quill.getSelection(true);
+                        quill.insertEmbed(range.index, 'image', data.url);
+                        quill.setSelection(range.index + 1);
+                    } else {
+                        alert('Upload failed: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Upload failed: ' + error.message);
+                })
+                .finally(() => {
+                    editorContainer.style.opacity = '1';
+                    input.value = ''; // Reset input
+                });
+        }
+    }
+
     // Update preview
     function updatePreview() {
         const template = document.getElementById('template_content').value;
@@ -333,7 +434,24 @@
         }
 
         // Replace merge fields with preview data - BOLD formatting makes it clear
-        let previewContent = template
+        // Also handle URL-encoded merge fields (%7B%7B...%7D%7D) that Quill uses in href attributes
+        let previewContent = template;
+
+        // First, replace URL-encoded merge fields (for href attributes)
+        previewContent = previewContent
+            .replace(/%7B%7Bpitch_google_maps_link%7D%7D/gi, 'https://maps.google.com/example')
+            .replace(/%7B%7Bpitch_name%7D%7D/gi, 'Stanley Deason 3G')
+            .replace(/%7B%7Bdate_display%7D%7D/gi, 'Sunday 15 October 2023')
+            .replace(/%7B%7Btime_display%7D%7D/gi, '2:30pm')
+            .replace(/%7B%7Bteam_name%7D%7D/gi, 'U14 Blue')
+            .replace(/%7B%7Bopposition_name%7D%7D/gi, 'Brighton Hawks')
+            .replace(/%7B%7Bmanager_email%7D%7D/gi, 'john.smith@withdean.com')
+            .replace(/%7B%7Bmanager_phone%7D%7D/gi, '07123 456789')
+            .replace(/%7B%7Bmanager_name%7D%7D/gi, 'John Smith')
+            .replace(/%7B%7Bmanager_contact%7D%7D/gi, 'john.smith@withdean.com');
+
+        // Then replace normal merge fields (for visible text)
+        previewContent = previewContent
             .replace(/\{\{date_display\}\}/g, '<strong>Sunday 15 October 2023</strong>')
             .replace(/\{\{time_display\}\}/g, '<strong>2:30pm</strong>')
             .replace(/\{\{team_name\}\}/g, '<strong>U14 Blue</strong>')
@@ -366,6 +484,22 @@
             quill.setText('');
             document.getElementById('template_content').value = '';
             updatePreview();
+        }
+    }
+
+    function insertImageByUrl() {
+        const url = prompt('Enter the URL of the image (e.g., https://example.com/logo.png):');
+        if (url) {
+            // Focus the editor
+            quill.focus();
+            // Get current selection or default to end
+            let range = quill.getSelection();
+            let index = range ? range.index : quill.getLength();
+
+            // Insert image
+            quill.insertEmbed(index, 'image', url);
+            // Move cursor after image
+            quill.setSelection(index + 1);
         }
     }
 

@@ -94,7 +94,7 @@ class TemplateManager:
     <br><small>Estate Map - How to find {{pitch_name}}</small>
 </div>
 
-<p><strong>Google Maps:</strong> <a href="{{pitch_google_maps_link}}">Click here for directions</a></p>
+<p><strong>Google Maps:</strong> <a href="{{pitch_google_maps_link}}">{{pitch_name}} Google Maps</a></p>
 
 <p><strong>Home Colours:</strong> {{home_colours}}</p>
 

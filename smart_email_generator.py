@@ -90,39 +90,53 @@ class SmartEmailGenerator:
         return next_sunday.strftime("%A %d %B %Y")
     
     def _process_time(self, kickoff_time: str) -> str:
-        """Extract kickoff time from the kickoff_time field"""
+        """Extract kickoff time from the kickoff_time field, picking the first time mentioned"""
         if not kickoff_time:
             return "TBC"
         
-        # Look for time patterns
-        time_patterns = [
-            r'(\d{1,2})[.:]\s*(\d{2})\s*(am|pm|AM|PM)',  # 2:30pm, 2.30 PM
-            r'(\d{1,2})\s*(am|pm|AM|PM)',                # 2pm, 2 PM
-            r'(\d{1,2})[.:]\s*(\d{2})',                  # 14:30, 2:30
-        ]
+        # Look for time patterns in order of priority (most specific first)
+        # but combined to find the EARLIEST occurrence in the string
+        combined_pattern = r'(\d{1,2}[.:]\d{2}\s*(?:am|pm|AM|PM))|(\d{1,2}\s*(?:am|pm|AM|PM))|(\d{1,2}[.:]\d{2})'
         
-        for pattern in time_patterns:
-            match = re.search(pattern, kickoff_time)
-            if match:
-                if len(match.groups()) == 2:  # No minutes specified
-                    hour, period = match.groups()
+        match = re.search(combined_pattern, kickoff_time, re.IGNORECASE)
+        if match:
+            g1, g2, g3 = match.groups()
+            
+            # 1. Matches 10:30am or 10.30 PM
+            if g1:
+                # Normalize to 10:30am
+                m = re.match(r'(\d{1,2})[.:](\d{2})\s*(am|pm)', g1, re.IGNORECASE)
+                if m:
+                    hour, minutes, period = m.groups()
+                    return f"{hour}:{minutes}{period.lower()}"
+                return g1.lower().replace(' ', '')
+            
+            # 2. Matches 10am or 10 PM
+            if g2:
+                # Normalize to 10:00am
+                m = re.match(r'(\d{1,2})\s*(am|pm)', g2, re.IGNORECASE)
+                if m:
+                    hour, period = m.groups()
                     return f"{hour}:00{period.lower()}"
-                elif len(match.groups()) == 3:
-                    if match.groups()[2]:  # Has am/pm
-                        hour, minutes, period = match.groups()
-                        return f"{hour}:{minutes}{period.lower()}"
-                    else:  # 24 hour format
-                        hour, minutes = match.groups()[0], match.groups()[1]
-                        hour_int = int(hour)
-                        if hour_int >= 12:
-                            period = "pm"
-                            if hour_int > 12:
-                                hour_int -= 12
-                        else:
-                            period = "am"
-                            if hour_int == 0:
-                                hour_int = 12
-                        return f"{hour_int}:{minutes}{period}"
+                return g2.lower().replace(' ', '')
+            
+            # 3. Matches 14:30 or 2:30 (24h format)
+            if g3:
+                sep = ':' if ':' in g3 else '.'
+                hour_str, minutes = g3.split(sep)
+                try:
+                    hour_int = int(hour_str)
+                    if hour_int >= 12:
+                        period = "pm"
+                        # Handle 12:00 -> 12:00pm, 13:00 -> 1:00pm
+                        hour_display = hour_int if hour_int == 12 else hour_int - 12
+                    else:
+                        period = "am"
+                        # Handle 00:00 -> 12:00am
+                        hour_display = 12 if hour_int == 0 else hour_int
+                    return f"{hour_display}:{minutes}{period}"
+                except ValueError:
+                    return g3
         
         return str(kickoff_time)
     
@@ -295,7 +309,7 @@ class SmartEmailGenerator:
             'pitch_warm_up_notes': processed_data['pitch_info'].get('warm_up_notes', ''),
             'pitch_special_instructions': processed_data['pitch_info'].get('special_instructions', ''),
             'pitch_map_image': map_image_url,
-            'pitch_google_maps_link': processed_data['pitch_info'].get('google_maps_link', ''),
+            'pitch_google_maps_link': self._ensure_absolute_url(processed_data['pitch_info'].get('google_maps_link', '')),
             'pitch_map_section': map_section,
             'home_colours': preferences.get('default_colours', 'Withdean Youth FC play in Blue and Black Shirts, Black Shorts and Blue and Black Hooped Socks'),
             'match_format': processed_data['match_format'],
@@ -312,11 +326,39 @@ class SmartEmailGenerator:
         }
         
         # Replace merge fields in template
+        # Handle both normal {{field}} and URL-encoded %7B%7Bfield%7D%7D patterns
+        # (Quill editor URL-encodes merge fields when they appear in href attributes)
         email_content = template
         for field, value in merge_values.items():
+            # Replace normal merge field pattern
             email_content = email_content.replace('{{' + field + '}}', str(value or ''))
+            # Replace URL-encoded merge field pattern (for links)
+            email_content = email_content.replace('%7B%7B' + field + '%7D%7D', str(value or ''))
+            # Also handle mixed case encoding (just in case)
+            email_content = email_content.replace('%7b%7b' + field + '%7d%7d', str(value or ''))
+        
+        # Post-processing: Fix Google Maps links where Quill stripped the href
+        # (existing templates may have about:blank or empty href from Quill sanitization)
+        google_maps_url = merge_values.get('pitch_google_maps_link', '')
+        if google_maps_url:
+            import re
+            # Fix links with about:blank href that contain "Google Maps" in the text
+            email_content = re.sub(
+                r'<a\s+href=["\']about:blank["\']([^>]*)>([^<]*Google Maps[^<]*)</a>',
+                f'<a href="{google_maps_url}"\\1>\\2</a>',
+                email_content,
+                flags=re.IGNORECASE
+            )
+            # Fix links with empty href that contain "Google Maps" in the text
+            email_content = re.sub(
+                r'<a\s+href=["\']["\']([^>]*)>([^<]*Google Maps[^<]*)</a>',
+                f'<a href="{google_maps_url}"\\1>\\2</a>',
+                email_content,
+                flags=re.IGNORECASE
+            )
         
         return email_content
+
     
     def _get_fallback_template(self):
         """Fallback template if no user manager available"""
@@ -360,7 +402,7 @@ class SmartEmailGenerator:
 
 <p><strong>Special Instructions:</strong> {{pitch_special_instructions}}</p>
 
-<p><strong>Google Maps Link:</strong> <a href="{{pitch_google_maps_link}}">{{pitch_google_maps_link}}</a></p>
+<p><strong>Google Maps Link:</strong> <a href="{{pitch_google_maps_link}}">{{pitch_name}} Google Maps</a></p>
 
 {{pitch_map_section}}
 
@@ -388,3 +430,20 @@ class SmartEmailGenerator:
             return f"{team} vs {opposition} - {date_str} - Fixture Details"
         else:
             return f"{team} vs {opposition} - Fixture Details"
+
+    def _ensure_absolute_url(self, url: str) -> str:
+        """Ensure the URL is absolute to avoid relative link resolution issues"""
+        if not url or not url.strip() or url.strip().lower() in ['nan', 'tbc']:
+            return ''
+        
+        stripped_url = url.strip()
+        
+        # If it looks like a domain but doesn't have a protocol, add https://
+        if not stripped_url.startswith(('http://', 'https://', 'mailto:', 'tel:')):
+            # Special case for 127.0.0.1 or localhost which we want to avoid but if it's there
+            # we should still treat it as the "intended" URL if it starts with them
+            if stripped_url.startswith(('127.0.0.1', 'localhost')):
+                return f"http://{stripped_url}"
+            return f"https://{stripped_url}"
+            
+        return stripped_url

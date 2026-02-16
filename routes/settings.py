@@ -106,7 +106,7 @@ def get_default_email_template():
 
 <p><strong>Special Instructions:</strong> {{pitch_special_instructions}}</p>
 
-<p><strong>Google Maps Link:</strong> <a href="{{pitch_google_maps_link}}">{{pitch_google_maps_link}}</a></p>
+<p><strong>Google Maps Link:</strong> <a href="{{pitch_google_maps_link}}">{{pitch_name}} Google Maps</a></p>
 
 {{pitch_map_section}}
 
@@ -408,8 +408,20 @@ def settings_view():
         
         user_manager = UserManagerMock(team_coaches_query, managed_teams)
         
-        # Pass team objects with their data instead of just names
-        teams_data = [{'name': team.name, 'id': str(team.id), 'fa_fixtures_url': team.fa_fixtures_url or ''} for team in managed_teams]
+        # Pass team objects with their data including kit colours
+        teams_data = [{
+            'name': team.name,
+            'id': str(team.id),
+            'fa_fixtures_url': team.fa_fixtures_url or '',
+            'league': team.league or '',
+            'division': team.division or '',
+            'home_shirt': team.home_shirt or '',
+            'home_shorts': team.home_shorts or '',
+            'home_socks': team.home_socks or '',
+            'away_shirt': team.away_shirt or '',
+            'away_shorts': team.away_shorts or '',
+            'away_socks': team.away_socks or ''
+        } for team in managed_teams]
         
         return render_template('settings.html',
             user_info={'name': current_user.name, 'email': current_user.email},
@@ -1073,7 +1085,7 @@ def save_weekly_sheet_url():
         print(f"DEBUG: Settings after refresh: {org.settings}")
 
         flash('Google Sheet URL saved successfully.', 'success')
-        return redirect(url_for('settings.settings_view'))
+        return jsonify({'success': True, 'message': 'Google Sheet URL saved successfully.', 'prompt_import': True})
 
     except Exception as e:
         session.rollback()
