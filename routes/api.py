@@ -1,9 +1,11 @@
-from flask import Blueprint, jsonify, request, send_from_directory, current_app
+from flask import Blueprint, jsonify, request, send_from_directory, current_app, url_for
 from flask_login import login_required, current_user
 from sqlalchemy import func
 from datetime import datetime
 import os
 import urllib.parse
+import uuid
+from werkzeug.utils import secure_filename
 
 from database import db_manager
 from utils import get_user_organization, get_user_organization_id
@@ -279,10 +281,51 @@ def serve_uploaded_map(filename):
     upload_dir = os.path.join(os.getcwd(), 'static', 'uploads', 'maps')
     return send_from_directory(upload_dir, filename)
 
+@api_bp.route('/api/upload-image', methods=['POST'])
+@login_required
+def upload_image():
+    """Upload an image for email templates"""
+    try:
+        if 'image' not in request.files:
+            return jsonify({'error': 'No image file provided'}), 400
+            
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
+            
+        if file:
+            # Validate file type
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+            if '.' not in file.filename or \
+               file.filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+                return jsonify({'error': 'Invalid file type. Allowed: png, jpg, jpeg, gif, webp'}), 400
+                
+            # Create uploads directory if not exists
+            upload_dir = os.path.join(os.getcwd(), 'static', 'uploads', 'email_images')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            # Secure filename and add UUID to prevent overwrites
+            filename = secure_filename(file.filename)
+            unique_filename = f"{uuid.uuid4().hex[:8]}_{filename}"
+            
+            file_path = os.path.join(upload_dir, unique_filename)
+            file.save(file_path)
+            
+            # Return URL
+            url = url_for('static', filename=f'uploads/email_images/{unique_filename}')
+            return jsonify({'url': url})
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @api_bp.route('/admin/clear-sample-data', methods=['POST'])
 @login_required
 def clear_sample_data():
     """Clear sample/placeholder data from the database"""
+    # Security: Only admin users can access this endpoint
+    if not hasattr(current_user, 'role') or current_user.role != 'admin':
+        return jsonify({'error': 'Forbidden: Admin access required'}), 403
+
     session = db_manager.get_session()
     try:
         org = get_user_organization()
