@@ -39,10 +39,90 @@ class TextFixtureParser:
             parsed_data = self._parse_line_format(text)
         
         if not parsed_data:
-            # Approach 4: Try free-form text extraction
+            # Approach 4: Try email text parsing (new)
+            parsed_data = self._parse_email_text(text)
+        
+        if not parsed_data:
+            # Approach 5: Try free-form text extraction
             parsed_data = self._parse_free_form_text(text)
         
         return parsed_data or {}
+
+    def _parse_email_text(self, text: str) -> Optional[Dict]:
+        """Parse fixture details from email text (e.g. 'Confirmation of match vs Brighton U14s...')"""
+        fixture_data = {}
+        text_lower = text.lower()
+        
+        # 1. Extract Date and Time
+        # Look for patterns like "Sunday 12th Oct", "12/10/25", "10am", "10:00"
+        
+        # Date parsing
+        date_str = None
+        # Try finding a date pattern
+        date_match = re.search(r'(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s*(?:\d{2,4})?)', text, re.IGNORECASE)
+        if date_match:
+            date_str = date_match.group(1)
+        else:
+            # Try numeric date
+            date_match = re.search(r'(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})', text)
+            if date_match:
+                date_str = date_match.group(1)
+        
+        # Time parsing
+        time_str = None
+        time_match = re.search(r'(\d{1,2}(?::\d{2})?\s*(?:am|pm)|(?:\d{1,2}:\d{2}))', text, re.IGNORECASE)
+        if time_match:
+            time_str = time_match.group(1)
+            
+        if date_str and time_str:
+            # Clean up date string (remove ordinals)
+            date_str = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_str, flags=re.IGNORECASE)
+            
+            # If year is missing, assume current or next year
+            if not re.search(r'\d{4}', date_str):
+                current_year = datetime.now().year
+                # If month is earlier than current month, might be next year? 
+                # For now just append current year, user can edit
+                date_str = f"{date_str} {current_year}"
+                
+            fixture_data['kickoff_time'] = f"{date_str} {time_str}"
+            
+        # 2. Extract Opposition
+        # Look for "vs", "v", "against", "playing"
+        opposition = None
+        opp_match = re.search(r'(?:vs?\.?|versus|against|playing)\s+([A-Za-z0-9\s]+?)(?=\s+(?:on|at|@|date|time|venue|ko|kick)|$)', text, re.IGNORECASE)
+        if opp_match:
+            opposition = opp_match.group(1).strip()
+            # Clean up opposition name
+            opposition = self._clean_team_name(opposition)
+            fixture_data['opposition'] = opposition
+            
+        # 3. Extract Venue
+        # Look for "at", "@", "venue:", "location:"
+        venue = None
+        venue_match = re.search(r'(?:at|@|venue:|location:)\s+([A-Za-z0-9\s]+?)(?=\s+(?:on|time|ko|kick)|$)', text, re.IGNORECASE)
+        if venue_match:
+            venue = venue_match.group(1).strip()
+            # If venue is just a time, ignore it
+            if not re.match(r'^\d', venue):
+                fixture_data['pitch'] = venue
+        
+        # 4. Determine Team (Us)
+        # Default to first managed team if not found
+        fixture_data['team'] = self.managed_teams[0] if self.managed_teams else "Unknown Team"
+        
+        # 5. Determine Home/Away
+        # If "hosting us" or we are "at" their venue (heuristic), or just default to Away as per user request
+        fixture_data['home_away'] = 'Away' 
+        
+        # Set task type for email generation
+        fixture_data['task_type'] = 'away_email'
+        
+        # Only return if we found at least an opposition or a venue
+        if fixture_data.get('opposition') or fixture_data.get('pitch'):
+            return fixture_data
+            
+        return None
     
     def _clean_text(self, text: str) -> str:
         """Clean and normalize input text"""
@@ -800,15 +880,21 @@ def process_single_fixture_row(row: Dict, session, organization) -> Dict:
     Process a single fixture row with deduplication logic
     """
     try:
-        # Extract data from row
-        team_name = row.get('Team', '').strip()
-        opposition = row.get('Opposition', '').strip()
-        date_str = row.get('Date', '').strip()
-        time_str = row.get('Time', '').strip()
-        home_away = row.get('Home/Away', '').strip()
-        venue = row.get('Venue', '').strip()
-        age_group = row.get('Age Group', '').strip()
-        competition = row.get('Competition', '').strip()
+        # Extract data from row - try multiple key variants
+        team_name = row.get('Team') or row.get('team') or ''
+        opposition = row.get('Opposition') or row.get('opposition') or ''
+        date_str = row.get('Date') or row.get('date') or ''
+        time_str = row.get('Time') or row.get('time') or ''
+        home_away = row.get('Home/Away') or row.get('home_away') or ''
+        venue = row.get('Venue') or row.get('pitch') or row.get('venue') or ''
+        age_group = row.get('Age Group') or row.get('age_group') or ''
+        competition = row.get('Competition') or row.get('league') or row.get('competition') or ''
+        
+        # Special handling for kickoff_time if date/time are separate
+        kickoff_time_combined = row.get('kickoff_time')
+        
+        # Extract task_type if present
+        task_type_input = row.get('task_type')
 
         # Validate required fields
         if not team_name or not opposition:
@@ -819,7 +905,23 @@ def process_single_fixture_row(row: Dict, session, organization) -> Dict:
 
         # Parse date and time
         try:
-            if date_str and time_str:
+            if kickoff_time_combined:
+                # Try parsing combined string
+                try:
+                    kickoff_datetime = datetime.strptime(kickoff_time_combined, '%d/%m/%Y %H:%M')
+                except ValueError:
+                    try:
+                        kickoff_datetime = datetime.strptime(kickoff_time_combined, '%d/%m/%y %H:%M')
+                    except ValueError:
+                        # Try generic parser
+                        try:
+                            kickoff_datetime = datetime.strptime(kickoff_time_combined, '%Y-%m-%d %H:%M:%S')
+                        except:
+                            return {
+                                'status': 'error',
+                                'error': f'Invalid kickoff time format: {kickoff_time_combined}'
+                            }
+            elif date_str and time_str:
                 datetime_str = f"{date_str} {time_str}"
                 # Try different date formats
                 try:
@@ -875,10 +977,16 @@ def process_single_fixture_row(row: Dict, session, organization) -> Dict:
         task_name = f"{team_name} vs {opposition}"
         if date_str:
             task_name += f" ({date_str})"
+        elif kickoff_datetime:
+            task_name += f" ({kickoff_datetime.strftime('%d/%m')})"
 
-        # Determine task type based on upcoming Sunday logic
-        next_sunday = get_next_sunday()
-        task_type = 'upcoming_sunday_fixture' if kickoff_datetime and kickoff_datetime.date() == next_sunday.date() else 'fixture'
+        # Determine task type
+        if task_type_input:
+            task_type = task_type_input
+        else:
+            # Default logic
+            next_sunday = get_next_sunday()
+            task_type = 'upcoming_sunday_fixture' if kickoff_datetime and kickoff_datetime.date() == next_sunday.date() else 'fixture'
 
         # Create task
         task = Task(

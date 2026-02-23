@@ -1,3 +1,7 @@
+.gcloudignore
+.git/
+.gitignore
+
 # Python
 __pycache__/
 *.py[cod]
@@ -6,6 +10,7 @@ __pycache__/
 .Python
 env/
 venv/
+.venv/
 ENV/
 build/
 develop-eggs/

@@ -13,8 +13,7 @@ from smart_email_generator import SmartEmailGenerator
 from services.email_service import TemplateManager
 import re
 
-tasks_bp = Blueprint('tasks', __name__)
-
+# Helper classes for template compatibility
 class TaskTypeEnum:
     def __init__(self, value):
         self.value = value
@@ -23,39 +22,7 @@ class StatusEnum:
     def __init__(self, value):
         self.value = value
 
-def _enrich_task_for_template(task, session):
-    """Enrich task object with properties for template compatibility"""
-    fixture = task.fixture
-    team = fixture.team # Relationship
-    
-    # Add properties to task object for template compatibility
-    task.team = team.name if team else 'Unknown Team'
-    task.opposition = fixture.opposition_name or 'TBC'
-    task.home_away = fixture.home_away
-    task.pitch = fixture.pitch.name if fixture.pitch else 'TBC'
-    task.kickoff_time = fixture.kickoff_time_text or 'TBC'
-    task.kickoff_datetime = fixture.kickoff_datetime
-    task.created_date = task.created_at.isoformat() if task.created_at else ''
-    task.completed_date = task.completed_at.isoformat() if task.completed_at else None
-    task.fixture_length = fixture.fixture_length or 'TBC'
-    task.instructions = fixture.instructions or ''
-    task.league = team.league if team else ''
-    task.division = team.division if team else ''
-    
-    # Ensure team and opposition are set on the task object itself for direct access
-    if not hasattr(task, 'team') or not task.team:
-        task.team = team.name if team else 'Unknown Team'
-    if not hasattr(task, 'opposition') or not task.opposition:
-        task.opposition = fixture.opposition_name or 'TBC'
-    
-    # Handle task_type and status as enums (template expects .value)
-    # Note: We use original values if they are already enriched objects
-    current_type = task.task_type.value if hasattr(task.task_type, 'value') else task.task_type
-    current_status = task.status.value if hasattr(task.status, 'value') else task.status
-    
-    task.task_type = TaskTypeEnum(current_type)
-    task.status = StatusEnum(current_status)
-    return task
+tasks_bp = Blueprint('tasks', __name__)
 
 @tasks_bp.route('/tasks')
 @tasks_bp.route('/tasks/<status>')
@@ -71,14 +38,6 @@ def view_tasks(status=None):
 
         today = datetime.now().date()
         current_week_start = today - timedelta(days=today.weekday())
-
-        def is_current_or_future_fixture(fixture):
-            if not fixture or not fixture.kickoff_datetime:
-                return True
-            fixture_dt = fixture.kickoff_datetime
-            if fixture_dt.tzinfo:
-                fixture_dt = fixture_dt.astimezone(timezone.utc)
-            return fixture_dt.date() >= current_week_start
         
         # Get filter parameters
         task_type = request.args.get('type', 'all')
@@ -86,7 +45,7 @@ def view_tasks(status=None):
         show_all_teams = request.args.get('show_all', 'false').lower() == 'true'
         
         # Build query - exclude archived tasks by default
-        query = session.query(Task).filter_by(organization_id=org.id).filter(Task.is_archived != True)
+        query = session.query(Task).join(Fixture).filter(Task.organization_id == org.id, Task.is_archived != True)
         
         # Apply status filter
         if status_filter and status_filter in ['pending', 'waiting', 'in_progress', 'completed']:
@@ -95,10 +54,13 @@ def view_tasks(status=None):
         # Apply task type filter
         if task_type != 'all':
             query = query.filter_by(task_type=task_type)
+
+        # Filter for current and future fixtures at the database level
+        # This is more efficient and handles date comparison correctly.
+        query = query.filter(Fixture.kickoff_datetime >= current_week_start)
         
         # Get tasks with their associated fixtures and teams (specify explicit join)
-        all_tasks = query.join(Fixture).join(Team, Fixture.team_id == Team.id).order_by(Task.created_at.desc()).all()
-        all_tasks = [task for task in all_tasks if is_current_or_future_fixture(task.fixture)]
+        all_tasks = query.join(Team, Fixture.team_id == Team.id).order_by(Task.created_at.desc()).all()
         
         # Apply team filtering - show only managed teams by default unless show_all is True
         if not show_all_teams:
@@ -115,7 +77,23 @@ def view_tasks(status=None):
         
         # Enrich tasks with computed properties for template compatibility
         for task in tasks:
-            _enrich_task_for_template(task, session)
+            fixture = task.fixture
+            team = session.query(Team).filter_by(id=fixture.team_id).first()
+            
+            # Add properties to task object for template compatibility
+            task.team = team.name if team else 'Unknown Team'
+            task.opposition = fixture.opposition_name or 'TBC'
+            task.home_away = fixture.home_away
+            task.pitch = fixture.pitch.name if fixture.pitch else 'TBC'
+            task.kickoff_time = fixture.kickoff_time_text or 'TBC'
+            task.kickoff_datetime = fixture.kickoff_datetime  # Add datetime for date display
+            task.created_date = task.created_at.isoformat() if task.created_at else ''
+            task.completed_date = task.completed_at.isoformat() if task.completed_at else None
+            task.league = team.league if team else ''
+            task.division = team.division if team else ''
+            
+            task.task_type = TaskTypeEnum(task.task_type)
+            task.status = StatusEnum(task.status)
 
         # Get managed teams count
         managed_teams_count = session.query(Team).filter_by(
@@ -174,7 +152,27 @@ def view_task(task_id):
             return redirect(url_for('dashboard.dashboard_view'))
         
         # Add computed properties for template compatibility
-        _enrich_task_for_template(task, session)
+        # Access the related data through relationships
+        fixture = task.fixture
+        team = session.query(Team).filter_by(id=fixture.team_id).first()
+        
+        # Add properties to task object for template compatibility
+        task.team = team.name if team else 'Unknown Team'
+        task.opposition = fixture.opposition_name or 'TBC'
+        task.home_away = fixture.home_away
+        # Get pitch information if assigned
+        if fixture.pitch:
+            task.pitch = fixture.pitch.name
+        else:
+            task.pitch = 'TBC'
+        task.kickoff_time = fixture.kickoff_time_text or 'TBC'
+        task.created_date = task.created_at.isoformat() if task.created_at else ''
+        task.completed_date = task.completed_at.isoformat() if task.completed_at else None
+        task.league = team.league if team else ''
+        task.division = team.division if team else ''
+        
+        task.task_type = TaskTypeEnum(task.task_type)
+        task.status = StatusEnum(task.status)
 
         # Get available pitches for editing
         pitches = session.query(Pitch).filter_by(organization_id=org.id).all()
@@ -185,7 +183,7 @@ def view_task(task_id):
             task=task,
             user_name=current_user.name,
             pitches=pitches,
-            fixture=task.fixture
+            fixture=fixture
         )
         
     finally:
@@ -225,16 +223,10 @@ def update_task_status():
             task.completed_at = None
             
         session.commit()
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('json'):
-            return jsonify({'success': True, 'message': f'Task status updated to {new_status}.'})
-            
         flash(f'Task status updated to {new_status}.', 'success')
         
     except Exception as e:
         session.rollback()
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('json'):
-            return jsonify({'success': False, 'error': str(e)}), 500
         flash(f'Error updating task: {str(e)}', 'error')
     finally:
         session.close()
@@ -714,13 +706,20 @@ def generate_email_route(task_id):
         
         fixture = task.fixture
         team = fixture.team
-        
-        # Determine team name and ID for queries
-        team_name = team.name if team else "Unknown Team"
-        team_id = team.id if team else None
 
         # Get pitch information from the relationship
         pitch = fixture.pitch
+
+        # Add computed properties for template compatibility
+        task.team = team.name if team else 'Unknown Team'
+        task.opposition = fixture.opposition_name or 'TBC'
+        task.home_away = fixture.home_away
+        task.pitch = pitch.name if pitch else 'TBC'
+        task.kickoff_time = fixture.kickoff_time_text or 'TBC'
+        task.league = team.league if team else ''
+        task.division = team.division if team else ''
+        task.fixture_length = fixture.fixture_length or ''
+        task.instructions = fixture.instructions or ''
 
         # Debug pitch information
         pitch_debug = {
@@ -732,12 +731,16 @@ def generate_email_route(task_id):
         } if fixture.pitch else {}
         print(f"DEBUG: Pitch info for email: {pitch_debug}")
 
-        # Get email template
+        # Get email template (prefer active default, otherwise latest for org)
         email_template = session.query(EmailTemplate).filter_by(
             organization_id=org.id,
             template_type='default',
             is_active=True
         ).first()
+        if not email_template:
+            email_template = session.query(EmailTemplate).filter_by(
+                organization_id=org.id
+            ).order_by(EmailTemplate.updated_at.desc()).first()
 
         # Debug fixture data
         debug_fixture_data = {
@@ -749,17 +752,15 @@ def generate_email_route(task_id):
         print(f"DEBUG: Fixture data for email generation: {debug_fixture_data}")
 
         # Get team coach/manager for this team
-        team_coach = None
-        if team_id:
-            team_coach = session.query(TeamCoach).filter_by(
-                organization_id=org.id,
-                team_id=team_id
-            ).first()
+        team_coach = session.query(TeamCoach).filter_by(
+            organization_id=org.id,
+            team_id=team.id
+        ).first()
 
         # Get team contact information
         team_contact = session.query(TeamContact).filter_by(
             organization_id=org.id,
-            team_name=team_name
+            team_name=team.name
         ).first()
 
         # Get all opponent contacts once for reuse
@@ -778,7 +779,9 @@ def generate_email_route(task_id):
 
         # Create task data for email generation
         task_data = {
-            'team': team_name,
+            'team': team.name,
+            'league': team.league or '',
+            'division': team.division or '',
             'opposition': fixture.opposition_name or '',
             'home_away': fixture.home_away,
             'pitch': pitch.name if pitch else '',
@@ -795,9 +798,10 @@ def generate_email_route(task_id):
         
         email_content = email_generator.generate_email(task_data)
         subject = email_generator.generate_subject_line(task_data)
- 
-        # Enrichment for template compatibility
-        _enrich_task_for_template(task, session)
+
+        # Handle task_type and status as enums (template expects .value)
+        task.task_type = TaskTypeEnum(task.task_type)
+        task.status = StatusEnum(task.status)
 
         # Get available pitches for venue selection
         available_pitches = session.query(Pitch).filter_by(
@@ -805,12 +809,10 @@ def generate_email_route(task_id):
         ).order_by(Pitch.name).all()
 
         # Get coaches for THIS specific team only
-        current_team_coaches = []
-        if team_id:
-            current_team_coaches = session.query(TeamCoach).filter_by(
-                organization_id=org.id,
-                team_id=team_id
-            ).all()
+        current_team_coaches = session.query(TeamCoach).filter_by(
+            organization_id=org.id,
+            team_id=team.id
+        ).all()
 
         # Helper to normalize contact names
         def _normalize_contact_name(value: str) -> str:
@@ -826,14 +828,7 @@ def generate_email_route(task_id):
             if not normalized_target:
                 return None
 
-            # Common words to ignore or de-prioritize in matching
-            ignore_words = {'fc', 'youth', 'united', 'united fc', 'junior', 'juniors', 'town', 'city', 'athletic', 'rovers', 'wanderers', 'albion', 'club'}
-            
-            target_tokens = normalized_target.split()
-            unique_target_tokens = [t for t in target_tokens if t not in ignore_words]
-            if not unique_target_tokens:
-                unique_target_tokens = target_tokens # Fallback if all words are common
-
+            target_tokens = set(normalized_target.split())
             best_match = None
             best_score = 0
 
@@ -842,39 +837,22 @@ def generate_email_route(task_id):
                 if not contact_normalized:
                     continue
 
-                # Exact match is always best
+                # Exact normalized match wins immediately
                 if contact_normalized == normalized_target:
                     return contact
 
-                score = 0
-                
-                # Full string match (handles age groups)
+                # Prefer substring matches (handles age groups and suffixes)
                 if (contact_normalized in normalized_target) or (normalized_target in contact_normalized):
-                    score = 100 + max(len(contact_normalized), len(normalized_target))
-                
-                # Token-based match
-                contact_tokens = contact_normalized.split()
-                unique_contact_tokens = [t for t in contact_tokens if t not in ignore_words]
-                
-                # Check for overlap in unique tokens (the "meat" of the team name)
-                matches = set(unique_target_tokens) & set(unique_contact_tokens)
-                if matches:
-                    score += len(matches) * 50
-                
-                # Also check for overlap in all tokens
-                all_matches = set(target_tokens) & set(contact_tokens)
-                score += len(all_matches)
+                    score = max(len(contact_normalized), len(normalized_target))
+                else:
+                    contact_tokens = set(contact_normalized.split())
+                    score = len(target_tokens & contact_tokens)
 
                 if score > best_score:
                     best_match = contact
                     best_score = score
 
-            # Only return if we have a reasonably strong match
-            if best_score > 0:
-                print(f"DEBUG: Found match for '{opposition_name}': '{best_match.team_name}' (score: {best_score})")
-                return best_match
-
-            return None
+            return best_match
 
         # Get contact for the current opposition team using best-match logic
         opposition_contact = None
@@ -908,20 +886,13 @@ def generate_email_route(task_id):
             user_name=current_user.name,
             home_coach=team_coach,
             home_contact=team_contact,
-            team_name=team.name if team else team_name,
-            opposition_name=fixture.opposition_name or 'TBC',
+            opposition_name=fixture.opposition_name,
             available_pitches=available_pitches,
             team_coaches=coaches_list,
             opposition_contact=opposition_contact,
             team_contacts=contacts_dict
         )
         
-    except Exception as e:
-        print(f"CRITICAL ERROR in generate_email_route: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        flash(f"Error generating email: {str(e)}", "error")
-        return redirect(url_for('tasks.view_tasks'))
     finally:
         session.close()
 
@@ -949,8 +920,6 @@ def update_email_preview(task_id):
 
             fixture = task.fixture
             team = fixture.team
-            team_name = team.name if team else "Unknown Team"
-            team_id = team.id if team else None
 
             # Get pitch information if venue selected
             pitch = None
@@ -967,23 +936,16 @@ def update_email_preview(task_id):
             ).first()
 
             # Get team coach/manager for this team
-            team_coach = None
-            if team_id:
-                team_coach = session.query(TeamCoach).filter_by(
-                    organization_id=org.id,
-                    team_id=team_id
-                ).first()
+            team_coach = session.query(TeamCoach).filter_by(
+                organization_id=org.id,
+                team_id=team.id
+            ).first()
 
             # Get team contact information
             team_contact = session.query(TeamContact).filter_by(
                 organization_id=org.id,
-                team_name=team_name
+                team_name=team.name
             ).first()
-
-            # Get all opponent contacts once for reuse
-            all_team_contacts = session.query(TeamContact).filter_by(
-                organization_id=org.id
-            ).all()
 
             template_manager = TemplateManager(
                 email_template.content if email_template else None,

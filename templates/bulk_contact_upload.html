@@ -6,7 +6,7 @@
 <div class="row">
     <div class="col-12">
         <h1 class="mb-4">
-            <i class="fas fa-upload text-danger"></i> 
+            <i class="fas fa-upload text-danger"></i>
             Bulk Contact Upload
         </h1>
         <nav aria-label="breadcrumb">
@@ -28,13 +28,14 @@
             </div>
             <div class="card-body">
                 <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <!-- File Upload Option -->
                     <div class="mb-4">
                         <h6><i class="fas fa-file"></i> Option 1: Upload File</h6>
                         <div class="mb-3">
                             <label for="contact_file" class="form-label">Upload CSV or Excel File</label>
-                            <input type="file" class="form-control" id="contact_file" name="contact_file" 
-                                   accept=".csv,.txt,.xlsx,.xls">
+                            <input type="file" class="form-control" id="contact_file" name="contact_file"
+                                accept=".csv,.txt,.xlsx,.xls">
                             <div class="form-text">
                                 Supported formats: CSV (.csv), Text (.txt), Excel (.xlsx, .xls)
                             </div>
@@ -50,8 +51,7 @@
                         <h6><i class="fas fa-paste"></i> Option 2: Paste Text</h6>
                         <div class="mb-3">
                             <label for="contact_text" class="form-label">Paste Contact Information</label>
-                            <textarea class="form-control" id="contact_text" name="contact_text" rows="10" 
-                                      placeholder="Paste your contact information here...
+                            <textarea class="form-control" id="contact_text" name="contact_text" rows="10" placeholder="Paste your contact information here...
 
 Examples of supported formats:
 
@@ -70,7 +70,8 @@ Team Name,Contact,Email,Phone
 Hollingbury United,Mike Wilson,mike@hollingbury.co.uk,07987 654321
 Saltdean Tigers,Emma Brown,emma.brown@saltdean.org,01273 123456"></textarea>
                             <div class="form-text">
-                                The system can automatically detect team names, contact names, email addresses, and phone numbers from various text formats.
+                                The system can automatically detect team names, contact names, email addresses, and
+                                phone numbers from various text formats.
                             </div>
                         </div>
                     </div>
@@ -99,14 +100,17 @@ Saltdean Tigers,Emma Brown,emma.brown@saltdean.org,01273 123456"></textarea>
             <div class="card-body">
                 <ol class="small mb-3">
                     <li><strong>Upload or Paste:</strong> Choose either a file upload or paste text directly</li>
-                    <li><strong>Smart Parsing:</strong> The system automatically extracts team names, contact names, emails, and phone numbers</li>
-                    <li><strong>Review & Edit:</strong> Preview and modify the detected information before importing</li>
+                    <li><strong>Smart Parsing:</strong> The system automatically extracts team names, contact names,
+                        emails, and phone numbers</li>
+                    <li><strong>Review & Edit:</strong> Preview and modify the detected information before importing
+                    </li>
                     <li><strong>Import:</strong> Save the contacts to your team database</li>
                 </ol>
-                
+
                 <div class="alert alert-info small">
-                    <i class="fas fa-lightbulb"></i> 
-                    <strong>Tip:</strong> The system is very flexible and can handle various formats. Don't worry about perfect formatting!
+                    <i class="fas fa-lightbulb"></i>
+                    <strong>Tip:</strong> The system is very flexible and can handle various formats. Don't worry about
+                    perfect formatting!
                 </div>
             </div>
         </div>
@@ -142,17 +146,17 @@ Saltdean Tigers,Emma Brown,emma.brown@saltdean.org,01273 123456"></textarea>
 
 {% block scripts %}
 <script>
-// Auto-switch between file and text options
-document.getElementById('contact_file').addEventListener('change', function() {
-    if (this.files.length > 0) {
-        document.getElementById('contact_text').value = '';
-    }
-});
+    // Auto-switch between file and text options
+    document.getElementById('contact_file').addEventListener('change', function () {
+        if (this.files.length > 0) {
+            document.getElementById('contact_text').value = '';
+        }
+    });
 
-document.getElementById('contact_text').addEventListener('input', function() {
-    if (this.value.trim()) {
-        document.getElementById('contact_file').value = '';
-    }
-});
+    document.getElementById('contact_text').addEventListener('input', function () {
+        if (this.value.trim()) {
+            document.getElementById('contact_file').value = '';
+        }
+    });
 </script>
 {% endblock %}

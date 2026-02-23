@@ -1,0 +1,15 @@
+{
+    "name": "withdean-football-fixtures",
+    "version": "1.0.0",
+    "description": "A comprehensive Flask web application for managing Withdean Youth FC football fixtures",
+    "main": "app.py",
+    "scripts": {
+        "dev": "python app.py",
+        "start": "python app.py",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "db:migrate": "echo \"Add your database migration command here\""
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC"
+}

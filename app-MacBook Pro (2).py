@@ -23,6 +23,7 @@ from routes.tasks import tasks_bp
 from routes.settings import settings_bp
 from routes.api import api_bp
 from routes.imports import imports_bp
+from routes.teams import teams_bp
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -82,6 +83,8 @@ app.register_blueprint(tasks_bp)
 app.register_blueprint(settings_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(imports_bp)
+app.register_blueprint(teams_bp)
+csrf.exempt(imports_bp)
 
 # Security Headers
 @app.after_request
@@ -90,7 +93,16 @@ def set_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'DENY'
     response.headers['X-XSS-Protection'] = '1; mode=block'
-    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.quilljs.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.quilljs.com; img-src 'self' data: https:; font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com;"
+    csp = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.quilljs.com; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.quilljs.com; "
+        "img-src 'self' data: https:; "
+        "font-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+        "connect-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.quilljs.com; "
+        "form-action 'self';"
+    )
+    response.headers['Content-Security-Policy'] = csp
     response.headers['Server'] = 'Football Fixtures App'
     if not app.debug:
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'

@@ -3,7 +3,6 @@
 {% block title %}Task Board - Withdean Youth FC{% endblock %}
 
 {% block content %}
-{% from "macros.html" import get_kit_style %}
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
 <!-- Header Section -->
@@ -14,23 +13,45 @@
                 <i class="fas fa-columns text-primary me-2"></i>Task Board
             </h2>
             <p class="text-muted mb-0">Manage your fixture communications</p>
-            <div class="mt-2" id="team-status-badges">
+            <div class="mt-2">
                 <small class="text-muted me-1">Managing:</small>
                 {% for item in team_status_data %}
-                <a href="{{ url_for('imports.import_fixtures', method='manual', team=item.team.name) }}"
-                    class="text-decoration-none" title="Coach: {{ item.coach_names }}" data-bs-toggle="tooltip">
-                    <span
-                        class="badge bg-light text-dark border me-1 team-status-badge d-inline-flex align-items-center"
-                        data-team-name="{{ item.team.name }}" style="cursor: pointer;">
-                        <div class="kit-badge-mini">
-                            <div {{ get_kit_style(item.team.home_shirt) }}></div>
-                            <div {{ get_kit_style(item.team.home_shorts) }}></div>
-                            <div {{ get_kit_style(item.team.home_socks) }}></div>
-                        </div>
-                        {{ item.team.name }}
-                        <span class="status-dot {{ item.overall_status }}"></span>
+                {% set has_fixture = item.has_next_sunday_fixture %}
+                {% set sunday_fixture = item.fixture_calendar[item.next_sunday] if has_fixture else None %}
+                {% set task_id = sunday_fixture.tasks[0].id if (sunday_fixture and sunday_fixture.tasks) else None %}
+
+                {% set popover_content %}
+                {% if has_fixture %}
+                <strong>vs {{ sunday_fixture.opposition_name }}</strong><br>
+                {{ sunday_fixture.home_away }} - {{ sunday_fixture.kickoff_time_text }}<br>
+                {{ sunday_fixture.pitch.name if sunday_fixture.pitch else 'TBC' }}
+                {% if sunday_fixture.is_cancelled %}
+                <br><span class='text-danger'>Cancelled</span>
+                {% endif %}
+                {% else %}
+                No match scheduled for this Sunday
+                {% endif %}
+                {% endset %}
+
+                <span class="badge bg-white text-dark border me-1 d-inline-flex align-items-center team-status-badge"
+                    style="font-weight: 500; cursor: pointer;" data-bs-toggle="popover" data-bs-trigger="hover focus"
+                    data-bs-html="true" data-bs-content="{{ popover_content|e }}" {% if task_id
+                    %}onclick="openTaskModal('{{ task_id }}')" {% endif %}>
+
+                    {{ item.team.name }}
+
+                    <span class="ms-2">
+                        {% if has_fixture %}
+                        {% if sunday_fixture.is_cancelled %}
+                        <i class="fas fa-ban text-secondary"></i>
+                        {% else %}
+                        <i class="fas fa-check-circle text-success"></i>
+                        {% endif %}
+                        {% else %}
+                        <i class="fas fa-exclamation-circle text-danger"></i>
+                        {% endif %}
                     </span>
-                </a>
+                </span>
                 {% endfor %}
             </div>
         </div>
@@ -52,32 +73,6 @@
     </div>
 </div>
 
-<!-- Google Sheet Preview Pane -->
-{% if sheet_embed_url %}
-<div class="card mb-3 shadow-sm" id="sheetPreviewCard">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center py-2" style="cursor: pointer;"
-        onclick="toggleSheetPreview()">
-        <div>
-            <i class="fas fa-table text-success me-2"></i>
-            <span class="fw-bold">Weekly Fixture Sheet</span>
-            <small class="text-muted ms-2">Reference your Google Sheet without leaving the page</small>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <a href="{{ weekly_sheet_url }}" target="_blank" class="btn btn-sm btn-outline-secondary"
-                onclick="event.stopPropagation();" title="Open in new tab">
-                <i class="fas fa-external-link-alt"></i>
-            </a>
-            <i class="fas fa-chevron-down" id="sheetPreviewToggleIcon" style="transition: transform 0.3s;"></i>
-        </div>
-    </div>
-    <div id="sheetPreviewBody" style="display: none; overflow: hidden; transition: max-height 0.4s ease;">
-        <div class="card-body p-0">
-            <iframe id="sheetPreviewFrame" style="width: 100%; height: 450px; border: none;"></iframe>
-        </div>
-    </div>
-</div>
-{% endif %}
-
 <!-- Kanban Board -->
 <div class="kanban-container">
 
@@ -94,7 +89,7 @@
         <div class="kanban-body" ondrop="drop(event, 'pending')" ondragover="allowDrop(event)">
             {% for task in pending_tasks %}
             <div class="draggable-task" draggable="true" ondragstart="drag(event)" id="task-{{ task.id }}"
-                data-task-id="{{ task.id }}" data-team-name="{{ task.team }}">
+                data-task-id="{{ task.id }}">
                 {% include '_task_card.html' %}
             </div>
             {% else %}
@@ -120,13 +115,13 @@
         <div class="kanban-body" ondrop="drop(event, 'in_progress')" ondragover="allowDrop(event)">
             {% for task in in_progress_tasks %}
             <div class="draggable-task" draggable="true" ondragstart="drag(event)" id="task-{{ task.id }}"
-                data-task-id="{{ task.id }}" data-team-name="{{ task.team }}">
+                data-task-id="{{ task.id }}">
                 {% include '_task_card.html' %}
             </div>
             {% endfor %}
             {% for task in waiting_tasks %}
             <div class="draggable-task" draggable="true" ondragstart="drag(event)" id="task-{{ task.id }}"
-                data-task-id="{{ task.id }}" data-team-name="{{ task.team }}">
+                data-task-id="{{ task.id }}">
                 {% include '_task_card.html' %}
             </div>
             {% endfor %}
@@ -153,7 +148,7 @@
         <div class="kanban-body" ondrop="drop(event, 'completed')" ondragover="allowDrop(event)">
             {% for task in completed_tasks %}
             <div class="draggable-task" draggable="true" ondragstart="drag(event)" id="task-{{ task.id }}"
-                data-task-id="{{ task.id }}" data-team-name="{{ task.team }}">
+                data-task-id="{{ task.id }}">
                 {% include '_task_card.html' %}
             </div>
             {% else %}
@@ -201,14 +196,6 @@
         user-select: none;
     }
 
-    .kanban-column.collapsed .kanban-body {
-        display: none;
-    }
-
-    .kanban-column.collapsed .collapse-icon {
-        transform: rotate(-90deg);
-    }
-
     .collapse-icon {
         transition: transform 0.2s ease;
     }
@@ -239,51 +226,14 @@
         localStorage.setItem(`kanban_${columnId}_collapsed`, isCollapsed);
     }
 
-    // Google Sheet Preview Pane Toggle
-    function toggleSheetPreview() {
-        const body = document.getElementById('sheetPreviewBody');
-        const icon = document.getElementById('sheetPreviewToggleIcon');
-        const frame = document.getElementById('sheetPreviewFrame');
-
-        if (!body) return;
-
-        const isVisible = body.style.display !== 'none';
-
-        if (isVisible) {
-            body.style.display = 'none';
-            icon.style.transform = 'rotate(0deg)';
-            localStorage.setItem('sheetPreviewExpanded', 'false');
-        } else {
-            body.style.display = 'block';
-            icon.style.transform = 'rotate(180deg)';
-            localStorage.setItem('sheetPreviewExpanded', 'true');
-            // Lazy-load iframe only when first expanded
-            if (!frame.src || frame.src === 'about:blank' || frame.src === window.location.href) {
-                frame.src = '{{ sheet_embed_url | default("", true) }}';
-            }
-        }
-    }
-
     // Restore column states
     document.addEventListener('DOMContentLoaded', function () {
-        // Initialize Bootstrap tooltips
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        });
-
         ['col-pending', 'col-waiting', 'col-completed'].forEach(id => {
             const isCollapsed = localStorage.getItem(`kanban_${id}_collapsed`) === 'true';
             if (isCollapsed) {
                 document.getElementById(id).classList.add('collapsed');
             }
         });
-
-        // Restore sheet preview state
-        const sheetExpanded = localStorage.getItem('sheetPreviewExpanded') === 'true';
-        if (sheetExpanded && document.getElementById('sheetPreviewBody')) {
-            toggleSheetPreview();
-        }
     });
 
     // Drag and Drop Logic
@@ -293,11 +243,9 @@
     }
 
     function drag(ev) {
-        const taskElement = ev.target.closest('.draggable-task');
-        if (!taskElement) return;
-        ev.dataTransfer.setData("text/plain", taskElement.id);
-        ev.dataTransfer.setData("task-id", taskElement.dataset.taskId);
-        taskElement.style.opacity = '0.5';
+        ev.dataTransfer.setData("text/plain", ev.target.id);
+        ev.dataTransfer.setData("task-id", ev.target.dataset.taskId);
+        ev.target.style.opacity = '0.5';
     }
 
     function drop(ev, newStatus) {
@@ -331,7 +279,6 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-Requested-With': 'XMLHttpRequest'
             },
             body: `task_id=${taskId}&status=${newStatus}&csrf_token=${csrfToken}`
         })
@@ -352,7 +299,7 @@
             });
     }
 
-    // Helper to update badge counts and team status ticks locally
+    // Helper to update badge counts locally
     function updateCounts() {
         ['col-pending', 'col-waiting', 'col-completed'].forEach(colId => {
             const col = document.getElementById(colId);
@@ -363,30 +310,6 @@
             const emptyState = col.querySelector('.empty-state');
             if (emptyState) {
                 emptyState.style.display = count === 0 ? 'block' : 'none';
-            }
-        });
-
-        // Update team status badges in the header
-        const teamBadges = document.querySelectorAll('.team-status-badge');
-        const allTasks = document.querySelectorAll('.draggable-task');
-
-        teamBadges.forEach(badge => {
-            const teamName = badge.dataset.teamName;
-            const teamTasks = Array.from(allTasks).filter(t => t.dataset.teamName === teamName);
-
-            if (teamTasks.length > 0) {
-                // A team is "complete" if all its visible tasks are in the completed column
-                const allComplete = teamTasks.every(t => {
-                    const column = t.closest('.kanban-column');
-                    return column && column.id === 'col-completed';
-                });
-
-                const tick = badge.querySelector('.completion-tick');
-                if (allComplete) {
-                    tick.classList.remove('d-none');
-                } else {
-                    tick.classList.add('d-none');
-                }
             }
         });
     }
@@ -414,11 +337,8 @@
         bsToast.show();
     }
 
-    // Task Detail Modal Logic
     function openTaskModal(taskId) {
-        console.log(`[openTaskModal] Opening Task: ${taskId}`);
-        const modalElement = document.getElementById('taskDetailModal');
-        const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+        const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
         const modalBody = document.getElementById('taskDetailModalBody');
 
         // Show loading state
@@ -433,16 +353,29 @@
 
         modal.show();
 
+        const fetchUrl = `/task/${taskId}?modal=true`;
+        console.log('Fetching task details from:', fetchUrl);
+
         // Fetch content
-        fetch(`/task/${taskId}?modal=true`)
-            .then(response => response.text())
+        fetch(fetchUrl)
+            .then(response => {
+                console.log('Received response:', response);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
             .then(html => {
+                console.log('Received HTML:', html.substring(0, 200)); // Log first 200 chars
                 modalBody.innerHTML = html;
 
                 // Re-execute scripts in the injected HTML
                 const scripts = modalBody.getElementsByTagName("script");
+                console.log(`Found ${scripts.length} script(s) to execute.`);
                 for (let i = 0; i < scripts.length; i++) {
-                    eval(scripts[i].innerText);
+                    const newScript = document.createElement("script");
+                    newScript.text = scripts[i].innerText;
+                    modalBody.appendChild(newScript).parentNode.removeChild(newScript); // Append and remove to execute
                 }
 
                 // Hide "Back to Board" buttons in modal context
@@ -452,16 +385,16 @@
             .catch(error => {
                 modalBody.innerHTML = `
                     <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle"></i> Error loading task details.
+                        <i class="fas fa-exclamation-triangle"></i> Error loading task details. Please check the console.
                     </div>
                 `;
-                console.error('Error:', error);
+                console.error('Error in openTaskModal:', error);
             });
     }
 </script>
 
 <!-- Task Detail Modal Container -->
-<div class="modal fade" id="taskDetailModal" aria-hidden="true">
+<div class="modal fade" id="taskDetailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow-lg" style="border-radius: 12px;">
             <div class="modal-header border-bottom-0 pb-0">

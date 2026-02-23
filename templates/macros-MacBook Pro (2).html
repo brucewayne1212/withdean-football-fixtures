@@ -1,0 +1,46 @@
+{% macro get_kit_style(text) %}
+{% set text = text|lower if text else '' %}
+{% set colors = [] %}
+{% if 'navy' in text %}{% set _ = colors.append('navy') %}{% endif %}
+{% if 'sky' in text %}{% set _ = colors.append('sky') %}{% endif %}
+{% if 'red' in text %}{% set _ = colors.append('red') %}{% endif %}
+{% if 'blue' in text and 'sky' not in text and 'navy' not in text %}{% set _ = colors.append('blue') %}{% endif %}
+{% if 'black' in text %}{% set _ = colors.append('black') %}{% endif %}
+{% if 'white' in text %}{% set _ = colors.append('white') %}{% endif %}
+{% if 'yellow' in text %}{% set _ = colors.append('yellow') %}{% endif %}
+{% if 'green' in text %}{% set _ = colors.append('green') %}{% endif %}
+{% if 'maroon' in text %}{% set _ = colors.append('maroon') %}{% endif %}
+{% if 'orange' in text %}{% set _ = colors.append('orange') %}{% endif %}
+{% if 'purple' in text %}{% set _ = colors.append('purple') %}{% endif %}
+{% if 'grey' in text or 'gray' in text %}{% set _ = colors.append('grey') %}{% endif %}
+{% if 'gold' in text %}{% set _ = colors.append('gold') %}{% endif %}
+
+{% if colors|length >= 2 %}
+class="kit-segment striped" style="--color-1: var(--kit-{{ colors[0] }}); --color-2: var(--kit-{{ colors[1] }});"
+{% elif colors|length == 1 %}
+class="kit-segment color-{{ colors[0] }}"
+{% else %}
+class="kit-segment"
+{% endif %}
+{% endmacro %}
+
+{% macro kit_icon(shirt, shorts, socks) %}
+{% if shirt or shorts or socks %}
+{% set tooltip_title %}
+<div class='text-start'>
+    <strong>Kit Details</strong>
+    <hr class='my-1'>
+    <div><small class='text-muted'>Shirt:</small> {{shirt or 'Standard Club'}}</div>
+    <div><small class='text-muted'>Shorts:</small> {{shorts or 'Standard Club'}}</div>
+    <div><small class='text-muted'>Socks:</small> {{socks or 'Standard Club'}}</div>
+</div>
+{% endset %}
+<div class="kit-icon-container" data-bs-toggle="tooltip" data-bs-html="true" title="{{ tooltip_title|e }}">
+    <div class="kit-badge">
+        <div {{ get_kit_style(shirt) }}></div>
+        <div {{ get_kit_style(shorts) }}></div>
+        <div {{ get_kit_style(socks) }}></div>
+    </div>
+</div>
+{% endif %}
+{% endmacro %}

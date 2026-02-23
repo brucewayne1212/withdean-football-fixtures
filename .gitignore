@@ -163,3 +163,4 @@ user_settings.json.backup
 
 # Environment files with secrets
 .env.txt
+env_vars.yaml

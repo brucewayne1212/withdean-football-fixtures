@@ -49,7 +49,7 @@ def dashboard_view():
         managed_teams = session.query(Team).filter_by(
             organization_id=org.id,
             is_managed=True
-        ).options(joinedload(Team.team_coaches)).all()
+        ).all()
         managed_team_ids = [t.id for t in managed_teams]
         managed_teams_count = len(managed_teams)
 
@@ -141,7 +141,8 @@ def dashboard_view():
             or_(Fixture.kickoff_datetime >= now_utc, Fixture.kickoff_datetime == None)
         ).options(
             joinedload(Fixture.team),
-            joinedload(Fixture.tasks) # Eager load tasks to avoid N+1 later
+            joinedload(Fixture.tasks), # Eager load tasks to avoid N+1 later
+            joinedload(Fixture.pitch)  # Eager load pitch for dashboard popovers
         ).order_by(Fixture.kickoff_datetime.asc().nullslast()).all()
 
         # Group fixtures by team_id in memory for O(1) access
@@ -272,12 +273,8 @@ def dashboard_view():
                 else:
                     comm_status = 'pending'
 
-            # Coach Names for tooltip
-            coach_names = ", ".join([c.coach_name for c in team.team_coaches]) or "No coach assigned"
-
             team_status_data.append({
                 'team': team,
-                'coach_names': coach_names,
                 'next_fixture': next_fixture,
                 'upcoming_fixtures': team_fixtures[:10],
                 'fixture_calendar': fixture_calendar,
@@ -307,16 +304,6 @@ def dashboard_view():
 
         # Get weekly sheet URL from org settings
         weekly_sheet_url = org.settings.get('weekly_sheet_url') if org.settings else None
-        
-        # Generate embeddable URL for Google Sheets preview pane
-        sheet_embed_url = None
-        if weekly_sheet_url:
-            import re as re_mod
-            sheet_match = re_mod.search(r'/spreadsheets/d/([a-zA-Z0-9_-]+)', weekly_sheet_url)
-            if sheet_match:
-                sheet_id = sheet_match.group(1)
-                sheet_embed_url = f'https://docs.google.com/spreadsheets/d/{sheet_id}/preview'
-        
         total_all_tasks = len(all_current_tasks)
 
         return render_template('dashboard.html',
@@ -328,8 +315,7 @@ def dashboard_view():
             completed_tasks=completed_tasks,
             team_status_data=team_status_data,
             user_name=current_user.name,
-            weekly_sheet_url=weekly_sheet_url,
-            sheet_embed_url=sheet_embed_url
+            weekly_sheet_url=weekly_sheet_url
         )
         
     finally:

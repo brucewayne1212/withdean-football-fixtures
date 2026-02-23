@@ -13,7 +13,7 @@ from werkzeug.utils import secure_filename
 
 from database import db_manager
 from utils import get_user_organization, allowed_file
-from models import Team, Pitch, Fixture, Task, TeamCoach, get_or_create_team
+from models import Team, Pitch, Fixture, Task, TeamCoach, TeamContact, get_or_create_team
 
 # Local imports
 from fixture_parser import FixtureParser
@@ -152,7 +152,7 @@ def analyze_csv_columns(csv_data, mode='coaches'):
                 'contact_name': ['contact_name', 'contact', 'name', 'manager', 'full_name', 'fullname', 'contact person'],
                 'email': ['email', 'email_address', 'e-mail', 'mail', 'contact_email'],
                 'phone': ['phone', 'phone_number', 'mobile', 'cell', 'telephone', 'contact_number'],
-                'role': ['role', 'position', 'title', 'job_title', 'responsibility'],
+                'role': ['role', 'position', 'title', 'job_title', 'responsibility', 'secretary'],
                 'notes': ['notes', 'comments', 'description', 'additional_info', 'remarks']
             }
         else:
@@ -468,131 +468,7 @@ def preview_coach_csv(csv_data, column_mapping):
 
     return preview_data
 
-def process_team_contact_csv(session, organization_id, csv_data, update_existing=False, column_mapping=None):
-    """
-    Process CSV data for bulk team contact upload
-    """
-    result = {
-        'success': True,
-        'created': 0,
-        'updated': 0,
-        'errors': [],
-        'message': '',
-        'needs_mapping': False
-    }
 
-    try:
-        from models import TeamContact
-        
-        # Parse CSV data
-        csv_file = io.StringIO(csv_data.strip())
-        reader = csv.DictReader(csv_file)
-
-        # If no column mapping provided, try automatic detection
-        if column_mapping is None:
-            analysis = analyze_csv_columns(csv_data, mode='contacts')
-            if analysis.get('needs_manual_mapping'):
-                result['needs_mapping'] = True
-                result['analysis'] = analysis
-                return result
-            column_mapping = analysis['suggested_mapping']
-
-        # Process each row
-        for row_num, row in enumerate(reader, start=2):
-            try:
-                # Extract fields using column mapping
-                team_name = ''
-                contact_name = ''
-                role = None
-                email = None
-                phone = None
-                notes = None
-
-                # Map the fields
-                for csv_header, our_field in column_mapping.items():
-                    value = row.get(csv_header, '').strip()
-                    if our_field == 'team_name':
-                        team_name = value
-                    elif our_field == 'contact_name':
-                        contact_name = value
-                    elif our_field == 'role':
-                        role = value or None
-                    elif our_field == 'email':
-                        email = value or None
-                    elif our_field == 'phone':
-                        phone = value or None
-                    elif our_field == 'notes':
-                        notes = value or None
-
-                if not team_name or not contact_name:
-                    result['errors'].append({
-                        'row': row_num,
-                        'message': 'Missing required fields: team_name and contact_name are required'
-                    })
-                    continue
-
-                # Check if contact already exists for this team (by team name and contact name)
-                existing_contact = session.query(TeamContact).filter_by(
-                    organization_id=organization_id,
-                    team_name=team_name
-                ).first()
-                
-                # Note: TeamContact constraint is unique on (organization_id, team_name)
-                # So we can only have one contact per team name currently?
-                # Let's check models.py: UniqueConstraint('organization_id', 'team_name')
-                # Yes. So we update if exists.
-                
-                if existing_contact:
-                    if update_existing:
-                        existing_contact.contact_name = contact_name
-                        existing_contact.role = role
-                        existing_contact.email = email
-                        existing_contact.phone = phone
-                        existing_contact.notes = notes
-                        existing_contact.updated_at = datetime.utcnow()
-                        result['updated'] += 1
-                    else:
-                        result['errors'].append({
-                            'row': row_num,
-                            'message': f'Contact for team "{team_name}" already exists. Check "Update existing" to modify.'
-                        })
-                        continue
-                else:
-                    new_contact = TeamContact(
-                        organization_id=organization_id,
-                        team_name=team_name,
-                        contact_name=contact_name,
-                        role=role,
-                        email=email,
-                        phone=phone,
-                        notes=notes,
-                        created_at=datetime.utcnow(),
-                        updated_at=datetime.utcnow()
-                    )
-                    session.add(new_contact)
-                    result['created'] += 1
-
-            except Exception as e:
-                result['errors'].append({
-                    'row': row_num,
-                    'message': f'Error processing row: {str(e)}'
-                })
-                continue
-
-        session.commit()
-
-        if result['errors']:
-            result['success'] = False
-            result['message'] = f'Processed with {len(result["errors"])} errors'
-        else:
-            result['message'] = 'All contacts processed successfully'
-
-    except Exception as e:
-        result['success'] = False
-        result['message'] = f'CSV parsing error: {str(e)}'
-        session.rollback()
-
-    return result
 
 def preview_contact_csv(csv_data, column_mapping):
     """Preview contact CSV data"""
@@ -892,10 +768,22 @@ def handle_paste_import_internal(session, org, managed_team_names, fa_fixture_te
     
     # Determine which parsing succeeded
     used_generic = False
+    used_text_parser = False
+    
     if not parsed_fixtures:
         # Attempt generic parsing of tab-separated lines
         parsed_fixtures = parse_generic_spreadsheet_text(fa_fixture_text)
-        used_generic = True
+        if parsed_fixtures:
+            used_generic = True
+            
+    if not parsed_fixtures:
+        # Attempt intelligent text parsing (including email format)
+        text_parser = TextFixtureParser(managed_team_names)
+        # parse_fa_fixture_text returns a single dict, wrap in list
+        single_fixture = text_parser.parse_fa_fixture_text(fa_fixture_text)
+        if single_fixture:
+            parsed_fixtures = [single_fixture]
+            used_text_parser = True
     
     if not parsed_fixtures:
         flash('No valid fixtures found in the provided text', 'error')
@@ -904,6 +792,15 @@ def handle_paste_import_internal(session, org, managed_team_names, fa_fixture_te
     # Convert to CSV format expected by parse_fixture_text
     if used_generic:
         csv_data = convert_generic_fixtures_to_csv(parsed_fixtures)
+    elif used_text_parser:
+        # Convert single dict to CSV
+        output = io.StringIO()
+        fieldnames = ['team', 'opposition', 'home_away', 'kickoff_time', 'pitch', 'league', 'format', 'task_type']
+        writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction='ignore')
+        writer.writeheader()
+        for f in parsed_fixtures:
+            writer.writerow(f)
+        csv_data = output.getvalue()
     else:
         csv_data = fa_parser.convert_to_standard_format(parsed_fixtures)
     
@@ -1273,28 +1170,60 @@ def import_fixtures():
             organization_id=org.id,
             is_managed=True
         ).all()
+        
+        # Calculate team status data for the header badges
+        team_status_data = []
+        today = datetime.now().date()
+        current_week_start = today - timedelta(days=today.weekday())
+        
+        for team in managed_teams:
+            # Check if all tasks for this team for this week are completed
+            team_tasks = session.query(Task).join(Fixture).filter(
+                Fixture.team_id == team.id,
+                Task.organization_id == org.id,
+                Task.is_archived != True,
+                Fixture.kickoff_datetime >= current_week_start
+            ).all()
+            
+            total_tasks = len(team_tasks)
+            completed_tasks = len([t for t in team_tasks if t.status == 'completed'])
+            
+            overall_status = 'complete' if total_tasks > 0 and total_tasks == completed_tasks else 'pending'
+            if total_tasks == 0:
+                overall_status = 'no_fixtures'
+                
+            team_status_data.append({
+                'team': team,
+                'overall_status': overall_status
+            })
+        
         managed_team_names = [team.name for team in managed_teams]
         
-        pitches = session.query(Pitch).filter_by(organization_id=org.id).all()
+        # Get pitches sorted alphabetically
+        pitches = session.query(Pitch).filter_by(organization_id=org.id).order_by(Pitch.name.asc()).all()
         pitches_dict = {pitch.name: {'name': pitch.name} for pitch in pitches}
         
-        # Generate embeddable URL for Google Sheets preview pane
-        weekly_sheet_url = org.settings.get('weekly_sheet_url') if org.settings else None
-        sheet_embed_url = None
-        if weekly_sheet_url:
-            import re as re_mod
-            sheet_match = re_mod.search(r'/spreadsheets/d/([a-zA-Z0-9_-]+)', weekly_sheet_url)
-            if sheet_match:
-                sheet_id = sheet_match.group(1)
-                sheet_embed_url = f'https://docs.google.com/spreadsheets/d/{sheet_id}/preview'
+        # Get opponent names for autocomplete from TeamContact
+        opponents = session.query(TeamContact.team_name).filter_by(organization_id=org.id).distinct().all()
+        opponent_names = sorted([opp[0] for opp in opponents if opp[0]])
+        
+        # Get next Sunday for default date
+        next_sunday = get_next_sunday().strftime('%Y-%m-%d')
+        
+        # Get pre-fill data from query parameters
+        default_team = request.args.get('team', '')
+        default_home_away = 'Away' if default_team else ''
         
         if request.method == 'GET':
             return render_template('import_fixtures.html',
                                  user_name=current_user.name,
                                  managed_teams=managed_team_names,
+                                 team_status_data=team_status_data,
                                  pitches=pitches_dict,
-                                 weekly_sheet_url=weekly_sheet_url,
-                                 sheet_embed_url=sheet_embed_url)
+                                 opponent_names=opponent_names,
+                                 next_sunday=next_sunday,
+                                 default_team=default_team,
+                                 default_home_away=default_home_away)
         
         # Handle POST - route to appropriate handler based on import_method
         import_method = request.form.get('import_method', 'manual')
@@ -1505,8 +1434,11 @@ def bulk_contact_upload():
     try:
         org = get_user_organization()
         if not org:
-            flash('No organization found.', 'error')
-            return redirect(url_for('auth.logout'))
+            return render_template('bulk_upload.html', 
+                                 upload_type='contacts', 
+                                 user_name=current_user.name,
+                                 managed_teams=[],
+                                 error_message="No organization found. Please contact support.")
 
         if request.method == 'GET':
             return render_template('bulk_upload.html', upload_type='contacts', user_name=current_user.name)
@@ -1544,36 +1476,9 @@ def bulk_contact_upload():
                             # We forward fill all columns to propagate values down merged rows
                             df = df.ffill()
                             
-                            # 2. Filter for "Fixture Secretary"
-                            # We look for a column that might contain roles
-                            role_col = None
-                            for col in df.columns:
-                                if 'role' in str(col).lower() or 'position' in str(col).lower() or 'title' in str(col).lower():
-                                    role_col = col
-                                    break
-                            
-                            # If we found a role column, filter for Fixture Secretary
-                            if role_col:
-                                # Normalize text for comparison
-                                # We look for "Secretary" or "Fixture" to be safe, or exact match?
-                                # User said "extract the fixture secretary".
-                                # Let's try to be smart: if "Fixture Secretary" exists, keep only those.
-                                
-                                # Create a mask for rows that look like fixture secretaries
-                                # We'll be lenient: contains "secretary" AND ("fixture" or "sec")
-                                def is_fixture_sec(val):
-                                    val = str(val).lower()
-                                    return 'secretary' in val and ('fixture' in val or 'fix' in val)
-                                
-                                # Check if any row matches this strict criteria
-                                has_fix_sec = df[role_col].apply(is_fixture_sec).any()
-                                
-                                if has_fix_sec:
-                                    df = df[df[role_col].apply(is_fixture_sec)]
-                                else:
-                                    # Fallback: maybe just "Secretary"?
-                                    if df[role_col].str.contains('Secretary', case=False, na=False).any():
-                                         df = df[df[role_col].str.contains('Secretary', case=False, na=False)]
+                            # 2. Extract useful data
+                            # We keep all rows but ffill to handle merged cells across rows
+                            # Merged cells often represent the team/club name
                             
                             # Add to collection
                             all_data.append(df)
@@ -1668,8 +1573,8 @@ def bulk_contact_upload():
 
     except Exception as e:
         session.rollback()
-        flash(f'Error: {str(e)}', 'error')
-        return redirect(url_for('imports.bulk_contact_upload'))
+        flash(f'Error during contact upload: {str(e)}', 'error')
+        return redirect(url_for('settings.settings_view'))
     finally:
         session.close()
 
@@ -2007,8 +1912,8 @@ def bulk_team_upload():
 
     except Exception as e:
         session.rollback()
-        flash(f'Error: {str(e)}', 'error')
-        return redirect(url_for('imports.bulk_team_upload'))
+        flash(f'Error during team upload: {str(e)}', 'error')
+        return redirect(url_for('settings.settings_view'))
     finally:
         session.close()
 
@@ -2026,12 +1931,18 @@ def process_team_contact_csv(session, organization_id, csv_data, update_existing
             
         # Apply mapping if provided
         if mapping:
-            # Invert mapping to rename columns: {csv_col: db_field} -> rename(columns={csv_col: db_field})
-            # But we need to be careful if multiple csv cols map to same db field (not allowed in UI but possible)
-            df = df.rename(columns=mapping)
+            # We need to map the CSV headers to our internal field names
+            # mapping is {csv_header: our_field}
+            # Rename columns in local DF for easier processing
+            rename_map = {}
+            for csv_col, our_field in mapping.items():
+                if csv_col in df.columns:
+                    rename_map[csv_col] = our_field
             
-        # Normalize columns
-        df.columns = [c.lower().strip() for c in df.columns]
+            df = df.rename(columns=rename_map)
+            
+        # Normalize columns (already handled by rename if mapping provided, but let's be safe)
+        df.columns = [str(c).lower().strip() for c in df.columns]
         
         created_count = 0
         updated_count = 0
@@ -2040,18 +1951,24 @@ def process_team_contact_csv(session, organization_id, csv_data, update_existing
         # Iterate rows
         for index, row in df.iterrows():
             # Skip if not in selected_indices (if provided)
-            if selected_indices is not None and index not in selected_indices:
-                continue
+            # selected_indices is usually list of strings from form, convert to int
+            if selected_indices is not None:
+                str_idx = str(index)
+                int_idx = int(index)
+                if str_idx not in selected_indices and int_idx not in selected_indices:
+                    continue
                 
             try:
-                # Get team name
+                # Get team name - prioritize mapped fields
                 team_name = None
-                if 'team_name' in row:
-                    team_name = str(row['team_name']).strip()
-                elif 'team' in row:
-                    team_name = str(row['team']).strip()
+                for key in ['team_name', 'team', 'club', 'squad']:
+                    if key in row:
+                        val = str(row[key]).strip()
+                        if val and val.lower() != 'nan':
+                            team_name = val
+                            break
                     
-                if not team_name or pd.isna(team_name) or team_name.lower() == 'nan':
+                if not team_name:
                     # Try to find a column that looks like a team name
                     for key in row.keys():
                         if key and ('team' in key.lower() or 'name' in key.lower()):
@@ -2063,21 +1980,6 @@ def process_team_contact_csv(session, organization_id, csv_data, update_existing
                     if not team_name:
                         continue
 
-                # Get or create team
-                team = session.query(Team).filter_by(
-                    organization_id=organization_id, 
-                    name=team_name
-                ).first()
-                
-                if not team:
-                    team = Team(
-                        organization_id=organization_id,
-                        name=team_name,
-                        is_managed=False
-                    )
-                    session.add(team)
-                    session.flush() # Get ID
-                
                 # Get contact details
                 contact_name = row.get('contact_name') or row.get('name') or row.get('contact') or ''
                 email = row.get('email') or row.get('email_address') or ''
@@ -2085,18 +1987,26 @@ def process_team_contact_csv(session, organization_id, csv_data, update_existing
                 role = row.get('role') or row.get('position') or row.get('title') or ''
                 notes = row.get('notes') or row.get('comments') or ''
                 
+                # Check other possible role names if not found
+                if not role:
+                    for key in row.keys():
+                        if any(p in key.lower() for p in ['role', 'pos', 'job', 'title']):
+                             val = str(row[key]).strip()
+                             if val and val.lower() != 'nan':
+                                 role = val
+                                 break
+
                 # Clean up data
-                if pd.isna(contact_name): contact_name = ''
-                if pd.isna(email): email = ''
-                if pd.isna(phone): phone = ''
-                if pd.isna(role): role = ''
-                if pd.isna(notes): notes = ''
-                
-                contact_name = str(contact_name).strip()
-                email = str(email).strip()
-                phone = str(phone).strip()
-                role = str(role).strip()
-                notes = str(notes).strip()
+                def clean(v):
+                    if v is None or pd.isna(v) or str(v).lower() == 'nan':
+                        return ''
+                    return str(v).strip()
+
+                contact_name = clean(contact_name)
+                email = clean(email)
+                phone = clean(phone)
+                role = clean(role)
+                notes = clean(notes)
                 
                 if not contact_name and not email:
                     continue
@@ -2104,26 +2014,46 @@ def process_team_contact_csv(session, organization_id, csv_data, update_existing
                 # Check for existing contact
                 contact = session.query(TeamContact).filter_by(
                     organization_id=organization_id,
-                    team_id=team.id
+                    team_name=team_name
                 ).first()
                 
                 if contact:
                     if update_existing:
-                        contact.contact_name = contact_name or contact.contact_name
-                        contact.email = email or contact.email
-                        contact.phone = phone or contact.phone
-                        contact.role = role or contact.role
-                        contact.notes = notes or contact.notes
+                        # If a different person is being uploaded for the same team,
+                        # combine them by putting the second person in the notes
+                        if contact_name and contact.contact_name and contact_name != contact.contact_name:
+                            new_note = f"Second Contact: {contact_name}"
+                            if role: new_note += f" ({role})"
+                            if email: new_note += f", Email: {email}"
+                            if phone: new_note += f", Phone: {phone}"
+                            
+                            if contact.notes:
+                                if new_note not in contact.notes:
+                                    contact.notes = f"{contact.notes}\n\n{new_note}"
+                            else:
+                                contact.notes = new_note
+                        else:
+                            # Same person or blank existing name, just update fields
+                            contact.contact_name = contact_name or contact.contact_name
+                            contact.email = email or contact.email
+                            contact.phone = phone or contact.phone
+                            contact.role = role or contact.role
+                            if notes and notes not in (contact.notes or ''):
+                                contact.notes = f"{contact.notes}\n{notes}".strip() if contact.notes else notes
+                        
+                        contact.updated_at = datetime.utcnow()
                         updated_count += 1
                 else:
                     contact = TeamContact(
                         organization_id=organization_id,
-                        team_id=team.id,
+                        team_name=team_name,
                         contact_name=contact_name,
                         email=email,
                         phone=phone,
                         role=role,
-                        notes=notes
+                        notes=notes,
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
                     )
                     session.add(contact)
                     created_count += 1
@@ -2141,6 +2071,15 @@ def process_team_contact_csv(session, organization_id, csv_data, update_existing
             'created': created_count,
             'updated': updated_count,
             'errors': errors
+        }
+    except Exception as e:
+        session.rollback()
+        return {
+            'success': False,
+            'message': str(e),
+            'created': 0,
+            'updated': 0,
+            'errors': []
         }
         
     except Exception as e:

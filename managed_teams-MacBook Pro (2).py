@@ -26,7 +26,7 @@ MANAGED_TEAMS = [
     "U16 Red",
     "U16 Black",
     "U17 Red",
-    "U17 Brighton Electricty",  # Note: keeping original spelling as provided
+    "U17 Brighton Electricty",  # Keeping original spelling (Electricty)
     "U18 Brighton Electricity",
     
     # Girls Teams
@@ -39,7 +39,9 @@ MANAGED_TEAMS = [
     "U13 Girls Red",
     "U13 Girls Blue",
     "U14 Girls Blue",
-    "U15 Girls Red"
+    "U15 Girls Red",
+    "U15 Girls White",
+    "U16 Girls Red"
 ]
 
 def get_managed_teams():

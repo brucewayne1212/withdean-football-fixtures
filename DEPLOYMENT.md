@@ -21,7 +21,7 @@ Create `env_vars.yaml` with your credentials:
 
 ```yaml
 env_variables:
-  DATABASE_URL: "postgresql://neondb_owner:npg_V1zDyIcxCOv9@ep-falling-shape-abr14uib-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+  DATABASE_URL: "postgresql://user:password@your-host/your-db?sslmode=require"
   SECRET_KEY: "your-secret-key-from-local-env"
   GOOGLE_OAUTH_CLIENT_ID: "your-client-id.apps.googleusercontent.com"
   GOOGLE_OAUTH_CLIENT_SECRET: "your-client-secret"

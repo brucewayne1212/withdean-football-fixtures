@@ -18,7 +18,7 @@
 
 **Before:**
 ```python
-DATABASE_URL = "postgresql://neondb_owner:npg_V1zDyIcxCOv9@ep-falling-shape-abr14uib-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require"
+DATABASE_URL = "postgresql://user:password@your-host/your-db?sslmode=require"
 ```
 
 **After:**

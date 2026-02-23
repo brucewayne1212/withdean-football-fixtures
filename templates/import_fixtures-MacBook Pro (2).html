@@ -10,7 +10,23 @@
                 <i class="fas fa-upload text-danger"></i> Import Fixtures
             </h1>
         </div>
-        <p class="text-muted">Choose a method to import fixtures into the system</p>
+        <p class="text-muted mb-2">Choose a method to import fixtures into the system</p>
+
+        <!-- Team Status Badges -->
+        <div class="mb-4" id="team-status-badges">
+            <small class="text-muted me-1">Managing:</small>
+            {% for item in team_status_data %}
+            <a href="{{ url_for('imports.import_fixtures', method='manual', team=item.team.name) }}"
+                class="text-decoration-none" title="Click to add an away fixture">
+                <span class="badge bg-light text-dark border me-1 team-status-badge"
+                    data-team-name="{{ item.team.name }}" style="cursor: pointer;">
+                    {{ item.team.name }}
+                    <i class="fas fa-check text-success ms-1 completion-tick {% if item.overall_status != 'complete' %}d-none{% endif %}"
+                        style="font-size: 0.8em;"></i>
+                </span>
+            </a>
+            {% endfor %}
+        </div>
     </div>
 </div>
 
@@ -44,32 +60,6 @@
     </li>
 </ul>
 
-<!-- Google Sheet Preview Pane -->
-{% if sheet_embed_url %}
-<div class="card mb-3 shadow-sm" id="sheetPreviewCard">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center py-2" style="cursor: pointer;"
-        onclick="toggleSheetPreview()">
-        <div>
-            <i class="fas fa-table text-success me-2"></i>
-            <span class="fw-bold">Weekly Fixture Sheet</span>
-            <small class="text-muted ms-2">Reference your Google Sheet while adding fixtures</small>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <a href="{{ weekly_sheet_url }}" target="_blank" class="btn btn-sm btn-outline-secondary"
-                onclick="event.stopPropagation();" title="Open in new tab">
-                <i class="fas fa-external-link-alt"></i>
-            </a>
-            <i class="fas fa-chevron-down" id="sheetPreviewToggleIcon" style="transition: transform 0.3s;"></i>
-        </div>
-    </div>
-    <div id="sheetPreviewBody" style="display: none; overflow: hidden; transition: max-height 0.4s ease;">
-        <div class="card-body p-0">
-            <iframe id="sheetPreviewFrame" style="width: 100%; height: 450px; border: none;"></iframe>
-        </div>
-    </div>
-</div>
-{% endif %}
-
 <!-- Tab Content -->
 <div class="tab-content" id="importTabContent">
 
@@ -90,14 +80,20 @@
                             <select class="form-control" id="manual_team" name="manual_team" required>
                                 <option value="">Select a team...</option>
                                 {% for team in managed_teams %}
-                                <option value="{{ team }}">{{ team }}</option>
+                                <option value="{{ team }}" {% if team==default_team %}selected{% endif %}>{{ team }}
+                                </option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="manual_opposition" class="form-label">Opposition *</label>
                             <input type="text" class="form-control" id="manual_opposition" name="manual_opposition"
-                                required>
+                                required list="opponent_list" autocomplete="off">
+                            <datalist id="opponent_list">
+                                {% for opp in opponent_names %}
+                                <option value="{{ opp }}">
+                                    {% endfor %}
+                            </datalist>
                         </div>
                     </div>
 
@@ -106,13 +102,14 @@
                             <label for="manual_home_away" class="form-label">Home/Away *</label>
                             <select class="form-control" id="manual_home_away" name="manual_home_away" required>
                                 <option value="">Select...</option>
-                                <option value="Home">Home</option>
-                                <option value="Away">Away</option>
+                                <option value="Home" {% if default_home_away=='Home' %}selected{% endif %}>Home</option>
+                                <option value="Away" {% if default_home_away=='Away' %}selected{% endif %}>Away</option>
                             </select>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label for="manual_date" class="form-label">Date *</label>
-                            <input type="date" class="form-control" id="manual_date" name="manual_date" required>
+                            <input type="date" class="form-control" id="manual_date" name="manual_date"
+                                value="{{ next_sunday }}" required>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label for="manual_time" class="form-label">Kick-off Time</label>
@@ -350,9 +347,6 @@
 
         fetch('/import-fixtures', {
             method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token() }}'
-            },
             body: formData
         })
             .then(response => {
@@ -396,37 +390,5 @@
                 importBtn.innerHTML = '<i class="fas fa-sync"></i> Import from URL';
             });
     }
-    // Google Sheet Preview Pane Toggle
-    function toggleSheetPreview() {
-        const body = document.getElementById('sheetPreviewBody');
-        const icon = document.getElementById('sheetPreviewToggleIcon');
-        const frame = document.getElementById('sheetPreviewFrame');
-
-        if (!body) return;
-
-        const isVisible = body.style.display !== 'none';
-
-        if (isVisible) {
-            body.style.display = 'none';
-            icon.style.transform = 'rotate(0deg)';
-            localStorage.setItem('sheetPreviewExpanded', 'false');
-        } else {
-            body.style.display = 'block';
-            icon.style.transform = 'rotate(180deg)';
-            localStorage.setItem('sheetPreviewExpanded', 'true');
-            // Lazy-load iframe only when first expanded
-            if (!frame.src || frame.src === 'about:blank' || frame.src === window.location.href) {
-                frame.src = '{{ sheet_embed_url | default("", true) }}';
-            }
-        }
-    }
-
-    // Restore sheet preview state on page load
-    document.addEventListener('DOMContentLoaded', function () {
-        const sheetExpanded = localStorage.getItem('sheetPreviewExpanded') === 'true';
-        if (sheetExpanded && document.getElementById('sheetPreviewBody')) {
-            toggleSheetPreview();
-        }
-    });
 </script>
 {% endblock %}

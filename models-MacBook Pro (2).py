@@ -104,6 +104,7 @@ class Team(Base):
     away_shirt = Column(String(255))
     away_shorts = Column(String(255))
     away_socks = Column(String(255))
+    # League and Division fields
     league = Column(String(255))
     division = Column(String(255))
     # FA Full-Time fixtures URL
@@ -321,8 +322,7 @@ class EmailTemplate(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     __table_args__ = (
-        UniqueConstraint('organization_id', 'template_type'),
-        CheckConstraint("template_type IN ('default', 'home_fixture')", name='check_template_type'),
+        UniqueConstraint('organization_id', 'name'),
     )
     
     # Relationships

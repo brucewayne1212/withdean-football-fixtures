@@ -50,6 +50,7 @@ CREATE TABLE teams (
     league VARCHAR(255),
     division VARCHAR(255),
     is_managed BOOLEAN DEFAULT false, -- Whether this org manages this team
+    fa_fixtures_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(organization_id, name)

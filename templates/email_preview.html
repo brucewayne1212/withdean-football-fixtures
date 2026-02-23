@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Email Preview - {{ task.team }} vs {{ task.opposition }}{% endblock %}
+{% block title %}Email Preview - {{ team_name or task.team }} vs {{ opposition_name or task.opposition or 'TBC' }}{%
+endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-12">
         <h1 class="mb-4">
             <i class="fas fa-envelope text-danger"></i>
-            Email Preview: {{ task.team }} vs {{ task.opposition if task.opposition and task.opposition != 'nan' else
-            'TBC' }}
+            Email Preview: {{ team_name or task.team }} vs {{ opposition_name or task.opposition or 'TBC' }}
         </h1>
     </div>
 </div>
@@ -117,6 +117,19 @@
                         <label for="team" class="form-label small">Team:</label>
                         <input type="text" class="form-control form-control-sm" id="team" name="team"
                             value="{{ task.team }}" readonly>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label for="league" class="form-label small">League:</label>
+                            <input type="text" class="form-control form-control-sm" id="league" name="league"
+                                value="{{ task.league }}" readonly>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="division" class="form-label small">Division:</label>
+                            <input type="text" class="form-control form-control-sm" id="division" name="division"
+                                value="{{ task.division }}" readonly>
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -306,14 +319,16 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
             },
             body: JSON.stringify(data)
         })
-            .then(response => {
+            .then(async response => {
+                const data = await response.json();
                 if (!response.ok) {
-                    throw new Error('Network response was not ok');
+                    throw new Error(data.error || 'Network response was not ok');
                 }
-                return response.json();
+                return data;
             })
             .then(data => {
                 if (data.success) {
@@ -436,9 +451,59 @@
         }
 
         // Check if we have contact data for this team
-        const teamContacts = {{ team_contacts| tojson
+        const teamContacts = {{ team_contacts | tojson
     }};
-    const contact = teamContacts[oppositionName];
+
+    // Helper to normalize
+    const normalize = (val) => val ? val.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').trim() : '';
+    const normalizedTarget = normalize(oppositionName);
+
+    if (!normalizedTarget) {
+        contactDiv.innerHTML = '<p class="small text-muted">No opposition team selected.</p>';
+        return;
+    }
+
+    // Fuzzy matching logic
+    const ignoreWords = new Set(['fc', 'youth', 'united', 'united fc', 'junior', 'juniors', 'town', 'city', 'athletic', 'rovers', 'wanderers', 'albion', 'club']);
+    const targetTokens = normalizedTarget.split(/\s+/);
+    const uniqueTargetTokens = targetTokens.filter(t => !ignoreWords.has(t));
+    const finalUniqueTargetTokens = uniqueTargetTokens.length > 0 ? uniqueTargetTokens : targetTokens;
+
+    let bestMatchKey = null;
+    let bestScore = 0;
+
+    for (const teamName in teamContacts) {
+        const normalizedContact = normalize(teamName);
+        if (!normalizedContact) continue;
+
+        if (normalizedContact === normalizedTarget) {
+            bestMatchKey = teamName;
+            break;
+        }
+
+        let score = 0;
+        if (normalizedContact.includes(normalizedTarget) || normalizedTarget.includes(normalizedContact)) {
+            score = 100 + Math.max(normalizedContact.length, normalizedTarget.length);
+        }
+
+        const contactTokens = normalizedContact.split(/\s+/);
+        const uniqueContactTokens = contactTokens.filter(t => !ignoreWords.has(t));
+
+        const matches = uniqueTargetTokens.filter(t => uniqueContactTokens.includes(t));
+        if (matches.length > 0) {
+            score += matches.length * 50;
+        }
+
+        const allMatches = targetTokens.filter(t => contactTokens.includes(t));
+        score += allMatches.length;
+
+        if (score > bestScore) {
+            bestMatchKey = teamName;
+            bestScore = score;
+        }
+    }
+
+    const contact = bestMatchKey ? teamContacts[bestMatchKey] : null;
 
     if (contact) {
         const contactName = contact.contact_name || '';
@@ -450,21 +515,21 @@
         if (phone) contactInfo += ((contactName || email) ? ' • ' : '') + phone;
 
         contactDiv.innerHTML = `
-            <div class="contact-item border rounded p-2 mb-2" style="cursor: pointer;"
-                 onclick="copyContactToClipboard('${contactName} <${email}>')"
-                 title="Click to copy contact">
-                <div class="small">
-                    <strong>${oppositionName}</strong>
+                <div class="contact-item border rounded p-2 mb-2" style="cursor: pointer;"
+                     onclick="copyContactToClipboard('${contactName} <${email}>')"
+                     title="Click to copy contact">
+                    <div class="small">
+                        <strong>${bestMatchKey}</strong>
+                    </div>
+                    <div class="small text-muted">
+                        ${contactInfo}
+                    </div>
                 </div>
-                <div class="small text-muted">
-                    ${contactInfo}
-                </div>
-            </div>
-        `;
+            `;
     } else {
         contactDiv.innerHTML = `
-            <p class="small text-muted">No contact details for ${oppositionName}. <a href="/settings#contacts" target="_blank">Add contacts</a> | <a href="/settings">Settings</a>.</p>
-        `;
+                <p class="small text-muted">No contact details for ${oppositionName}. <a href="/settings#contacts" target="_blank">Add contacts</a> | <a href="/settings">Settings</a>.</p>
+            `;
     }
 }
 
@@ -728,6 +793,7 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
             },
             body: JSON.stringify({ notes: notes })
         })
